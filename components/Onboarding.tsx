@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Avatar } from '../types';
-import { signUp, signIn, type AuthUser } from '../src/auth';
-import { supabase, testSupabaseConnection } from '../src/supabase';
+import { signUp, signIn, getCurrentUser, onAuthStateChange, type InstantUser } from '../src/instantAuth';
+import { testInstantDB } from '../src/instantAuth';
 
 interface OnboardingProps {
-  onComplete: (user: AuthUser) => void;
+  onComplete: (user: InstantUser) => void;
 }
 
 const AVATARS: Avatar[] = ['🎬', '🍿', '🏆', '🎭', '🎥', '✨', '🌟', '📺'];
@@ -32,9 +32,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Test Supabase connection on component mount
+  // Test Instant DB connection on component mount
   useEffect(() => {
-    testSupabaseConnection();
+    testInstantDB();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,35 +43,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setLoading(true);
     setError('');
     
-    // First test basic connectivity
-    try {
-      const connectionTest = await testSupabaseConnection();
-      if (!connectionTest.success) {
-        console.log('Connection test failed, but continuing...');
-        // Don't block user - let them try real auth or use demo mode
-      }
-    } catch (testErr) {
-      console.log('Connection test error, but continuing...', testErr);
-      // Don't block user - let them try real auth or use demo mode
-    }
-    
     try {
       if (isLogin) {
-        // Login
-        console.log('Attempting login...');
-        const { user, error } = await signIn(email.trim(), password);
-        console.log('Login result:', { user, error });
+        // Login with Instant DB
+        console.log('Attempting Instant DB login...');
+        const { user, error } = await signIn(email.trim());
+        console.log('Instant DB login result:', { user, error });
         if (error) throw error;
-        if (user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (profile) onComplete(profile);
-        }
+        if (user) onComplete(user);
       } else {
-        // Sign up
+        // Sign up with Instant DB
         if (!name.trim()) {
           setError('Display name is required');
           setLoading(false);
@@ -84,60 +65,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           return;
         }
         
-        if (!password) {
-          setError('Password is required');
-          setLoading(false);
-          return;
-        }
-        
-        console.log('Attempting signup...');
+        console.log('Attempting Instant DB signup...');
         const { user, error } = await signUp(
           email.trim(),
-          password,
           name.trim(),
           selectedAvatar
         );
-        console.log('Signup result:', { user, error });
+        console.log('Instant DB signup result:', { user, error });
         
         if (error) throw error;
-        if (user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (profile) onComplete(profile);
-        }
+        if (user) onComplete(user);
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.error('Instant DB auth error:', err);
       let errorMessage = 'Authentication failed. Please try again.';
       
-      // Handle specific network errors
-      if (err.name === 'AuthRetryableFetchError' || err.status === 0) {
-        errorMessage = 'Network connection failed. Please check your internet connection and try again.';
-      } else if (err.code) {
-        switch (err.code) {
-          case '23505': // Unique constraint violation
-            errorMessage = 'A user with this email or username already exists.';
-            break;
-          case 'auth/email-already-in-use':
-            errorMessage = 'This email is already registered. Please log in instead.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Please enter a valid email address.';
-            break;
-          case 'auth/weak-password':
-            errorMessage = 'Password should be at least 6 characters long.';
-            break;
-          case 'auth/invalid-credentials':
-            errorMessage = 'Invalid email or password. Please try again.';
-            break;
-          default:
-            errorMessage = err.message || errorMessage;
-        }
-      } else {
-        errorMessage = err.message || errorMessage;
+      if (err.message) {
+        errorMessage = err.message;
       }
       setError(errorMessage);
     } finally {
@@ -155,7 +99,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       created_at: new Date().toISOString()
     };
     console.log('Demo mode activated with user:', demoUser);
-    onComplete(demoUser as AuthUser);
+    onComplete(demoUser);
   };
 
   return (
