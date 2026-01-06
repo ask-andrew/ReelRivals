@@ -212,7 +212,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             console.log('Submit button clicked');
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/40 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl shadow-inner" />
           {loading && <Loader2 className="animate-spin z-10" size={20} />}
           <span className="z-10 text-lg">{loading ? 'PROCESSING...' : (isLogin ? '🔓 UNLOCK ACCOUNT' : '🎬 ENTER THE CIRCUIT')}</span>
           {!loading && <motion.div
