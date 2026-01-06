@@ -373,44 +373,110 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
       {/* Actions */}
       <div className="p-6 border-t border-white/10">
-        <div className="flex space-x-4">
-          <button
-            onClick={handleBack}
-            disabled={currentCategoryIndex === 0}
-            className="flex-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
-          >
-            <ChevronLeft size={20} />
-            <span>Back</span>
-          </button>
-          
-          <button
-            onClick={() => handleConfirmPick(false)}
-            disabled={!selectedNomineeId || saving}
-            className="flex-1 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="animate-spin" size={20} />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                <span>{currentCategoryIndex === categories.length - 1 ? 'Complete Ballot' : 'Next'}</span>
-              </>
-            )}
-          </button>
-          
-          {powerPicksLeft > 0 && (
-            <button
-              onClick={() => handleConfirmPick(true)}
-              disabled={!selectedNomineeId || saving}
-              className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-black font-bold px-6 py-3 rounded-xl transition-all flex items-center space-x-2"
-            >
-              <Zap size={20} />
-              <span>Power Pick</span>
-            </button>
+        <div className="flex flex-col space-y-3">
+          {/* Show power pick status if pick exists for this category */}
+          {picks[category.id] && (
+            <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-center space-x-2">
+                <Zap 
+                  className={picks[category.id].isPowerPick ? "text-yellow-500" : "text-gray-500"} 
+                  size={20} 
+                  fill={picks[category.id].isPowerPick ? "currentColor" : "none"}
+                />
+                <span className="text-sm font-medium">
+                  {picks[category.id].isPowerPick ? "Power Pick Active" : "Regular Pick"}
+                </span>
+              </div>
+              <button
+                onClick={async () => {
+                  const currentPick = picks[category.id];
+                  const newIsPower = !currentPick.isPowerPick;
+                  
+                  // Check if we're trying to add a power pick but have none left
+                  if (newIsPower && powerPicksLeft <= 0) {
+                    alert("No power picks remaining!");
+                    return;
+                  }
+                  
+                  setSaving(true);
+                  try {
+                    // Save the pick with toggled power pick status
+                    const result = await saveBallotPick(
+                      userId,
+                      'golden-globes-2026',
+                      leagueId,
+                      category.id,
+                      currentPick.nomineeId,
+                      newIsPower
+                    );
+                    
+                    if (result.error) throw result.error;
+                    
+                    // Update local state
+                    setPicks({
+                      ...picks,
+                      [category.id]: {
+                        ...currentPick,
+                        isPowerPick: newIsPower
+                      }
+                    });
+                    
+                    // Update power picks count
+                    setPowerPicksLeft(prev => newIsPower ? prev - 1 : prev + 1);
+                  } catch (e) {
+                    console.error("Failed to toggle power pick", e);
+                    alert("Failed to update power pick status. Please try again.");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving || (!picks[category.id].isPowerPick && powerPicksLeft <= 0)}
+                className="text-xs font-bold text-yellow-500 hover:text-yellow-400 disabled:opacity-30 transition-colors underline"
+              >
+                {picks[category.id].isPowerPick ? "Remove Power" : "Make Power Pick"}
+              </button>
+            </div>
           )}
+
+          <div className="flex space-x-4">
+            <button
+              onClick={handleBack}
+              disabled={currentCategoryIndex === 0}
+              className="flex-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
+            >
+              <ChevronLeft size={20} />
+              <span>Back</span>
+            </button>
+            
+            <button
+              onClick={() => handleConfirmPick(false)}
+              disabled={!selectedNomineeId || saving}
+              className="flex-1 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={20} />
+                  <span>{currentCategoryIndex === categories.length - 1 ? 'Complete Ballot' : 'Next'}</span>
+                </>
+              )}
+            </button>
+            
+            {powerPicksLeft > 0 && !picks[category.id] && (
+              <button
+                onClick={() => handleConfirmPick(true)}
+                disabled={!selectedNomineeId || saving}
+                className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-black font-bold px-6 py-3 rounded-xl transition-all flex items-center space-x-2"
+              >
+                <Zap size={20} />
+                <span>Power Pick</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
