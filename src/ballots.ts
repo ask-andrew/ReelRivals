@@ -154,3 +154,51 @@ export async function getEvent(eventId: string): Promise<{ event: Database['publ
     return { event: null, error }
   }
 }
+
+export async function getBallot(ballotId: string): Promise<{ ballot: Ballot | null, error: any }> {
+  try {
+    const { data, error } = await supabase
+      .from('ballots')
+      .select(`
+        *,
+        picks (
+          id,
+          category_id,
+          nominee_id,
+          is_power_pick
+        )
+      `)
+      .eq('id', ballotId)
+      .single()
+
+    if (error) throw error
+
+    return { ballot: data, error: null }
+  } catch (error) {
+    return { ballot: null, error }
+  }
+}
+
+export async function getBallotsByLeague(leagueId: string, eventId: string): Promise<{ ballots: Ballot[], error: any }> {
+  try {
+    const { data, error } = await supabase
+      .from('ballots')
+      .select(`
+        *,
+        picks (
+          id,
+          category_id,
+          nominee_id,
+          is_power_pick
+        )
+      `)
+      .eq('league_id', leagueId)
+      .eq('event_id', eventId)
+
+    if (error) throw error
+
+    return { ballots: data || [], error: null }
+  } catch (error) {
+    return { ballots: [], error }
+  }
+}

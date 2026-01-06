@@ -10,7 +10,7 @@ interface BallotSwiperProps {
   leagueId: string;
 }
 
-const BallotSwiper: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagueId }) => {
+const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagueId }) => {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [selectedNomineeId, setSelectedNomineeId] = useState<string | null>(null);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
@@ -235,4 +235,4 @@ const BallotSwiper: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagueI
   );
 };
 
-export default BallotSwiper;
+export default BallotSwiperDB;

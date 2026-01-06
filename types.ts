@@ -3,8 +3,8 @@ export type Avatar = '🎬' | '🍿' | '🏆' | '🎭' | '🎥' | '✨' | '🌟'
 
 export interface User {
   id: string;
-  displayName: string;
-  avatar: Avatar;
+  username: string;
+  avatar_emoji: string;
   totalScore: number;
   email?: string; // Optional for future notifications
 }
@@ -12,7 +12,6 @@ export interface User {
 export interface Nominee {
   id: string;
   name: string;
-  work: string;
   image?: string;
   odds?: string;
 }
@@ -21,7 +20,6 @@ export interface Category {
   id: string;
   name: string;
   basePoints: number;
-  powerPoints: number;
   nominees: Nominee[];
   winnerId?: string;
 }

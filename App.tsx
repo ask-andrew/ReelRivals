@@ -2,20 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import Onboarding from './components/Onboarding';
 import Layout from './components/Layout';
-import BallotSwiper from './components/BallotSwiper';
 import BallotSwiperDB from './components/BallotSwiperDB';
-import LiveCeremony from './components/LiveCeremony';
-import ActivityFeed from './components/ActivityFeed';
-import AdminPanel from './components/AdminPanel';
-import ShareModal from './components/ShareModal';
 import LiveScoring from './components/LiveScoring';
-import { Trophy, Award, Zap, Users, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
+import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
-import { CATEGORIES, MOCK_LEAGUE_MEMBERS, SEASON_CIRCUIT } from './constants';
-import { getTrashTalk } from './geminiService';
+import { CATEGORIES, SEASON_CIRCUIT } from './constants';
 import { getCurrentUser, onAuthStateChange, type AuthUser } from './src/auth';
 import { supabase } from './src/supabase';
-import { createLeague } from './src/leagues';
+import StandingsSnippet from './components/StandingsSnippet';
+import { getOrCreateDefaultLeague } from './src/leagues';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -27,34 +22,21 @@ const App: React.FC = () => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
-    // Check for existing user session
-    const checkUser = async () => {
-      const currentUser = await getCurrentUser();
+    const handleUserSession = async (currentUser: AuthUser | null) => {
       setUser(currentUser);
-      
-      // Create a default league for the user if they don't have one
       if (currentUser) {
-        const { league, error } = await createLeague('Default League', currentUser.id);
+        const { league, error } = await getOrCreateDefaultLeague(currentUser.id);
         if (!error && league) {
           setUserLeagueId(league.id);
         }
       }
     };
 
-    checkUser();
+    // Check for existing user session
+    getCurrentUser().then(handleUserSession);
 
     // Set up auth state listener
-    const subscription = onAuthStateChange(async (authUser) => {
-      setUser(authUser);
-      
-      // Create a default league for the user if they don't have one
-      if (authUser) {
-        const { league, error } = await createLeague('Default League', authUser.id);
-        if (!error && league) {
-          setUserLeagueId(league.id);
-        }
-      }
-    });
+    const subscription = onAuthStateChange(handleUserSession);
 
     return () => {
       subscription.then(sub => sub.unsubscribe());
@@ -206,28 +188,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Standings Snippet */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center px-1">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Season Standings</h3>
-            <button onClick={() => setActiveTab('leagues')} className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">View League</button>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            {MOCK_LEAGUE_MEMBERS.map((member, idx) => (
-              <div key={member.id} className={`flex items-center justify-between px-6 py-4 ${idx !== MOCK_LEAGUE_MEMBERS.length - 1 ? 'border-b border-white/5' : ''}`}>
-                <div className="flex items-center space-x-4">
-                  <span className="text-xs font-bold text-gray-500 w-4">{idx + 1}</span>
-                  <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-sm">{member.avatar}</div>
-                  <span className="text-sm font-bold">{member.displayName}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-yellow-500 block">{member.totalScore}</span>
-                  <span className="text-[8px] text-gray-500 uppercase font-black">Season Pts</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} />
 
         <ActivityFeed activities={activities} />
         

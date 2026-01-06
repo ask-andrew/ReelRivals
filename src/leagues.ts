@@ -139,3 +139,21 @@ export async function leaveLeague(leagueId: string, userId: string) {
     return { error }
   }
 }
+
+export async function getOrCreateDefaultLeague(userId: string) {
+  try {
+    const { leagues, error: getLeaguesError } = await getUserLeagues(userId);
+    if (getLeaguesError) throw getLeaguesError;
+
+    if (leagues.length > 0) {
+      return { league: leagues[0], error: null };
+    }
+
+    const { league, error: createLeagueError } = await createLeague('Default League', userId);
+    if (createLeagueError) throw createLeagueError;
+
+    return { league, error: null };
+  } catch (error) {
+    return { league: null, error };
+  }
+}
