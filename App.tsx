@@ -7,6 +7,8 @@ import BallotSwiperDB from './components/BallotSwiperDB';
 import LiveCeremony from './components/LiveCeremony';
 import ActivityFeed from './components/ActivityFeed';
 import AdminPanel from './components/AdminPanel';
+import ShareModal from './components/ShareModal';
+import LiveScoring from './components/LiveScoring';
 import { Trophy, Award, Zap, Users, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, MOCK_LEAGUE_MEMBERS, SEASON_CIRCUIT } from './constants';
@@ -22,6 +24,7 @@ const App: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isBallotComplete, setIsBallotComplete] = useState(false);
   const [userLeagueId, setUserLeagueId] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     // Check for existing user session
@@ -229,7 +232,10 @@ const App: React.FC = () => {
         <ActivityFeed activities={activities} />
         
         <div className="flex justify-center pb-8">
-          <button className="flex items-center space-x-2 text-yellow-500/60 hover:text-yellow-500 transition-colors">
+          <button 
+            onClick={() => setShareModalOpen(true)}
+            className="flex items-center space-x-2 text-yellow-500/60 hover:text-yellow-500 transition-colors"
+          >
             <Share2 size={16} />
             <span className="text-xs font-bold uppercase tracking-widest">Invite to League</span>
           </button>
