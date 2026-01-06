@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base styles */
 body {
     font-family: 'Inter', sans-serif;
     background-color: #050505;
