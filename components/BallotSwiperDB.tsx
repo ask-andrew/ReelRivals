@@ -158,7 +158,8 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     );
   }
 
-  if (!category && viewMode === 'edit') {
+  // Check if we have categories loaded
+  if (categories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
         <p className="text-gray-400">No categories found</p>
@@ -280,6 +281,15 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   }
 
   // ===== EDIT MODE UI (existing code) =====
+  // Safety check: ensure current category exists
+  if (!category) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <p className="text-gray-400">Loading category...</p>
+      </div>
+    );
+  }
+
   const progress = ((currentCategoryIndex + 1) / categories.length) * 100;
 
   return (
