@@ -47,16 +47,6 @@ const App: React.FC = () => {
     initSession();
   }, []);
 
-  useEffect(() => {
-    // Generate some initial activities
-    const initialActivities: Activity[] = [
-      { id: '1', userId: 'emily', userName: 'EmilyOscar', message: "Emily just locked in her Best Picture pick! 🔥", timestamp: Date.now(), type: 'pick' },
-      { id: '2', userId: 'jake', userName: 'JakeFromStateFarm', message: "Jake used a Power Pick on Best Actor 🍿", timestamp: Date.now() - 50000, type: 'power' },
-      { id: '3', userId: 'sarah', userName: 'SarahScreens', message: "Sarah joined the league 'Globes Crew'", timestamp: Date.now() - 100000, type: 'join' },
-    ];
-    setActivities(initialActivities);
-  }, []);
-
   const handleOnboardingComplete = (newUser: InstantUser) => {
     setUser(newUser);
   };
@@ -71,12 +61,12 @@ const App: React.FC = () => {
     setIsBallotComplete(true);
     setActiveTab('home');
 
-    // Add activity
+    // Add real activity for this user
     const newActivity: Activity = {
       id: Math.random().toString(),
       userId: user?.id || '',
       userName: user?.username || '',
-      message: "You just completed your ballot! Let's go! 🏆",
+      message: `${user?.username} just completed their ballot! Let's go! 🏆`,
       timestamp: Date.now(),
       type: 'pick'
     };
