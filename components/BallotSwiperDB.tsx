@@ -376,16 +376,29 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
         <div className="flex flex-col space-y-3">
           {/* Show power pick status if pick exists for this category */}
           {picks[category.id] && (
-            <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-              <div className="flex items-center space-x-2">
-                <Zap 
-                  className={picks[category.id].isPowerPick ? "text-yellow-500" : "text-gray-500"} 
-                  size={20} 
-                  fill={picks[category.id].isPowerPick ? "currentColor" : "none"}
-                />
-                <span className="text-sm font-medium">
-                  {picks[category.id].isPowerPick ? "Power Pick Active" : "Regular Pick"}
-                </span>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-xl border-2 border-yellow-500/30">
+              <div className="flex items-center space-x-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  picks[category.id].isPowerPick 
+                    ? 'bg-yellow-500/20 border-2 border-yellow-500' 
+                    : 'bg-white/5 border-2 border-gray-600'
+                }`}>
+                  <Zap 
+                    className={picks[category.id].isPowerPick ? "text-yellow-500" : "text-gray-500"} 
+                    size={20} 
+                    fill={picks[category.id].isPowerPick ? "currentColor" : "none"}
+                  />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">
+                    {picks[category.id].isPowerPick ? "⚡ Power Pick Active" : "Regular Pick"}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {picks[category.id].isPowerPick 
+                      ? "Worth 2x points" 
+                      : powerPicksLeft > 0 ? "Upgrade to power pick" : "No power picks left"}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={async () => {
@@ -400,6 +413,8 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                   
                   setSaving(true);
                   try {
+                    console.log('Toggling power pick:', { categoryId: category.id, nomineeId: currentPick.nomineeId, newIsPower });
+                    
                     // Save the pick with toggled power pick status
                     const result = await saveBallotPick(
                       userId,
@@ -410,7 +425,12 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                       newIsPower
                     );
                     
-                    if (result.error) throw result.error;
+                    if (result.error) {
+                      console.error('Toggle error:', result.error);
+                      throw result.error;
+                    }
+                    
+                    console.log('Toggle successful');
                     
                     // Update local state
                     setPicks({
@@ -424,16 +444,26 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                     // Update power picks count
                     setPowerPicksLeft(prev => newIsPower ? prev - 1 : prev + 1);
                   } catch (e) {
-                    console.error("Failed to toggle power pick", e);
+                    console.error("Failed to toggle power pick:", e);
                     alert("Failed to update power pick status. Please try again.");
                   } finally {
                     setSaving(false);
                   }
                 }}
                 disabled={saving || (!picks[category.id].isPowerPick && powerPicksLeft <= 0)}
-                className="text-xs font-bold text-yellow-500 hover:text-yellow-400 disabled:opacity-30 transition-colors underline"
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                  picks[category.id].isPowerPick
+                    ? 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                    : 'bg-yellow-600 hover:bg-yellow-500 text-black'
+                } disabled:opacity-30 disabled:cursor-not-allowed`}
               >
-                {picks[category.id].isPowerPick ? "Remove Power" : "Make Power Pick"}
+                {saving ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : picks[category.id].isPowerPick ? (
+                  "Remove Power"
+                ) : (
+                  "⚡ Make Power"
+                )}
               </button>
             </div>
           )}
