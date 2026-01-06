@@ -251,7 +251,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
           {allComplete ? (
             <button
               onClick={() => onComplete(picks)}
-              className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-primary/30 hover:shadow-primary/50 transform hover:scale-105"
             >
               <Check size={24} />
               <span>Submit Final Ballot</span>
