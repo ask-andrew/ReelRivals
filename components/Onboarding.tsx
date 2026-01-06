@@ -3,25 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Avatar } from '../types';
-import { signUp, signIn, getCurrentUser, onAuthStateChange, type InstantUser } from '../src/instantAuth';
-import { testInstantDB } from '../src/instantAuth';
+import { signUp, signIn, testInstantDB, type InstantUser } from '../src/instantService';
 
 interface OnboardingProps {
   onComplete: (user: InstantUser) => void;
 }
 
 const AVATARS: Avatar[] = ['🎬', '🍿', '🏆', '🎭', '🎥', '✨', '🌟', '📺'];
-
-const AVATAR_COLORS = {
-  '🎬': 'from-blue-500 to-cyan-500',
-  '🍿': 'from-red-500 to-orange-500', 
-  '🏆': 'from-yellow-500 to-amber-500',
-  '🎭': 'from-purple-500 to-pink-500',
-  '🎥': 'from-green-500 to-emerald-500',
-  '✨': 'from-indigo-500 to-purple-500',
-  '🌟': 'from-pink-500 to-rose-500',
-  '📺': 'from-gray-500 to-slate-500'
-};
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
@@ -34,25 +22,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   // Test Instant DB connection on component mount
   useEffect(() => {
-    testInstantDB();
+    // testInstantDB(); // Optional now
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted', { isLogin, email: email.trim(), name: name.trim(), selectedAvatar });
     setLoading(true);
     setError('');
     
     try {
       if (isLogin) {
-        // Login with Instant DB
-        console.log('Attempting Instant DB login...');
         const { user, error } = await signIn(email.trim());
-        console.log('Instant DB login result:', { user, error });
         if (error) throw error;
         if (user) onComplete(user);
       } else {
-        // Sign up with Instant DB
         if (!name.trim()) {
           setError('Display name is required');
           setLoading(false);
@@ -65,13 +48,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           return;
         }
         
-        console.log('Attempting Instant DB signup...');
         const { user, error } = await signUp(
           email.trim(),
           name.trim(),
           selectedAvatar
         );
-        console.log('Instant DB signup result:', { user, error });
         
         if (error) throw error;
         if (user) onComplete(user);
@@ -79,26 +60,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     } catch (err: any) {
       console.error('Instant DB auth error:', err);
       let errorMessage = 'Authentication failed. Please try again.';
-      
-      if (err.message) {
-        errorMessage = err.message;
-      }
+      if (err.message) errorMessage = err.message;
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  // Demo mode function for testing UI without backend
   const handleDemoMode = () => {
     const demoUser = {
       id: 'demo-user-id',
       email: email.trim() || 'demo@reelrivals.com',
       username: name.trim() || 'DemoUser',
       avatar_emoji: selectedAvatar,
-      created_at: new Date().toISOString()
-    };
-    console.log('Demo mode activated with user:', demoUser);
+      created_at: Date.now()
+    } as unknown as InstantUser;
     onComplete(demoUser);
   };
 
@@ -107,61 +83,43 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-background via-background to-surface"
+      className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-[url('https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80')] bg-cover bg-center relative"
     >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      
       <motion.div 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="mb-12"
+        className="mb-12 relative z-10"
       >
-        <h1 className="text-6xl font-serif font-bold text-primary mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
-        <p className="text-text-tertiary font-light tracking-[0.3em] text-xs uppercase">Cinema's Ultimate Prediction League</p>
+        <h1 className="text-6xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] via-[#FFD700] to-[#B8860B] mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
+        <p className="text-gray-400 font-light tracking-[0.3em] text-xs uppercase animate-pulse">Cinema's Ultimate Prediction League</p>
       </motion.div>
 
-      <form onSubmit={handleSubmit} className="w-full space-y-6 max-w-sm">
+      <form onSubmit={handleSubmit} className="w-full space-y-6 max-w-sm relative z-10">
         <div className="flex justify-center mb-8">
-          <div className="flex bg-surface/50 backdrop-blur-sm rounded-2xl p-1.5 border border-border/50 shadow-2xl">
+          <div className="flex bg-white/5 backdrop-blur-md rounded-2xl p-1.5 border border-white/10 shadow-2xl">
             <button
               type="button"
-              onClick={() => {
-                console.log('Switching to sign up');
-                setIsLogin(false);
-              }}
+              onClick={() => setIsLogin(false)}
               className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
                 !isLogin 
-                  ? 'bg-gradient-to-r from-primary to-secondary text-background shadow-lg shadow-primary/30 scale-105' 
-                  : 'text-text-tertiary hover:text-white hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-gold-500/20 scale-105' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              {!isLogin && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute inset-0 bg-white/20 rounded-xl"
-                />
-              )}
               <span className="relative z-10">SIGN UP</span>
             </button>
             <button
               type="button"
-              onClick={() => {
-                console.log('Switching to login');
-                setIsLogin(true);
-              }}
+              onClick={() => setIsLogin(true)}
               className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
                 isLogin 
-                  ? 'bg-gradient-to-r from-primary to-secondary text-background shadow-lg shadow-primary/30 scale-105' 
-                  : 'text-text-tertiary hover:text-white hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-yellow-500/20 scale-105' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              {isLogin && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute inset-0 bg-white/20 rounded-xl"
-                />
-              )}
               <span className="relative z-10">LOG IN</span>
             </button>
           </div>
@@ -171,7 +129,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-danger/10 border border-danger/30 rounded-xl p-4 text-danger text-sm"
+            className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-500 text-sm"
           >
             {error}
           </motion.div>
@@ -180,7 +138,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         {!isLogin && (
           <>
             <div className="space-y-4">
-              <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">1. Choose Your Persona</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest text-left">1. Choose Your Persona</label>
               <div className="grid grid-cols-4 gap-3">
                 {AVATARS.map((avatar) => (
                   <motion.button
@@ -189,20 +147,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     onClick={() => setSelectedAvatar(avatar)}
                     className={`text-3xl p-4 rounded-2xl transition-all relative overflow-hidden ${
                       selectedAvatar === avatar 
-                        ? `bg-gradient-to-br ${AVATAR_COLORS[avatar]} border-2 border-white scale-110 shadow-[0_0_25px_rgba(255,255,255,0.3)] ring-4 ring-white/20` 
-                        : 'bg-surface border-2 border-border grayscale hover:grayscale-0 hover:scale-105'
+                        ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8860B] border-2 border-white/20 scale-110 shadow-lg text-black' 
+                        : 'bg-white/5 border-2 border-transparent grayscale hover:grayscale-0 hover:bg-white/10'
                     }`}
-                    whileHover={{ scale: selectedAvatar === avatar ? 1.1 : 1.05 }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    {selectedAvatar === avatar && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute inset-0 bg-white/20 rounded-2xl"
-                      />
-                    )}
-                    <span className="relative z-10 drop-shadow-lg">{avatar}</span>
+                    <span className="relative z-10 drop-shadow-md">{avatar}</span>
                   </motion.button>
                 ))}
               </div>

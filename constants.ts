@@ -19,12 +19,12 @@ export const CATEGORIES = [
     name: 'Best Motion Picture – Drama',
     basePoints: 50,
     nominees: [
-      { id: 'brutalist-pic', name: 'The Brutalist', odds: '38%' },
-      { id: 'complete-unknown-pic', name: 'A Complete Unknown', odds: '24%' },
-      { id: 'conclave-pic', name: 'Conclave', odds: '18%' },
-      { id: 'queer-pic', name: 'Queer', odds: '10%' },
-      { id: 'sing-sing-pic', name: 'Sing Sing', odds: '6%' },
-      { id: 'nickel-boys-pic', name: 'Nickel Boys', odds: '4%' }
+      { id: 'frankenstein', name: 'Frankenstein' },
+      { id: 'hamnet', name: 'Hamnet' },
+      { id: 'accident', name: 'It Was Just an Accident' },
+      { id: 'secret-agent', name: 'The Secret Agent' },
+      { id: 'sentimental-value', name: 'Sentimental Value' },
+      { id: 'sinners', name: 'Sinners' }
     ]
   },
   {
@@ -32,38 +32,12 @@ export const CATEGORIES = [
     name: 'Best Motion Picture – Musical or Comedy',
     basePoints: 50,
     nominees: [
-      { id: 'anora-pic', name: 'Anora', odds: '45%' },
-      { id: 'emilia-perez-pic', name: 'Emilia Pérez', odds: '32%' },
-      { id: 'wicked-pic', name: 'Wicked', odds: '12%' },
-      { id: 'real-pain-pic', name: 'A Real Pain', odds: '7%' },
-      { id: 'nightbitch-pic', name: 'Nightbitch', odds: '2%' },
-      { id: 'last-showgirl-pic', name: 'The Last Showgirl', odds: '2%' }
-    ]
-  },
-  {
-    id: 'actor-drama',
-    name: 'Best Actor in a Motion Picture – Drama',
-    basePoints: 50,
-    nominees: [
-      { id: 'adrien-brody', name: 'Adrien Brody', odds: '42%' },
-      { id: 'ralph-fiennes', name: 'Ralph Fiennes', odds: '25%' },
-      { id: 'timothee-chalamet', name: 'Timothée Chalamet', odds: '18%' },
-      { id: 'colman-domingo', name: 'Colman Domingo', odds: '8%' },
-      { id: 'daniel-craig', name: 'Daniel Craig', odds: '4%' },
-      { id: 'sebastian-stan', name: 'Sebastian Stan', odds: '3%' }
-    ]
-  },
-  {
-    id: 'actress-drama',
-    name: 'Best Actress in a Motion Picture – Drama',
-    basePoints: 50,
-    nominees: [
-      { id: 'angelina-jolie', name: 'Angelina Jolie', odds: '35%' },
-      { id: 'nicole-kidman', name: 'Nicole Kidman', odds: '28%' },
-      { id: 'tilda-swinton', name: 'Tilda Swinton', odds: '15%' },
-      { id: 'marianne-jean-baptiste', name: 'Marianne Jean-Baptiste', odds: '10%' },
-      { id: 'fernanda-torres', name: 'Fernanda Torres', odds: '8%' },
-      { id: 'saoirse-ronan', name: 'Saoirse Ronan', odds: '4%' }
+      { id: 'blue-moon', name: 'Blue Moon' },
+      { id: 'bugonia', name: 'Bugonia' },
+      { id: 'marty-supreme', name: 'Marty Supreme' },
+      { id: 'no-other-choice', name: 'No Other Choice' },
+      { id: 'nouvelle-vague', name: 'Nouvelle Vague' },
+      { id: 'one-battle', name: 'One Battle After Another' }
     ]
   },
   {
@@ -71,12 +45,103 @@ export const CATEGORIES = [
     name: 'Best Director – Motion Picture',
     basePoints: 50,
     nominees: [
-      { id: 'brady-corbet', name: 'Brady Corbet', odds: '35%' },
-      { id: 'sean-baker', name: 'Sean Baker', odds: '32%' },
-      { id: 'jacques-audiard', name: 'Jacques Audiard', odds: '18%' },
-      { id: 'james-mangold', name: 'James Mangold', odds: '7%' },
-      { id: 'edward-berger', name: 'Edward Berger', odds: '5%' },
-      { id: 'pedro-almodovar', name: 'Pedro Almodóvar', odds: '3%' }
+      { id: 'pta', name: 'Paul Thomas Anderson' },
+      { id: 'ryan-coogler', name: 'Ryan Coogler' },
+      { id: 'gdt', name: 'Guillermo del Toro' },
+      { id: 'jafar-panahi', name: 'Jafar Panahi' },
+      { id: 'joachim-trier', name: 'Joachim Trier' },
+      { id: 'chloe-zhao', name: 'Chloé Zhao' }
+    ]
+  },
+  {
+    id: 'actress-drama',
+    name: 'Best Performance by a Female Actor – Drama',
+    basePoints: 50,
+    nominees: [
+      { id: 'jessie-buckley', name: 'Jessie Buckley' },
+      { id: 'jennifer-lawrence', name: 'Jennifer Lawrence' },
+      { id: 'renate-reinsve', name: 'Renate Reinsve' },
+      { id: 'julia-roberts', name: 'Julia Roberts' },
+      { id: 'tessa-thompson', name: 'Tessa Thompson' },
+      { id: 'eva-victor', name: 'Eva Victor' }
+    ]
+  },
+  {
+    id: 'actor-drama',
+    name: 'Best Performance by a Male Actor – Drama',
+    basePoints: 50,
+    nominees: [
+      { id: 'joel-edgerton', name: 'Joel Edgerton' },
+      { id: 'oscar-isaac', name: 'Oscar Isaac' },
+      { id: 'dwayne-johnson', name: 'Dwayne Johnson' },
+      { id: 'michael-b-jordan', name: 'Michael B. Jordan' },
+      { id: 'wagner-moura', name: 'Wagner Moura' },
+      { id: 'jeremy-allen-white', name: 'Jeremy Allen White' }
+    ]
+  },
+  {
+    id: 'actress-comedy',
+    name: 'Best Performance by a Female Actor – Musical or Comedy',
+    basePoints: 50,
+    nominees: [
+      { id: 'rose-byrne', name: 'Rose Byrne' },
+      { id: 'cynthia-erivo', name: 'Cynthia Erivo' },
+      { id: 'kate-hudson', name: 'Kate Hudson' },
+      { id: 'chase-infiniti', name: 'Chase Infiniti' },
+      { id: 'amanda-seyfried', name: 'Amanda Seyfried' },
+      { id: 'emma-stone', name: 'Emma Stone' }
+    ]
+  },
+  {
+    id: 'actor-comedy',
+    name: 'Best Performance by a Male Actor – Musical or Comedy',
+    basePoints: 50,
+    nominees: [
+      { id: 'timothee-chalamet', name: 'Timothée Chalamet' },
+      { id: 'george-clooney', name: 'George Clooney' },
+      { id: 'leonardo-dicaprio', name: 'Leonardo DiCaprio' },
+      { id: 'ethan-hawke', name: 'Ethan Hawke' },
+      { id: 'lee-byung-hun', name: 'Lee Byung-hun' },
+      { id: 'jesse-plemons', name: 'Jesse Plemons' }
+    ]
+  },
+  {
+    id: 'tv-drama',
+    name: 'Best Television Series – Drama',
+    basePoints: 50,
+    nominees: [
+      { id: 'diplomat', name: 'The Diplomat' },
+      { id: 'pitt', name: 'The Pitt' },
+      { id: 'pluribus', name: 'Pluribus' },
+      { id: 'severance', name: 'Severance' },
+      { id: 'slow-horses', name: 'Slow Horses' },
+      { id: 'white-lotus', name: 'The White Lotus' }
+    ]
+  },
+  {
+    id: 'tv-comedy',
+    name: 'Best Television Series – Musical/Comedy',
+    basePoints: 50,
+    nominees: [
+      { id: 'abbott', name: 'Abbott Elementary' },
+      { id: 'bear', name: 'The Bear' },
+      { id: 'hacks', name: 'Hacks' },
+      { id: 'nobody-wants', name: 'Nobody Wants This' },
+      { id: 'only-murders', name: 'Only Murders in the Building' },
+      { id: 'studio', name: 'The Studio' }
+    ]
+  },
+  {
+    id: 'tv-limited',
+    name: 'Best Limited Series/Anthology/Movie',
+    basePoints: 50,
+    nominees: [
+      { id: 'adolescence', name: 'Adolescence' },
+      { id: 'all-her-fault', name: 'All Her Fault' },
+      { id: 'beast-in-me', name: 'The Beast in Me' },
+      { id: 'black-mirror', name: 'Black Mirror' },
+      { id: 'dying-for-sex', name: 'Dying for Sex' },
+      { id: 'girlfriend', name: 'The Girlfriend' }
     ]
   }
 ];

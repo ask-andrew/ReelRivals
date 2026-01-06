@@ -1,4 +1,5 @@
 import { init, i } from '@instantdb/react';
+import { init as initCore } from '@instantdb/core';
 
 // Instant DB configuration
 const APP_ID = '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
@@ -9,13 +10,12 @@ export interface InstantUser {
   email: string;
   username: string;
   avatar_emoji: string;
-  created_at: string;
+  created_at: number;
 }
 
 // Initialize Instant DB with schema
-const db = init({
-  appId: APP_ID,
-  schema: i.schema({
+const schema = i.schema({
+  entities: {
     users: i.entity({
       email: i.string(),
       username: i.string(),
@@ -81,8 +81,69 @@ const db = init({
       winner_nominee_id: i.string(),
       announced_at: i.number(),
     }),
-  }),
+  },
+  links: {
+    categoriesNominees: {
+      forward: {
+        on: 'categories',
+        has: 'many',
+        label: 'nominees'
+      },
+      reverse: {
+        on: 'nominees',
+        has: 'one',
+        label: 'category'
+      }
+    },
+    ballotsPicks: {
+      forward: {
+        on: 'ballots',
+        has: 'many',
+        label: 'picks'
+      },
+      reverse: {
+        on: 'picks',
+        has: 'one',
+        label: 'ballot'
+      }
+    },
+    picksCategory: { // Optional but good for reverse lookup
+      forward: {
+        on: 'picks',
+        has: 'one',
+        label: 'category'
+      },
+      reverse: {
+        on: 'categories',
+        has: 'many',
+        label: 'picks'
+      }
+    },
+    picksNominee: {
+        forward: {
+            on: 'picks',
+            has: 'one',
+            label: 'nominee'
+        },
+        reverse: {
+            on: 'nominees',
+            has: 'many',
+            label: 'picks'
+        }
+    }
+  }
 });
 
-// Export database instance and types
-export { db, InstantUser };
+// React Client (for hooks)
+const db = init({
+  appId: APP_ID,
+  schema,
+});
+
+// Core Client (for async functions outside components)
+const dbCore = initCore({
+  appId: APP_ID,
+  schema,
+});
+
+export { db, dbCore };

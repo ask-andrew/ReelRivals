@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2 } from 'lucide-react';
 import { Pick } from '../types';
-import { getCategories, createOrUpdateBallot, type Category } from '../src/ballots';
+import { getCategories, saveBallotPick, getBallot } from '../src/instantService';
 
 interface BallotSwiperProps {
   onComplete: (picks: Record<string, Pick>) => void;
@@ -15,23 +15,64 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [selectedNomineeId, setSelectedNomineeId] = useState<string | null>(null);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [powerPicksLeft, setPowerPicksLeft] = useState(3);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'review' | 'edit'>('edit'); // NEW: Track view mode
 
   const category = categories[currentCategoryIndex];
 
   useEffect(() => {
-    loadCategories();
+    loadData();
   }, []);
 
-  const loadCategories = async () => {
+  // Update selected nominee when category changes
+  // NOTE: We intentionally exclude 'picks' from dependencies to avoid infinite loops
+  // The picks state is managed elsewhere and we only read from it here
+  useEffect(() => {
+    if (category && picks[category.id]) {
+        setSelectedNomineeId(picks[category.id].nomineeId);
+    } else {
+        setSelectedNomineeId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCategoryIndex, category]);
+
+  const loadData = async () => {
     try {
-      const { categories: data, error } = await getCategories('golden-globes-2026');
-      if (error) throw error;
-      setCategories(data || []);
+      const eventId = 'golden-globes-2026';
+      const [{ categories: cats, error: catsError }, ballot] = await Promise.all([
+        getCategories(eventId),
+        getBallot(userId, eventId)
+      ]);
+
+      if (catsError) throw catsError;
+
+      setCategories(cats || []);
+
+      // If ballot exists, hydrate picks
+      if (ballot && ballot.picks) {
+        const loadedPicks: Record<string, Pick> = {};
+        let powerPicksUsed = 0;
+
+        ballot.picks.forEach((p: any) => {
+          loadedPicks[p.category_id] = {
+            nomineeId: p.nominee_id,
+            isPowerPick: p.is_power_pick
+          };
+          if (p.is_power_pick) powerPicksUsed++;
+        });
+
+        setPicks(loadedPicks);
+        setPowerPicksLeft(Math.max(0, 3 - powerPicksUsed));
+        
+        // NEW: If user has picks, start in review mode
+        if (Object.keys(loadedPicks).length > 0) {
+          setViewMode('review');
+        }
+      }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -45,72 +86,79 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     if (!selectedNomineeId || !category) return;
     if (isPower && powerPicksLeft <= 0) return;
 
-    const newPicks = {
-      ...picks,
-      [category.id]: { nomineeId: selectedNomineeId, isPowerPick: isPower }
-    };
+    // Store previous state for rollback
+    const previousPicks = picks;
+    const previousPowerPicks = powerPicksLeft;
     
-    setPicks(newPicks);
-    
-    if (isPower) {
-      setPowerPicksLeft(powerPicksLeft - 1);
-    }
+    setSaving(true);
+    try {
+        // Optimistic update
+        const newPick = { nomineeId: selectedNomineeId, isPowerPick: isPower };
+        const newPicks = { ...picks, [category.id]: newPick };
+        setPicks(newPicks);
+        
+        if (isPower) setPowerPicksLeft(prev => prev - 1);
 
-    // Move to next category or complete
-    if (currentCategoryIndex < categories.length - 1) {
-      setCurrentCategoryIndex(currentCategoryIndex + 1);
-      setSelectedNomineeId(null);
-    } else {
-      // Save all picks to database
-      setSaving(true);
-      try {
-        const picksArray = Object.entries(newPicks).map(([categoryId, pick]) => ({
-          categoryId,
-          nomineeId: (pick as any).nomineeId,
-          isPowerPick: (pick as any).isPowerPick
-        }));
-
-        const { ballot, error } = await createOrUpdateBallot(
-          userId,
-          'golden-globes-2026',
-          leagueId,
-          picksArray
+        // Save to DB
+        const result = await saveBallotPick(
+            userId, 
+            'golden-globes-2026', 
+            leagueId, 
+            category.id, 
+            selectedNomineeId, 
+            isPower
         );
 
-        if (error) throw error;
-        
-        onComplete(newPicks);
-      } catch (error) {
-        console.error('Error saving ballot:', error);
-      } finally {
+        if (result.error) {
+            throw result.error;
+        }
+
+        // Move to next or complete (show review at end)
+        if (currentCategoryIndex < categories.length - 1) {
+            setCurrentCategoryIndex(currentCategoryIndex + 1);
+        } else {
+            // NEW: Show review mode when done with all categories
+            setViewMode('review');
+        }
+
+    } catch (e) {
+        console.error("Failed to save pick", e);
+        // Rollback optimistic update
+        setPicks(previousPicks);
+        setPowerPicksLeft(previousPowerPicks);
+        alert("Failed to save your pick. Please try again.");
+    } finally {
         setSaving(false);
-      }
     }
   };
 
   const handleBack = () => {
     if (currentCategoryIndex > 0) {
       setCurrentCategoryIndex(currentCategoryIndex - 1);
-      // Restore previous selection if exists
-      const prevCategoryId = categories[currentCategoryIndex - 1]?.id;
-      if (prevCategoryId && picks[prevCategoryId]) {
-        setSelectedNomineeId(picks[prevCategoryId].nomineeId);
-      } else {
-        setSelectedNomineeId(null);
-      }
     }
   };
+
+  // NEW: Jump to specific category for editing
+  const handleEditCategory = (categoryIndex: number) => {
+    setCurrentCategoryIndex(categoryIndex);
+    setViewMode('edit');
+  };
+
+  // NEW: Calculate completion stats
+  const completedCount = Object.keys(picks).length;
+  const totalCategories = categories.length;
+  const allComplete = completedCount === totalCategories;
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
         <Loader2 className="animate-spin text-yellow-500 mb-4" size={32} />
-        <p className="text-gray-400">Loading categories...</p>
+        <p className="text-gray-400">Loading categories & picks...</p>
       </div>
     );
   }
 
-  if (!category) {
+  if (!category && viewMode === 'edit') {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
         <p className="text-gray-400">No categories found</p>
@@ -118,6 +166,120 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     );
   }
 
+  // ===== REVIEW MODE UI ===== 
+  if (viewMode === 'review') {
+    return (
+      <div className="h-full flex flex-col bg-black">
+        {/* Header */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-yellow-500">Your Ballot</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {completedCount} of {totalCategories} categories complete
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Zap className="text-yellow-500" size={16} />
+              <span className="text-sm font-bold">{powerPicksLeft} Power Picks Left</span>
+            </div>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="w-full bg-white/10 rounded-full h-2">
+            <div 
+              className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(completedCount / totalCategories) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Category List */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-3">
+            {categories.map((cat, index) => {
+              const pick = picks[cat.id];
+              const nominee = pick ? cat.nominees.find((n: any) => n.id === pick.nomineeId) : null;
+              const isComplete = !!pick;
+
+              return (
+                <motion.div
+                  key={cat.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    isComplete
+                      ? 'border-yellow-500/30 bg-yellow-500/5'
+                      : 'border-white/10 bg-white/5'
+                  } hover:border-yellow-500/50`}
+                  onClick={() => handleEditCategory(index)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-2xl">{cat.emoji}</span>
+                        <h3 className="font-bold text-white">{cat.name}</h3>
+                        {pick?.isPowerPick && (
+                          <Zap className="text-yellow-500" size={16} fill="currentColor" />
+                        )}
+                      </div>
+                      {nominee ? (
+                        <p className="text-sm text-yellow-500 ml-10">✓ {nominee.name}</p>
+                      ) : (
+                        <p className="text-sm text-gray-500 ml-10">No selection</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {isComplete ? (
+                        <Check className="text-yellow-500" size={20} />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-600" />
+                      )}
+                      <ChevronRight className="text-gray-400" size={20} />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="p-6 border-t border-white/10">
+          {allComplete ? (
+            <button
+              onClick={() => onComplete(picks)}
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2"
+            >
+              <Check size={24} />
+              <span>Submit Final Ballot</span>
+            </button>
+          ) : (
+            <div className="text-center">
+              <p className="text-gray-400 text-sm mb-3">
+                Complete all categories to submit your ballot
+              </p>
+              <button
+                onClick={() => {
+                  // Find first incomplete category
+                  const firstIncomplete = categories.findIndex(c => !picks[c.id]);
+                  if (firstIncomplete !== -1) {
+                    handleEditCategory(firstIncomplete);
+                  }
+                }}
+                className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl transition-all"
+              >
+                Continue Making Picks
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ===== EDIT MODE UI (existing code) =====
   const progress = ((currentCategoryIndex + 1) / categories.length) * 100;
 
   return (
@@ -126,9 +288,19 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
       <div className="p-6 border-b border-white/10">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">{category.name}</h2>
-          <div className="flex items-center space-x-2">
-            <Zap className="text-yellow-500" size={16} />
-            <span className="text-sm font-bold">{powerPicksLeft} Power Picks</span>
+          <div className="flex items-center space-x-4">
+            {completedCount > 0 && (
+              <button
+                onClick={() => setViewMode('review')}
+                className="text-sm text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
+              >
+                View Summary ({completedCount}/{totalCategories})
+              </button>
+            )}
+            <div className="flex items-center space-x-2">
+              <Zap className="text-yellow-500" size={16} />
+              <span className="text-sm font-bold">{powerPicksLeft} Power Picks</span>
+            </div>
           </div>
         </div>
         
@@ -148,7 +320,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
-            {category.nominees.map((nominee) => (
+            {category.nominees.map((nominee: any) => (
               <motion.div
                 key={nominee.id}
                 initial={{ opacity: 0, y: 20 }}

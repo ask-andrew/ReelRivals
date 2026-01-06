@@ -1,16 +1,91 @@
 @import "tailwindcss";
 
-/* Base styles */
-body {
-    background-color: #1a1a1a;
+@theme {
+  --color-gold-500: #d4af37;
+  --color-gold-600: #b8860b;
+  --color-surface: #121212;
+  --color-background: #050505;
+
+  --font-serif: "Cinzel", serif;
+  --font-sans: "Inter", sans-serif;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shine: shine 3s linear infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes shine {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
 }
 
-/* Custom scrollbar for circuit roadmap */
+/* Base styles */
+body {
+  background-color: var(--color-background);
+  color: white;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Overrides */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+}
+
+/* Utility classes */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #d4af37 0%, #ffd700 50%, #b8860b 100%);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, #ffd700 0%, #d4af37 50%, #b8860b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

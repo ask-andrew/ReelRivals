@@ -9,13 +9,13 @@ import ShareModal from './components/ShareModal';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
-import { getCurrentUser, onAuthStateChange, type AuthUser } from './src/auth';
-import { supabase } from './src/supabase';
+import { getCurrentUser, getOrCreateDefaultLeague, signOut } from './src/instantService';
+import type { InstantUser } from './src/instant';
+import { getBallot } from './src/ballots'; // Still kept for types if needed
 import StandingsSnippet from './components/StandingsSnippet';
-import { getOrCreateDefaultLeague } from './src/leagues';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<InstantUser | null>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -26,37 +26,25 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleUserSession = async (currentUser: AuthUser | null) => {
+    const initSession = async () => {
       try {
+        const currentUser = await getCurrentUser();
         setUser(currentUser);
+        
         if (currentUser) {
           const { league, error } = await getOrCreateDefaultLeague(currentUser.id);
-          if (!error && league) {
+          if (league) {
             setUserLeagueId(league.id);
-          } else if (error) {
-            setError('Failed to load user league');
           }
         }
       } catch (err) {
-        setError('Failed to initialize user session');
-        console.error('User session error:', err);
+        console.error('Session init error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    // Check for existing user session
-    getCurrentUser().then(handleUserSession).catch(err => {
-      setError('Failed to check user session');
-      setLoading(false);
-    });
-
-    // Set up auth state listener
-    const subscription = onAuthStateChange(handleUserSession);
-
-    return () => {
-      subscription.then(sub => sub.unsubscribe());
-    };
+    initSession();
   }, []);
 
   useEffect(() => {
@@ -69,7 +57,7 @@ const App: React.FC = () => {
     setActivities(initialActivities);
   }, []);
 
-  const handleOnboardingComplete = (newUser: AuthUser) => {
+  const handleOnboardingComplete = (newUser: InstantUser) => {
     setUser(newUser);
   };
 
