@@ -1,3 +1,5 @@
+import { theme } from './src/styles/theme';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,9 +9,7 @@ export default {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        'cinzel': ['Cinzel', 'serif'],
-      },
+      ...theme,
     },
   },
   plugins: [],

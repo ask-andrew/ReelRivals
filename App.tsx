@@ -4,6 +4,8 @@ import Onboarding from './components/Onboarding';
 import Layout from './components/Layout';
 import BallotSwiperDB from './components/BallotSwiperDB';
 import LiveScoring from './components/LiveScoring';
+import ActivityFeed from './components/ActivityFeed';
+import ShareModal from './components/ShareModal';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
@@ -20,20 +22,34 @@ const App: React.FC = () => {
   const [isBallotComplete, setIsBallotComplete] = useState(false);
   const [userLeagueId, setUserLeagueId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleUserSession = async (currentUser: AuthUser | null) => {
-      setUser(currentUser);
-      if (currentUser) {
-        const { league, error } = await getOrCreateDefaultLeague(currentUser.id);
-        if (!error && league) {
-          setUserLeagueId(league.id);
+      try {
+        setUser(currentUser);
+        if (currentUser) {
+          const { league, error } = await getOrCreateDefaultLeague(currentUser.id);
+          if (!error && league) {
+            setUserLeagueId(league.id);
+          } else if (error) {
+            setError('Failed to load user league');
+          }
         }
+      } catch (err) {
+        setError('Failed to initialize user session');
+        console.error('User session error:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
     // Check for existing user session
-    getCurrentUser().then(handleUserSession);
+    getCurrentUser().then(handleUserSession).catch(err => {
+      setError('Failed to check user session');
+      setLoading(false);
+    });
 
     // Set up auth state listener
     const subscription = onAuthStateChange(handleUserSession);
@@ -78,6 +94,35 @@ const App: React.FC = () => {
     };
     setActivities(prev => [newActivity, ...prev]);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading Reel Rivals...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-danger text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
+          <p className="text-text-secondary mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-primary text-black px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Onboarding onComplete={handleOnboardingComplete} />;

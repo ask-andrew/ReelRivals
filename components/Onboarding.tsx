@@ -1,14 +1,27 @@
 
-import React, { useState } from 'react';
-import { User, Avatar } from '../types';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { Avatar } from '../types';
 import { signUp, signIn, type AuthUser } from '../src/auth';
-import { supabase } from '../src/supabase';
+import { supabase, testSupabaseConnection } from '../src/supabase';
 
 interface OnboardingProps {
   onComplete: (user: AuthUser) => void;
 }
 
 const AVATARS: Avatar[] = ['🎬', '🍿', '🏆', '🎭', '🎥', '✨', '🌟', '📺'];
+
+const AVATAR_COLORS = {
+  '🎬': 'from-blue-500 to-cyan-500',
+  '🍿': 'from-red-500 to-orange-500', 
+  '🏆': 'from-yellow-500 to-amber-500',
+  '🎭': 'from-purple-500 to-pink-500',
+  '🎥': 'from-green-500 to-emerald-500',
+  '✨': 'from-indigo-500 to-purple-500',
+  '🌟': 'from-pink-500 to-rose-500',
+  '📺': 'from-gray-500 to-slate-500'
+};
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
@@ -19,15 +32,35 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Test Supabase connection on component mount
+  useEffect(() => {
+    testSupabaseConnection();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted', { isLogin, email: email.trim(), name: name.trim(), selectedAvatar });
     setLoading(true);
     setError('');
+    
+    // First test basic connectivity
+    try {
+      const connectionTest = await testSupabaseConnection();
+      if (!connectionTest.success) {
+        console.log('Connection test failed, but continuing...');
+        // Don't block user - let them try real auth or use demo mode
+      }
+    } catch (testErr) {
+      console.log('Connection test error, but continuing...', testErr);
+      // Don't block user - let them try real auth or use demo mode
+    }
     
     try {
       if (isLogin) {
         // Login
+        console.log('Attempting login...');
         const { user, error } = await signIn(email.trim(), password);
+        console.log('Login result:', { user, error });
         if (error) throw error;
         if (user) {
           const { data: profile } = await supabase
@@ -41,15 +74,30 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         // Sign up
         if (!name.trim()) {
           setError('Display name is required');
+          setLoading(false);
           return;
         }
         
+        if (!email.trim()) {
+          setError('Email is required');
+          setLoading(false);
+          return;
+        }
+        
+        if (!password) {
+          setError('Password is required');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Attempting signup...');
         const { user, error } = await signUp(
-          email.trim() || `${name.toLowerCase().replace(/\s+/g, '')}@reelrivals.local`,
-          password || 'default123',
+          email.trim(),
+          password,
           name.trim(),
           selectedAvatar
         );
+        console.log('Signup result:', { user, error });
         
         if (error) throw error;
         if (user) {
@@ -62,79 +110,168 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      console.error('Auth error:', err);
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      // Handle specific network errors
+      if (err.name === 'AuthRetryableFetchError' || err.status === 0) {
+        errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+      } else if (err.code) {
+        switch (err.code) {
+          case '23505': // Unique constraint violation
+            errorMessage = 'A user with this email or username already exists.';
+            break;
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered. Please log in instead.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password should be at least 6 characters long.';
+            break;
+          case 'auth/invalid-credentials':
+            errorMessage = 'Invalid email or password. Please try again.';
+            break;
+          default:
+            errorMessage = err.message || errorMessage;
+        }
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-black via-gray-950 to-yellow-950/20">
-      <div className="mb-12">
-        <h1 className="text-5xl font-cinzel font-bold text-yellow-500 mb-2 drop-shadow-md tracking-tighter">REEL RIVALS</h1>
-        <p className="text-gray-400 font-light tracking-[0.3em] text-[10px] uppercase">Cinema's Ultimate Prediction League</p>
-      </div>
+  // Demo mode function for testing UI without backend
+  const handleDemoMode = () => {
+    const demoUser = {
+      id: 'demo-user-id',
+      email: email.trim() || 'demo@reelrivals.com',
+      username: name.trim() || 'DemoUser',
+      avatar_emoji: selectedAvatar,
+      created_at: new Date().toISOString()
+    };
+    console.log('Demo mode activated with user:', demoUser);
+    onComplete(demoUser as AuthUser);
+  };
 
-      <form onSubmit={handleSubmit} className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-sm">
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-background via-background to-surface"
+    >
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="mb-12"
+      >
+        <h1 className="text-6xl font-serif font-bold text-primary mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
+        <p className="text-text-tertiary font-light tracking-[0.3em] text-xs uppercase">Cinema's Ultimate Prediction League</p>
+      </motion.div>
+
+      <form onSubmit={handleSubmit} className="w-full space-y-6 max-w-sm">
         <div className="flex justify-center mb-8">
-          <div className="flex bg-white/5 rounded-xl p-1">
+          <div className="flex bg-surface/50 backdrop-blur-sm rounded-2xl p-1.5 border border-border/50 shadow-2xl">
             <button
               type="button"
-              onClick={() => setIsLogin(false)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                !isLogin ? 'bg-yellow-500 text-black' : 'text-gray-400'
+              onClick={() => {
+                console.log('Switching to sign up');
+                setIsLogin(false);
+              }}
+              className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
+                !isLogin 
+                  ? 'bg-gradient-to-r from-primary to-secondary text-background shadow-lg shadow-primary/30 scale-105' 
+                  : 'text-text-tertiary hover:text-white hover:bg-white/10'
               }`}
             >
-              SIGN UP
+              {!isLogin && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute inset-0 bg-white/20 rounded-xl"
+                />
+              )}
+              <span className="relative z-10">SIGN UP</span>
             </button>
             <button
               type="button"
-              onClick={() => setIsLogin(true)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                isLogin ? 'bg-yellow-500 text-black' : 'text-gray-400'
+              onClick={() => {
+                console.log('Switching to login');
+                setIsLogin(true);
+              }}
+              className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
+                isLogin 
+                  ? 'bg-gradient-to-r from-primary to-secondary text-background shadow-lg shadow-primary/30 scale-105' 
+                  : 'text-text-tertiary hover:text-white hover:bg-white/10'
               }`}
             >
-              LOG IN
+              {isLogin && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute inset-0 bg-white/20 rounded-xl"
+                />
+              )}
+              <span className="relative z-10">LOG IN</span>
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-xs">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-danger/10 border border-danger/30 rounded-xl p-4 text-danger text-sm"
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         {!isLogin && (
           <>
             <div className="space-y-4">
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">1. Choose Your Persona</label>
+              <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">1. Choose Your Persona</label>
               <div className="grid grid-cols-4 gap-3">
                 {AVATARS.map((avatar) => (
-                  <button
+                  <motion.button
                     key={avatar}
                     type="button"
                     onClick={() => setSelectedAvatar(avatar)}
-                    className={`text-2xl p-3 rounded-xl transition-all ${
+                    className={`text-3xl p-4 rounded-2xl transition-all relative overflow-hidden ${
                       selectedAvatar === avatar 
-                        ? 'bg-yellow-500/20 border border-yellow-500 scale-105 shadow-[0_0_15px_rgba(234,179,8,0.2)]' 
-                        : 'bg-white/5 border border-white/5 grayscale hover:grayscale-0'
+                        ? `bg-gradient-to-br ${AVATAR_COLORS[avatar]} border-2 border-white scale-110 shadow-[0_0_25px_rgba(255,255,255,0.3)] ring-4 ring-white/20` 
+                        : 'bg-surface border-2 border-border grayscale hover:grayscale-0 hover:scale-105'
                     }`}
+                    whileHover={{ scale: selectedAvatar === avatar ? 1.1 : 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    {avatar}
-                  </button>
+                    {selectedAvatar === avatar && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute inset-0 bg-white/20 rounded-2xl"
+                      />
+                    )}
+                    <span className="relative z-10 drop-shadow-lg">{avatar}</span>
+                  </motion.button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">2. Display Name</label>
+              <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">2. Display Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. OscarWinner99"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 transition-colors"
+                className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
                 required
               />
             </div>
@@ -142,7 +279,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         )}
 
         <div className="space-y-2">
-          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">
+          <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">
             {isLogin ? 'Email Address' : '3. Email Address'}
           </label>
           <input
@@ -150,41 +287,66 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={isLogin ? 'your@email.com' : 'For season alerts & updates'}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 transition-colors"
-            required={isLogin}
+            className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
+            required
           />
           {!isLogin && (
-            <p className="text-[10px] text-gray-600 text-left italic px-1">We'll notify you when new ballots open for the next show.</p>
+            <p className="text-xs text-text-tertiary text-left italic px-1">We'll notify you when new ballots open for the next show.</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">Password</label>
+          <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={isLogin ? 'Enter your password' : 'Create a password'}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 transition-colors"
+            className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
             required
           />
         </div>
 
-        <button
+        <motion.button
           type="submit"
           disabled={loading}
-          className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-600 text-black font-black py-5 rounded-xl shadow-xl shadow-yellow-900/10 transition-all active:scale-95 uppercase tracking-widest text-xs mt-4"
+          className="w-full bg-gradient-to-r from-primary via-primary to-secondary hover:from-secondary hover:via-primary hover:to-primary disabled:from-gray-600 disabled:to-gray-700 text-background font-black py-6 rounded-2xl shadow-2xl shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest text-sm mt-6 flex items-center justify-center space-x-3 relative overflow-hidden group"
+          whileHover={{ scale: loading ? 1 : 1.02, boxShadow: "0 25px 50px -12px rgba(245, 158, 11, 0.5)" }}
+          whileTap={{ scale: loading ? 1 : 0.97 }}
+          onClick={(e) => {
+            console.log('Submit button clicked');
+          }}
         >
-          {loading ? 'Loading...' : (isLogin ? 'Log In' : 'Enter the Circuit')}
-        </button>
+          <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+          {loading && <Loader2 className="animate-spin z-10" size={20} />}
+          <span className="z-10 text-lg">{loading ? 'PROCESSING...' : (isLogin ? '🔓 UNLOCK ACCOUNT' : '🎬 ENTER THE CIRCUIT')}</span>
+          {!loading && <motion.div
+            animate={{ x: [0, 5, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="z-10"
+          >
+            →
+          </motion.div>}
+        </motion.button>
+
+        {!loading && (
+          <motion.button
+            type="button"
+            onClick={handleDemoMode}
+            className="w-full bg-surface/50 hover:bg-surface text-text-tertiary hover:text-white font-medium py-3 rounded-xl border border-border/50 transition-all mt-3 text-sm"
+            whileHover={{ scale: 1.01 }}
+          >
+            🎮 Try Demo Mode (Skip Login)
+          </motion.button>
+        )}
       </form>
 
-      <div className="mt-12 flex items-center space-x-2 text-gray-700">
-        <div className="h-px w-4 bg-gray-800"></div>
-        <p className="text-[10px] uppercase font-bold tracking-widest">{isLogin ? 'Welcome back' : 'Join the prediction circuit'}</p>
-        <div className="h-px w-4 bg-gray-800"></div>
+      <div className="mt-12 flex items-center space-x-2 text-text-tertiary">
+        <div className="h-px w-4 bg-border"></div>
+        <p className="text-xs uppercase font-bold tracking-widest">{isLogin ? 'Welcome back' : 'Join the prediction circuit'}</p>
+        <div className="h-px w-4 bg-border"></div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

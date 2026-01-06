@@ -4,6 +4,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Debug: Check if environment variables are loaded
+console.log('Environment variables check:', {
+  supabaseUrl: supabaseUrl ? 'LOADED' : 'MISSING',
+  supabaseAnonKey: supabaseAnonKey ? 'LOADED' : 'MISSING',
+  fullUrl: supabaseUrl,
+  keyLength: supabaseAnonKey?.length
+})
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing environment variables:', {
     supabaseUrl: !!supabaseUrl,
@@ -11,7 +18,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
   })
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+})
+
+// Test function to verify Supabase connection
+export async function testSupabaseConnection() {
+  try {
+    console.log('Testing Supabase connection...')
+    // Simple ping to check if Supabase is reachable
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id')
+      .limit(1)
+    
+    console.log('Supabase connection test result:', { data, error })
+    return { success: !error, error }
+  } catch (err) {
+    console.error('Supabase connection test failed:', err)
+    return { success: false, error: err }
+  }
+}
 
 // Types for our database
 export interface Database {

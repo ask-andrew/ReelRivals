@@ -5,6 +5,8 @@ export type AuthUser = Database['public']['Tables']['users']['Row']
 
 export async function signUp(email: string, password: string, username: string, avatarEmoji: string) {
   try {
+    console.log('Starting signup process for:', email);
+    
     // First create the user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -17,11 +19,15 @@ export async function signUp(email: string, password: string, username: string, 
       }
     })
 
+    console.log('Auth signup result:', { authData, authError });
+
     if (authError) {
+      console.error('Auth error during signup:', authError);
       throw authError
     }
 
     if (authData.user) {
+      console.log('User created in auth, creating profile...');
       // Create user profile in the users table
       const { error: profileError } = await supabase
         .from('users')
@@ -30,28 +36,37 @@ export async function signUp(email: string, password: string, username: string, 
           email,
           username,
           avatar_emoji: avatarEmoji
-        })
+        } as any) // Type assertion to bypass strict typing
+
+      console.log('Profile creation result:', { profileError });
 
       if (profileError) {
+        console.error('Profile creation error:', profileError);
         throw profileError
       }
     }
 
     return { user: authData.user, error: null }
   } catch (error) {
+    console.error('Signup error:', error);
     return { user: null, error }
   }
 }
 
 export async function signIn(email: string, password: string) {
   try {
+    console.log('Starting signin process for:', email);
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
 
+    console.log('Signin result:', { data, error });
+
     return { user: data.user, error }
   } catch (error) {
+    console.error('Signin error:', error);
     return { user: null, error }
   }
 }

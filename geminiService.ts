@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 
 // Initialize the Gemini API client with the API key from environment variables.
 // Use process.env.API_KEY directly as required by the guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 /**
  * Gets a witty comment about a nominee's chances of winning.

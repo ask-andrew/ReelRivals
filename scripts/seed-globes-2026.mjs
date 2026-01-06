@@ -1,7 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
+import { config } from 'dotenv'
+
+// Load environment variables
+config({ path: '.env.local' })
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'your-supabase-url'
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key-here'
+
+console.log('Supabase URL:', supabaseUrl ? 'Found' : 'Missing')
+console.log('Supabase Key:', supabaseAnonKey ? 'Found' : 'Missing')
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

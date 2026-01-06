@@ -66,8 +66,8 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
       try {
         const picksArray = Object.entries(newPicks).map(([categoryId, pick]) => ({
           categoryId,
-          nomineeId: pick.nomineeId,
-          isPowerPick: pick.isPowerPick
+          nomineeId: (pick as any).nomineeId,
+          isPowerPick: (pick as any).isPowerPick
         }));
 
         const { ballot, error } = await createOrUpdateBallot(
@@ -169,7 +169,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                       alt={nominee.name}
                       className="w-16 h-24 object-cover rounded-lg"
                       onError={(e) => {
-                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA2NCA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMzMzIi8+CjxwYXRoIGQ9Ik0zMiA0OEMzNi40MTgzIDQ4IDQwIDQ0LjQxODMgNDAgNDBDNDAgMzUuNTgxNyAzNi40MTgzIDMyIDMyIDMyQzI3LjU4MTcgMzIgMjQgMzUuNTgxNyAyNCA0MEMyNCA0NC40MTgzIDI3LjU4MTcgNDggMzIgNDhaIiBmaWxsPSIjNjY2Ii8+Cjwvc3ZnPgo=';
                       }}
                     />
                   )}
