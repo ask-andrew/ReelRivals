@@ -3,19 +3,60 @@ import React, { useState, useEffect } from 'react';
 import Onboarding from './components/Onboarding';
 import Layout from './components/Layout';
 import BallotSwiper from './components/BallotSwiper';
+import BallotSwiperDB from './components/BallotSwiperDB';
 import LiveCeremony from './components/LiveCeremony';
 import ActivityFeed from './components/ActivityFeed';
+import AdminPanel from './components/AdminPanel';
 import { Trophy, Award, Zap, Users, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, MOCK_LEAGUE_MEMBERS, SEASON_CIRCUIT } from './constants';
 import { getTrashTalk } from './geminiService';
+import { getCurrentUser, onAuthStateChange, type AuthUser } from './src/auth';
+import { supabase } from './src/supabase';
+import { createLeague } from './src/leagues';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile'>('home');
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isBallotComplete, setIsBallotComplete] = useState(false);
+  const [userLeagueId, setUserLeagueId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check for existing user session
+    const checkUser = async () => {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      
+      // Create a default league for the user if they don't have one
+      if (currentUser) {
+        const { league, error } = await createLeague('Default League', currentUser.id);
+        if (!error && league) {
+          setUserLeagueId(league.id);
+        }
+      }
+    };
+
+    checkUser();
+
+    // Set up auth state listener
+    const subscription = onAuthStateChange(async (authUser) => {
+      setUser(authUser);
+      
+      // Create a default league for the user if they don't have one
+      if (authUser) {
+        const { league, error } = await createLeague('Default League', authUser.id);
+        if (!error && league) {
+          setUserLeagueId(league.id);
+        }
+      }
+    });
+
+    return () => {
+      subscription.then(sub => sub.unsubscribe());
+    };
+  }, []);
 
   useEffect(() => {
     // Generate some initial activities
@@ -27,7 +68,7 @@ const App: React.FC = () => {
     setActivities(initialActivities);
   }, []);
 
-  const handleOnboardingComplete = (newUser: User) => {
+  const handleOnboardingComplete = (newUser: AuthUser) => {
     setUser(newUser);
   };
 
@@ -45,7 +86,7 @@ const App: React.FC = () => {
     const newActivity: Activity = {
       id: Math.random().toString(),
       userId: user?.id || '',
-      userName: user?.displayName || '',
+      userName: user?.username || '',
       message: "You just completed your ballot! Let's go! 🏆",
       timestamp: Date.now(),
       type: 'pick'
@@ -66,11 +107,11 @@ const App: React.FC = () => {
         {/* Profile Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-cinzel font-bold">Welcome, {user.displayName}</h1>
+            <h1 className="text-3xl font-cinzel font-bold">Welcome, {user.username}</h1>
             <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">Reel Rivals Circuit 2026</p>
           </div>
           <div className="w-12 h-12 bg-yellow-500 text-black text-2xl flex items-center justify-center rounded-2xl shadow-lg shadow-yellow-900/20">
-            {user.avatar}
+            {user.avatar_emoji}
           </div>
         </div>
 
@@ -198,32 +239,12 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {activeTab === 'home' && renderHome()}
-      {activeTab === 'ballot' && <BallotSwiper onComplete={handleBallotComplete} />}
-      {activeTab === 'live' && <LiveCeremony ballot={ballot} />}
-      {activeTab === 'leagues' && (
-        <div className="flex flex-col items-center justify-center h-full p-12 text-center">
-          <Users size={64} className="text-yellow-900/40 mb-4" />
-          <h2 className="text-2xl font-cinzel font-bold mb-2">Leagues</h2>
-          <p className="text-gray-500 text-sm mb-8">Join your friend group's private league or compete in the Global Circuit.</p>
-          <div className="space-y-3 w-full">
-            <button className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95">CREATE SQUAD</button>
-            <button className="w-full bg-white/5 border border-white/10 hover:bg-white/10 font-bold py-4 rounded-xl transition-all active:scale-95">JOIN SQUAD</button>
-          </div>
-        </div>
-      )}
-      {activeTab === 'profile' && (
-        <div className="p-8 space-y-8">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-yellow-500 text-5xl flex items-center justify-center rounded-3xl shadow-2xl mb-4">
-              {user.avatar}
-            </div>
-            <h2 className="text-2xl font-cinzel font-bold">{user.displayName}</h2>
-            <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-bold">Circuit Rookie • Lvl 1</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-8 py-8 px-6">
+      {/* Profile Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-cinzel font-bold">Welcome, {user.username}</h1>
+          <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">Reel Rivals Circuit 2026</p>
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
               <Trophy size={20} className="mx-auto text-yellow-500 mb-2" />
               <p className="text-2xl font-cinzel font-bold">0</p>

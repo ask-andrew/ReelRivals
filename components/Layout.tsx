@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Home, Award, Trophy, Users, User as UserIcon } from 'lucide-react';
+import { Home, Award, Trophy, Users, User as UserIcon, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: 'home' | 'ballot' | 'live' | 'leagues' | 'profile';
+  activeTab: 'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin';
   onTabChange: (tab: any) => void;
 }
 
@@ -15,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
     { id: 'live', icon: Trophy, label: 'Live' },
     { id: 'leagues', icon: Users, label: 'Leagues' },
     { id: 'profile', icon: UserIcon, label: 'Profile' },
+    { id: 'admin', icon: Settings, label: 'Admin' },
   ];
 
   return (

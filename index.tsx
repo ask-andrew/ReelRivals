@@ -2,9 +2,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './index.css';
 
 const rootElement = document.getElementById('root');
-if (!rootElement) {
+const appRoot = document.getElementById('app-root');
+if (!rootElement || !appRoot) {
   throw new Error("Could not find root element to mount to");
 }
 
