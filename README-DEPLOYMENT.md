@@ -83,19 +83,19 @@ npm install
 npm run dev
 ```
 
-### Environment
-Create `.env.local` file:
+# Environment Variables
+Create `.env.local` file for local development:
 ```
-VITE_SUPABASE_URL=https://tvhamheesddrzeqnppxm.supabase.co
+VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_TMDB_API_KEY=05d97b93f98ff236b536d2aff39935c7
+VITE_TMDB_API_KEY=your-tmdb-api-key
 ```
 
 ## Database Access
 
 ### Supabase Dashboard
 - **Project**: Reel Rivals
-- **URL**: https://tvhamheesddrzeqnppxm.supabase.co
+- **URL**: [Your Supabase Project URL]
 - **Tables**: All tables have RLS enabled
 - **Real-time**: Enabled on scores, results, picks
 
