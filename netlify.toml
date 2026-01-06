@@ -2,6 +2,11 @@
   command = "npm run build"
   publish = "dist"
 
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
 [[redirects]]
   from = "/join/:code"
   to = "/index.html"
