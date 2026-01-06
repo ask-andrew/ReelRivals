@@ -164,16 +164,33 @@ const App: React.FC = () => {
         <div className="bg-gradient-to-br from-yellow-900/40 via-black to-black border border-yellow-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-all duration-700" />
           
+          {/* Beta Badge */}
+          <div className="absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+            Beta
+          </div>
+          
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-2 bg-yellow-500/20 border border-yellow-500/30 px-2.5 py-1 rounded-full">
               <Calendar size={12} className="text-yellow-500" />
-              <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">Starts Jan 11</span>
+              <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">Jan 5, 2026 • 5:00pm PT</span>
             </div>
             <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Event 01</div>
           </div>
 
           <h2 className="text-3xl font-cinzel font-bold mb-2">Golden Globes</h2>
-          <p className="text-sm text-gray-400 mb-8 leading-relaxed">The movie circuit begins. Secure your spot on the leaderboard before the curtain rises.</p>
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed">The movie circuit begins. Secure your spot on the leaderboard before the curtain rises.</p>
+          
+          {/* Deadline Countdown */}
+          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-3 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-xs font-bold text-red-400 uppercase tracking-wide">Picks Lock In</span>
+              </div>
+              <span className="text-sm font-bold text-white">Jan 11, 2026 @ 3pm PT</span>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1 ml-4">Make your picks before the show starts!</p>
+          </div>
           
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">

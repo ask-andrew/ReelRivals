@@ -13,6 +13,8 @@ export const SEASON_CIRCUIT: AwardEvent[] = [
   { id: 'oscars-2026', name: 'The Oscars', date: 'Mar 2, 2026', status: 'upcoming', icon: '✨' }
 ];
 
+export const GOLDEN_GLOBES_2026_DEADLINE = new Date('2026-01-11T14:59:00-08:00'); // Jan 11, 2026 2:59 PM PT
+
 export const CATEGORIES = [
   {
     id: 'pic-drama',
