@@ -5,8 +5,7 @@ import App from './App';
 import './index.css';
 
 const rootElement = document.getElementById('root');
-const appRoot = document.getElementById('app-root');
-if (!rootElement || !appRoot) {
+if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
