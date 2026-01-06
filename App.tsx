@@ -245,12 +245,37 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-8 px-6">
-      {/* Profile Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-cinzel font-bold">Welcome, {user.username}</h1>
-          <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">Reel Rivals Circuit 2026</p>
+    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+      {activeTab === 'home' && renderHome()}
+      {activeTab === 'ballot' && (
+        <BallotSwiperDB 
+          onComplete={handleBallotComplete} 
+          userId={user?.id || ''} 
+          leagueId={userLeagueId || 'default'} 
+        />
+      )}
+      {activeTab === 'live' && (
+        <LiveScoring 
+          eventId="golden-globes-2026" 
+          leagueId={userLeagueId || 'default'} 
+          isLive={false} 
+        />
+      )}
+      {activeTab === 'leagues' && <div>Leagues coming soon...</div>}
+      {activeTab === 'profile' && (
+        <div className="space-y-8 py-8 px-6">
+          {/* Profile Header */}
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-cinzel font-bold">Welcome, {user.username}</h1>
+              <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">Reel Rivals Circuit 2026</p>
+            </div>
+            <div className="w-12 h-12 bg-yellow-500 text-black text-2xl flex items-center justify-center rounded-2xl shadow-lg shadow-yellow-900/20">
+              {user.avatar_emoji}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
               <Trophy size={20} className="mx-auto text-yellow-500 mb-2" />
               <p className="text-2xl font-cinzel font-bold">0</p>
@@ -278,6 +303,13 @@ const App: React.FC = () => {
           <button className="w-full text-red-900 font-bold py-4 text-[10px] tracking-[0.2em] uppercase mt-8 opacity-40 hover:opacity-100 transition-opacity">Reset Season Progress</button>
         </div>
       )}
+      
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        type="invite"
+        data={{ leagueCode: 'REELRIVALS' }}
+      />
     </Layout>
   );
 };
