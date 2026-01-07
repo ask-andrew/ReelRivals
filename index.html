@@ -9,7 +9,7 @@
     />
     <title>Reel Rivals | Movie Awards Fantasy League</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700;900&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -30,10 +30,67 @@
         color: #ffffff;
         overflow-x: hidden;
       }
+      /* Deadline Enforcement Styles */
+      #deadline-banner {
+        background-color: rgba(185, 28, 28, 0.9);
+        color: white;
+        text-align: center;
+        padding: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+        z-index: 50;
+      }
+      #countdown-timer {
+        font-family: 'Cinzel', serif;
+        font-weight: 700;
+      }
+      .font-cinzel {
+        font-family: 'Cinzel', serif;
+      }
+      body.locked #root {
+        pointer-events: none;
+        filter: grayscale(100%) opacity(0.5);
+      }
     </style>
   </head>
   <body>
+    <div id="deadline-banner" style="display: none;">
+      🏆 Awards Submission Deadline: <span id="countdown-timer">Loading...</span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      (function() {
+        // Jan 11, 2025 at 2:59 PM PT (UTC-8)
+        const DEADLINE = new Date("2025-01-11T14:59:00-08:00").getTime();
+        const banner = document.getElementById('deadline-banner');
+        const timer = document.getElementById('countdown-timer');
+
+        function updateTimer() {
+          const now = new Date().getTime();
+          const distance = DEADLINE - now;
+
+          banner.style.display = 'block';
+
+          if (distance < 0) {
+            document.body.classList.add('locked');
+            banner.innerHTML = "🔒 <strong>SUBMISSIONS CLOSED</strong> &mdash; The deadline has passed.";
+            banner.style.backgroundColor = "#7f1d1d"; // Darker red
+            return;
+          }
+
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          timer.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer(); // Initial call
+      })();
+    </script>
   </body>
 </html>

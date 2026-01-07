@@ -251,7 +251,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
           {allComplete ? (
             <button
               onClick={() => onComplete(picks)}
-              className="w-full bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-primary/30 hover:shadow-primary/50 transform hover:scale-105"
+              className="w-full bg-linear-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-primary/30 hover:shadow-primary/50 transform hover:scale-105"
             >
               <Check size={24} />
               <span>Submit Final Ballot</span>
@@ -376,7 +376,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
         <div className="flex flex-col space-y-3">
           {/* Show power pick status if pick exists for this category */}
           {picks[category.id] && (
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-xl border-2 border-yellow-500/30">
+            <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-900/20 to-orange-900/20 rounded-xl border-2 border-yellow-500/30">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                   picks[category.id].isPowerPick 
@@ -500,7 +500,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
               <button
                 onClick={() => handleConfirmPick(true)}
                 disabled={!selectedNomineeId || saving}
-                className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-black font-bold px-6 py-3 rounded-xl transition-all flex items-center space-x-2"
+                className="bg-linear-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-black font-bold px-6 py-3 rounded-xl transition-all flex items-center space-x-2"
               >
                 <Zap size={20} />
                 <span>Power Pick</span>

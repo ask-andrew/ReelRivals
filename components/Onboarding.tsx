@@ -93,7 +93,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         transition={{ delay: 0.2 }}
         className="mb-12 relative z-10"
       >
-        <h1 className="text-6xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] via-[#FFD700] to-[#B8860B] mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
+        <h1 className="text-6xl font-serif font-bold text-transparent bg-clip-text bg-linear-to-r from-[#D4AF37] via-[#FFD700] to-[#B8860B] mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
         <p className="text-gray-400 font-light tracking-[0.3em] text-xs uppercase animate-pulse">Cinema's Ultimate Prediction League</p>
       </motion.div>
 
@@ -105,7 +105,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               onClick={() => setIsLogin(false)}
               className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
                 !isLogin 
-                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-gold-500/20 scale-105' 
+                  ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-gold-500/20 scale-105' 
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -116,7 +116,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               onClick={() => setIsLogin(true)}
               className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
                 isLogin 
-                  ? 'bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-yellow-500/20 scale-105' 
+                  ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-yellow-500/20 scale-105' 
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -147,7 +147,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                     onClick={() => setSelectedAvatar(avatar)}
                     className={`text-3xl p-4 rounded-2xl transition-all relative overflow-hidden ${
                       selectedAvatar === avatar 
-                        ? 'bg-gradient-to-br from-[#D4AF37] to-[#B8860B] border-2 border-white/20 scale-110 shadow-lg text-black' 
+                        ? 'bg-linear-to-br from-[#D4AF37] to-[#B8860B] border-2 border-white/20 scale-110 shadow-lg text-black' 
                         : 'bg-white/5 border-2 border-transparent grayscale hover:grayscale-0 hover:bg-white/10'
                     }`}
                     whileHover={{ scale: 1.05 }}
@@ -205,14 +205,14 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         <motion.button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-primary via-primary to-secondary hover:from-secondary hover:via-primary hover:to-primary disabled:from-gray-600 disabled:to-gray-700 text-background font-black py-6 rounded-2xl shadow-2xl shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest text-sm mt-6 flex items-center justify-center space-x-3 relative overflow-hidden group"
+          className="w-full bg-linear-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 disabled:from-gray-600 disabled:to-gray-700 text-black font-black py-6 rounded-2xl shadow-2xl shadow-yellow-400/50 transition-all active:scale-95 uppercase tracking-widest text-sm mt-6 flex items-center justify-center space-x-3 relative overflow-hidden group"
           whileHover={{ scale: loading ? 1 : 1.02, boxShadow: "0 25px 50px -12px rgba(245, 158, 11, 0.5)" }}
           whileTap={{ scale: loading ? 1 : 0.97 }}
           onClick={(e) => {
             console.log('Submit button clicked');
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/70 to-white/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl shadow-lg backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-linear-to-r from-white/70 to-white/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl shadow-lg backdrop-blur-sm" />
           {loading && <Loader2 className="animate-spin z-10" size={20} />}
           <span className="z-10 text-lg">{loading ? 'PROCESSING...' : (isLogin ? '🔓 UNLOCK ACCOUNT' : '🎬 ENTER THE CIRCUIT')}</span>
           {!loading && <motion.div

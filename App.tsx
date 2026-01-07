@@ -13,6 +13,7 @@ import { getCurrentUser, getOrCreateDefaultLeague, signOut } from './src/instant
 import type { InstantUser } from './src/instant';
 import { getBallot } from './src/ballots'; // Still kept for types if needed
 import StandingsSnippet from './components/StandingsSnippet';
+import { PlayerList } from './PlayerList';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<InstantUser | null>(null);
@@ -161,7 +162,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Focus Card (Next Event) */}
-        <div className="bg-gradient-to-br from-yellow-900/40 via-black to-black border border-yellow-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+        <div className="bg-linear-to-br from-yellow-900/40 via-black to-black border border-yellow-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-all duration-700" />
           
           {/* Beta Badge */}
@@ -200,16 +201,30 @@ const App: React.FC = () => {
               </p>
             </div>
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Power Picks</p>
-              <p className="text-sm font-bold text-white">
+              <div className="flex justify-between items-start mb-1">
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Power Picks</p>
+                <div className="group relative">
+                  <Zap size={14} className="text-yellow-500 cursor-help" />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-black/95 border border-yellow-500/30 rounded-lg p-3 shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 backdrop-blur-sm">
+                    <p className="text-[10px] text-gray-300 leading-relaxed">
+                      <strong className="text-yellow-500 block mb-1">High Stakes Strategy</strong>
+                      Select your 3 most confident categories. Correct picks earn <span className="text-white font-bold">2x points</span>. Choose wisely!
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm font-bold text-white mb-2">
                 {ballot ? (Object.values(ballot.picks) as Pick[]).filter(p => p.isPowerPick).length : 0} / 3 Used
+              </p>
+              <p className="text-[10px] text-gray-400 leading-tight">
+                Select 3 categories to earn <span className="text-yellow-500 font-bold">2x points</span>.
               </p>
             </div>
           </div>
 
           <button 
             onClick={() => setActiveTab('ballot')}
-            className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-2xl py-4 flex items-center justify-center space-x-2 transition-all shadow-xl shadow-yellow-900/20 active:scale-95"
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-2xl py-4 flex items-center justify-center space-x-2 transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] active:scale-95"
           >
             <Target size={18} strokeWidth={2.5} />
             <span className="uppercase tracking-[0.15em] text-xs">{isBallotComplete ? 'Modify Ballot' : 'Make Your Picks'}</span>
@@ -262,7 +277,7 @@ const App: React.FC = () => {
           isLive={false} 
         />
       )}
-      {activeTab === 'leagues' && <div>Leagues coming soon...</div>}
+      {activeTab === 'leagues' && <PlayerList />}
       {activeTab === 'profile' && (
         <div className="space-y-8 py-8 px-6">
           {/* Profile Header */}
