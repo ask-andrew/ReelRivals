@@ -519,6 +519,70 @@ export async function getActivePlayers(eventId: string) {
   }
 }
 
+export async function getAllPlayersWithScores(eventId: string) {
+  try {
+    console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
+    
+    // Get all users first
+    const allUsersQuery = await dbCore.queryOnce({
+      users: { $: {} }
+    });
+
+    // Get all scores for this event
+    const scoresQuery = await dbCore.queryOnce({
+      scores: {
+        $: {
+          where: { event_id: eventId },
+        },
+      },
+      users: {}
+    });
+
+    console.log('[getAllPlayersWithScores] Raw scores data:', scoresQuery.data);
+
+    // Create a map of user_id -> score for quick lookup
+    const scoreMap = new Map();
+    scoresQuery.data.scores.forEach((score: any) => {
+      scoreMap.set(score.user_id, {
+        totalPoints: score.total_points || 0,
+        correctPicks: score.correct_picks || 0,
+        powerPicksHit: score.power_picks_hit || 0,
+        updatedAt: score.updated_at
+      });
+    });
+
+    // Combine users with their scores
+    const playersWithScores = allUsersQuery.data.users.map((user: any) => {
+      const score = scoreMap.get(user.id);
+      return {
+        id: user.id,
+        username: user.username,
+        avatar_emoji: user.avatar_emoji,
+        totalPoints: score?.totalPoints || 0,
+        correctPicks: score?.correctPicks || 0,
+        powerPicksHit: score?.powerPicksHit || 0,
+        hasSubmitted: score !== undefined,
+        updatedAt: score?.updatedAt || user.created_at
+      };
+    });
+
+    // Sort by total points (highest first), then by username
+    playersWithScores.sort((a, b) => {
+      if (b.totalPoints !== a.totalPoints) {
+        return b.totalPoints - a.totalPoints;
+      }
+      return a.username.localeCompare(b.username);
+    });
+
+    console.log('[getAllPlayersWithScores] Transformed players:', playersWithScores);
+
+    return { players: playersWithScores, error: null };
+  } catch (error) {
+    console.error("Error fetching players with scores:", error);
+    return { players: [], error };
+  }
+}
+
 export async function getPlayerStats(eventId: string) {
   try {
     // Get total users count
