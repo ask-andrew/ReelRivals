@@ -28,7 +28,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, type, data }) 
       case 'ballot':
         return `Locked in my picks for ${data?.eventName || 'Golden Globes'}! Time to see if I know my stuff 🎬`;
       default:
-        return 'Check out Reel Rivals - the ultimate awards prediction game!';
+        return 'Check out Reel Rivals - Lights...Camera...Competition!';
     }
   };
 
@@ -49,7 +49,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, type, data }) 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Reel Rivals',
+          title: 'Reel Rivals - Lights...Camera...Competition!',
           text: shareText,
           url: shareUrl
         });

@@ -62,7 +62,7 @@ export const PlayerList: React.FC = () => {
     
     if (navigator.share) {
       navigator.share({
-        title: 'Reel Rivals - Movie Awards Fantasy League',
+        title: 'Reel Rivals - Lights...Camera...Competition!',
         text: shareText,
         url: shareUrl,
       });
