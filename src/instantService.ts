@@ -483,7 +483,81 @@ export async function saveBallotPick(
   }
 }
 
-// Bulk save function - saves multiple picks at once
+// --- Player Functions --- //
+
+export async function getActivePlayers(eventId: string) {
+  try {
+    console.log('[getActivePlayers] Starting - eventId:', eventId);
+    
+    // Get all ballots for the event
+    const ballotsQuery = await dbCore.queryOnce({
+      ballots: {
+        $: {
+          where: { event_id: eventId },
+        },
+      },
+      users: {}
+    });
+
+    console.log('[getActivePlayers] Raw ballots data:', ballotsQuery.data);
+
+    // Transform the data to get unique users with their latest ballot
+    const players = ballotsQuery.data.ballots.map((ballot: any) => ({
+      id: ballot.user_id,
+      username: ballot.users?.username || 'Unknown',
+      avatar_emoji: ballot.users?.avatar_emoji || '🎬',
+      submittedAt: new Date(ballot.submitted_at).toISOString().split('T')[0], // Format as YYYY-MM-DD
+      ballotId: ballot.id,
+    }));
+
+    console.log('[getActivePlayers] Transformed players:', players);
+
+    return { players, error: null };
+  } catch (error) {
+    console.error("Error fetching active players:", error);
+    return { players: [], error };
+  }
+}
+
+export async function getPlayerStats(eventId: string) {
+  try {
+    // Get total users count
+    const allUsersQuery = await dbCore.queryOnce({
+      users: { $: {} }
+    });
+
+    // Get active players (users with ballots)
+    const activePlayersQuery = await dbCore.queryOnce({
+      ballots: {
+        $: {
+          where: { event_id: eventId },
+        },
+      },
+      users: {}
+    });
+
+    const totalUsers = allUsersQuery.data.users.length;
+    const activePlayers = activePlayersQuery.data.ballots.length;
+    const completionRate = totalUsers > 0 ? Math.round((activePlayers / totalUsers) * 100) : 0;
+
+    return {
+      totalUsers,
+      activePlayers,
+      completionRate,
+      error: null
+    };
+  } catch (error) {
+    console.error("Error fetching player stats:", error);
+    return {
+      totalUsers: 0,
+      activePlayers: 0,
+      completionRate: 0,
+      error
+    };
+  }
+}
+
+// --- Bulk save function - saves multiple picks at once
 export async function saveBallotPicks(
   userId: string,
   eventId: string,
