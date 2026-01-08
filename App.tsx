@@ -9,9 +9,8 @@ import ShareModal from './components/ShareModal';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
-import { getCurrentUser, getOrCreateDefaultLeague, signOut } from './src/instantService';
+import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot } from './src/instantService';
 import type { InstantUser } from './src/instant';
-import { getBallot } from './src/ballots'; // Still kept for types if needed
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
 
@@ -36,6 +35,28 @@ const App: React.FC = () => {
           const { league, error } = await getOrCreateDefaultLeague(currentUser.id);
           if (league) {
             setUserLeagueId(league.id);
+          }
+          
+          // Check if user has an existing ballot to set completion status
+          const existingBallot = await getBallot(currentUser.id, 'golden-globes-2026');
+          if (existingBallot && existingBallot.picks) {
+            const completedCount = existingBallot.picks.length;
+            setIsBallotComplete(completedCount === CATEGORIES.length);
+            
+            // Convert picks to the expected format
+            const picksMap: Record<string, Pick> = {};
+            existingBallot.picks.forEach((pick: any) => {
+              picksMap[pick.category_id] = {
+                nomineeId: pick.nominee_id,
+                isPowerPick: pick.is_power_pick
+              };
+            });
+            
+            setBallot({
+              userId: currentUser.id,
+              eventId: 'golden-globes-2026',
+              picks: picksMap
+            });
           }
         }
       } catch (err) {
@@ -197,7 +218,7 @@ const App: React.FC = () => {
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Ballot</p>
               <p className={`text-sm font-bold ${isBallotComplete ? 'text-green-500' : 'text-yellow-500'}`}>
-                {isBallotComplete ? 'Locked In' : `${CATEGORIES.length} Picks Pending`}
+                {isBallotComplete ? 'Locked In' : `${ballot ? Object.keys(ballot.picks).length : 0} of ${CATEGORIES.length} Picks`}
               </p>
             </div>
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">

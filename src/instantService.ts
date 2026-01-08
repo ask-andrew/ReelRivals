@@ -538,7 +538,17 @@ export async function getAllPlayersWithScores(eventId: string) {
       users: {}
     });
 
+    // Get all ballots for this event to check submission status
+    const ballotsQuery = await dbCore.queryOnce({
+      ballots: {
+        $: {
+          where: { event_id: eventId },
+        },
+      },
+    });
+
     console.log('[getAllPlayersWithScores] Raw scores data:', scoresQuery.data);
+    console.log('[getAllPlayersWithScores] Raw ballots data:', ballotsQuery.data);
 
     // Create a map of user_id -> score for quick lookup
     const scoreMap = new Map();
@@ -551,9 +561,19 @@ export async function getAllPlayersWithScores(eventId: string) {
       });
     });
 
+    // Create a set of user IDs who have submitted ballots
+    const submittedUserIds = new Set();
+    ballotsQuery.data.ballots.forEach((ballot: any) => {
+      if (ballot.picks && ballot.picks.length > 0) {
+        submittedUserIds.add(ballot.user_id);
+      }
+    });
+
     // Combine users with their scores
     const playersWithScores = allUsersQuery.data.users.map((user: any) => {
       const score = scoreMap.get(user.id);
+      const hasSubmittedBallot = submittedUserIds.has(user.id);
+      
       return {
         id: user.id,
         username: user.username,
@@ -561,7 +581,7 @@ export async function getAllPlayersWithScores(eventId: string) {
         totalPoints: score?.totalPoints || 0,
         correctPicks: score?.correctPicks || 0,
         powerPicksHit: score?.powerPicksHit || 0,
-        hasSubmitted: score !== undefined,
+        hasSubmitted: hasSubmittedBallot,
         updatedAt: score?.updatedAt || user.created_at
       };
     });
@@ -590,18 +610,24 @@ export async function getPlayerStats(eventId: string) {
       users: { $: {} }
     });
 
-    // Get active players (users with ballots)
+    // Get active players (users with ballots that have picks)
     const activePlayersQuery = await dbCore.queryOnce({
       ballots: {
         $: {
           where: { event_id: eventId },
         },
+        picks: {}
       },
       users: {}
     });
 
     const totalUsers = allUsersQuery.data.users.length;
-    const activePlayers = activePlayersQuery.data.ballots.length;
+    
+    // Count only ballots that have at least one pick
+    const activePlayers = activePlayersQuery.data.ballots.filter((ballot: any) => 
+      ballot.picks && ballot.picks.length > 0
+    ).length;
+    
     const completionRate = totalUsers > 0 ? Math.round((activePlayers / totalUsers) * 100) : 0;
 
     return {
