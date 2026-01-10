@@ -203,7 +203,7 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
 
       {/* Players List */}
       {sortedPlayers.length > 0 ? (
-        <div className="space-y-3">
+        <div className="max-h-96 overflow-y-auto space-y-3 border border-gray-800 rounded-lg p-4 bg-gray-900/30">
           {sortedPlayers.map((player, index) => (
             <div 
               key={player.id}
