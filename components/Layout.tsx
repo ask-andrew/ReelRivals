@@ -1,19 +1,21 @@
 
 import React from 'react';
-import { Home, Award, Trophy, Users, User as UserIcon, Settings } from 'lucide-react';
+import { Home, Award, Trophy, Users, User as UserIcon, Settings, BarChart3, LogOut } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: 'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin';
+  activeTab: 'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin' | 'analytics';
   onTabChange: (tab: any) => void;
+  onSignOut: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onSignOut }) => {
   const tabs = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'ballot', icon: Award, label: 'Ballot' },
     { id: 'live', icon: Trophy, label: 'Live' },
     { id: 'leagues', icon: Users, label: 'The Critics' },
+    { id: 'analytics', icon: BarChart3, label: 'Analytics' },
     { id: 'profile', icon: UserIcon, label: 'Profile' },
     { id: 'admin', icon: Settings, label: 'Admin' },
   ];
@@ -39,6 +41,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
             </button>
           );
         })}
+        
+        {/* Sign Out Button */}
+        <button
+          onClick={onSignOut}
+          className="flex flex-col items-center text-red-500 hover:text-red-400 transition-all duration-300"
+          title="Sign Out"
+        >
+          <LogOut size={24} strokeWidth={2} />
+          <span className="text-[10px] mt-1 font-medium tracking-wide uppercase">Sign Out</span>
+        </button>
       </nav>
     </div>
   );

@@ -6,6 +6,7 @@ import BallotSwiperDB from './components/BallotSwiperDB';
 import LiveScoring from './components/LiveScoring';
 import ActivityFeed from './components/ActivityFeed';
 import ShareModal from './components/ShareModal';
+import Analytics from './components/Analytics';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
@@ -17,7 +18,7 @@ import LiveScoringDemo from './LiveScoringDemo';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<InstantUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'live-demo' | 'leagues' | 'profile' | 'admin'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'live-demo' | 'leagues' | 'profile' | 'admin' | 'analytics'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isBallotComplete, setIsBallotComplete] = useState(false);
@@ -169,6 +170,20 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
 
   const handleOnboardingComplete = (newUser: InstantUser) => {
     setUser(newUser);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      setBallot(null);
+      setActivities([]);
+      setIsBallotComplete(false);
+      setUserLeagueId(null);
+      setActiveTab('home');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleBallotComplete = async (picks: Record<string, Pick>) => {
@@ -418,7 +433,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+    <Layout activeTab={activeTab} onTabChange={setActiveTab} onSignOut={handleSignOut}>
       {activeTab === 'home' && renderHome()}
       {activeTab === 'ballot' && (
         <BallotSwiperDB 
@@ -444,6 +459,12 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         </div>
       )}
       {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}
+      {activeTab === 'analytics' && (
+        <Analytics 
+          leagueId={userLeagueId || 'default'} 
+          eventId="golden-globes-2026" 
+        />
+      )}
       {activeTab === 'profile' && (
         <div className="space-y-8 py-8 px-6">
           {/* Profile Header */}

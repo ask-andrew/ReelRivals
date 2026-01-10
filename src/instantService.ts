@@ -648,6 +648,79 @@ export async function getPlayerStats(eventId: string) {
   }
 }
 
+export async function getNomineePercentages(categoryId: string, eventId: string, leagueId: string): Promise<{ percentages: Record<string, number>, totalUsers: number, error: any }> {
+  try {
+    console.log('🔍 Debug - Querying with params:', { categoryId, eventId, leagueId });
+    
+    // Get all ballots for this event (like the working query does)
+    const ballotsQuery = await dbCore.queryOnce({
+      ballots: {
+        $: {
+          where: { event_id: eventId },
+        },
+        picks: {
+          $: {
+            where: { category_id: categoryId }
+          }
+        }
+      },
+      users: {}
+    });
+
+    console.log('🔍 Debug - Raw ballots query result:', ballotsQuery);
+    console.log('🔍 Debug - Total ballots found:', ballotsQuery.data.ballots?.length || 0);
+    console.log('🔍 Debug - Total users found:', ballotsQuery.data.users?.length || 0);
+
+    // Filter out test users (emails containing 'test' or 'demo', case-insensitive)
+    const realUserBallots = ballotsQuery.data.ballots.filter((ballot: any) => {
+      const user = ballotsQuery.data.users.find((u: any) => u.id === ballot.user_id);
+      if (!user) return false;
+      
+      const email = (user as any).email || '';
+      const username = (user as any).username || '';
+      
+      console.log('🔍 Debug - User:', { email, username, isTest: email.toLowerCase().includes('test') || username.toLowerCase().includes('test') });
+      
+      return !email.toLowerCase().includes('test') && 
+             !email.toLowerCase().includes('demo') &&
+             !username.toLowerCase().includes('test') && 
+             !username.toLowerCase().includes('demo');
+    });
+
+    console.log('🔍 Debug - Real user ballots after filtering:', realUserBallots.length);
+
+    // Count picks for each nominee
+    const nomineeCounts: Record<string, number> = {}
+    realUserBallots.forEach((ballot: any) => {
+      if (ballot.picks && ballot.picks.length > 0) {
+        ballot.picks.forEach((pick: any) => {
+          const nomineeId = pick.nominee_id;
+          nomineeCounts[nomineeId] = (nomineeCounts[nomineeId] || 0) + 1;
+        });
+      }
+    });
+
+    console.log('🔍 Debug - Nominee counts:', nomineeCounts);
+
+    // Calculate percentages
+    const totalUsers = realUserBallots.length;
+    const percentages: Record<string, number> = {}
+    
+    if (totalUsers > 0) {
+      Object.keys(nomineeCounts).forEach(nomineeId => {
+        percentages[nomineeId] = Math.round((nomineeCounts[nomineeId] / totalUsers) * 100);
+      });
+    }
+
+    console.log('🔍 Debug - Final result:', { percentages, totalUsers });
+
+    return { percentages, totalUsers, error: null };
+  } catch (error) {
+    console.error('Error loading nominee percentages:', error);
+    return { percentages: {}, totalUsers: 0, error };
+  }
+}
+
 // --- Bulk save function - saves multiple picks at once
 export async function saveBallotPicks(
   userId: string,

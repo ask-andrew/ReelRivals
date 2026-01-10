@@ -82,18 +82,18 @@ export async function createOrUpdateBallot(
       ballotId = existingBallot.id
     } else {
       // Create new ballot
-      const { data: newBallot, error: createError } = await supabase
+      const { data: newBallot, error: createError } = await (supabase
         .from('ballots')
         .insert({
           user_id: userId,
           event_id: eventId,
           league_id: leagueId
-        })
+        } as any)
         .select()
-        .single()
+        .single() as any)
 
       if (createError) throw createError
-      ballotId = newBallot.id
+      ballotId = newBallot?.id
     }
 
     // Delete existing picks
@@ -112,9 +112,9 @@ export async function createOrUpdateBallot(
       is_power_pick: pick.isPowerPick
     }))
 
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase
       .from('picks')
-      .insert(picksToInsert)
+      .insert(picksToInsert as any) as any)
 
     if (insertError) throw insertError
 
@@ -128,10 +128,10 @@ export async function createOrUpdateBallot(
 
 export async function lockBallot(ballotId: string): Promise<{ error: any }> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase
       .from('ballots')
-      .update({ is_locked: true })
-      .eq('id', ballotId)
+      .update({ is_locked: true } as any)
+      .eq('id', ballotId) as any)
 
     return { error }
   } catch (error) {
@@ -200,5 +200,78 @@ export async function getBallotsByLeague(leagueId: string, eventId: string): Pro
     return { ballots: data || [], error: null }
   } catch (error) {
     return { ballots: [], error }
+  }
+}
+
+export async function getNomineePercentages(categoryId: string, eventId: string, leagueId: string): Promise<{ percentages: Record<string, number>, totalUsers: number, error: any }> {
+  try {
+    // Get all ballots for this category in the league/event
+    const { data: ballots, error: ballotsError } = await supabase
+      .from('ballots')
+      .select(`
+        user_id,
+        picks!inner(
+          category_id,
+          nominee_id
+        )
+      `)
+      .eq('event_id', eventId)
+      .eq('league_id', leagueId)
+      .eq('picks.category_id', categoryId)
+
+    if (ballotsError) throw ballotsError
+
+    // Get user information for all ballots
+    const userIds = (ballots as any[])?.map((b: any) => b.user_id) || []
+    if (userIds.length === 0) {
+      return { percentages: {}, totalUsers: 0, error: null }
+    }
+
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, email, username')
+      .in('id', userIds)
+
+    if (usersError) throw usersError
+
+    // Create a map of user info for quick lookup
+    const userMap = new Map()
+    ;(users as any[])?.forEach((user: any) => {
+      userMap.set(user.id, user)
+    })
+
+    // Filter out test users (emails containing 'test' or 'demo', case-insensitive)
+    const realUserBallots = (ballots as any[])?.filter((ballot: any) => {
+      const user = userMap.get(ballot.user_id)
+      if (!user) return false
+      
+      const email = user.email || ''
+      const username = user.username || ''
+      return !email.toLowerCase().includes('test') && 
+             !email.toLowerCase().includes('demo') &&
+             !username.toLowerCase().includes('test') && 
+             !username.toLowerCase().includes('demo')
+    }) || []
+
+    // Count picks for each nominee
+    const nomineeCounts: Record<string, number> = {}
+    realUserBallots.forEach((ballot: any) => {
+      const nomineeId = ballot.picks.nominee_id
+      nomineeCounts[nomineeId] = (nomineeCounts[nomineeId] || 0) + 1
+    })
+
+    // Calculate percentages
+    const totalUsers = realUserBallots.length
+    const percentages: Record<string, number> = {}
+    
+    if (totalUsers > 0) {
+      Object.keys(nomineeCounts).forEach(nomineeId => {
+        percentages[nomineeId] = Math.round((nomineeCounts[nomineeId] / totalUsers) * 100)
+      })
+    }
+
+    return { percentages, totalUsers, error: null }
+  } catch (error) {
+    return { percentages: {}, totalUsers: 0, error }
   }
 }

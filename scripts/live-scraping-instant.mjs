@@ -486,11 +486,16 @@ const command = process.argv[2];
 switch (command) {
   case 'live-scrape':
     const eventId = process.argv[3];
-    if (eventId) {
-      startLiveScrapingInstantDB(eventId);
-    } else {
+    if (!eventId) {
       console.error('❌ Please provide an event ID: node live-scraping-instant.mjs live-scrape golden-globes-2026');
+      console.error('');
+      console.error('Available events:');
+      console.error('- golden-globes-2026');
+      console.error('- oscars-2026');
+      console.error('- baftas-2026');
+      process.exit(1);
     }
+    startLiveScrapingInstantDB(eventId);
     break;
   default:
     console.log(`

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2 } from 'lucide-react';
+import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users } from 'lucide-react';
 import { Pick } from '../types';
-import { getCategories, saveBallotPick, getBallot } from '../src/instantService';
+import { getCategories, saveBallotPick, getBallot, getNomineePercentages } from '../src/instantService';
 
 interface BallotSwiperProps {
   onComplete: (picks: Record<string, Pick>) => void;
@@ -19,6 +19,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'review' | 'edit'>('edit'); // NEW: Track view mode
+  const [nomineePercentages, setNomineePercentages] = useState<Record<string, number>>({});
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [loadingPercentages, setLoadingPercentages] = useState(false);
 
   const category = categories[currentCategoryIndex];
 
@@ -37,6 +40,39 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCategoryIndex, category]);
+
+  // Load percentages when category changes
+  useEffect(() => {
+    if (category && viewMode === 'edit') {
+      loadNomineePercentages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, viewMode]);
+
+  const loadNomineePercentages = async () => {
+    if (!category) return;
+    
+    setLoadingPercentages(true);
+    try {
+      const eventId = 'golden-globes-2026';
+      const { percentages, totalUsers: users, error } = await getNomineePercentages(
+        category.id, 
+        eventId, 
+        leagueId
+      );
+      
+      if (error) {
+        console.error('Error loading nominee percentages:', error);
+      } else {
+        setNomineePercentages(percentages);
+        setTotalUsers(users);
+      }
+    } catch (error) {
+      console.error('Error loading nominee percentages:', error);
+    } finally {
+      setLoadingPercentages(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -328,45 +364,78 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
       {/* Nominee Cards */}
       <div className="flex-1 overflow-y-auto p-6">
+        {/* User Percentage Stats */}
+        {!loadingPercentages && (
+          <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+            <div className="flex items-center space-x-2 mb-2">
+              <Users size={16} className="text-blue-500" />
+              <span className="text-sm font-bold text-blue-500">What Real Users Picked</span>
+            </div>
+            <p className="text-xs text-gray-400">
+              {totalUsers > 0 
+                ? `Based on ${totalUsers} real user${totalUsers !== 1 ? 's' : ''} (test accounts excluded)`
+                : 'Be the first to pick! No real users have voted yet (test accounts excluded)'
+              }
+            </p>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
-            {category.nominees.map((nominee: any) => (
-              <motion.div
-                key={nominee.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => handleSelect(nominee.id)}
-                className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                  selectedNomineeId === nominee.id
-                    ? 'border-yellow-500 bg-yellow-500/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20'
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  {nominee.tmdb_id && (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w92${nominee.tmdb_id}`}
-                      alt={nominee.name}
-                      className="w-16 h-24 object-cover rounded-lg"
-                      onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA2NCA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMzMzIi8+CjxwYXRoIGQ9Ik0zMiA0OEMzNi40MTgzIDQ4IDQwIDQ0LjQxODMgNDAgNDBDNDAgMzUuNTgxNyAzNi40MTgzIDMyIDMyIDMyQzI3LjU4MTcgMzIgMjQgMzUuNTgxNyAyNCA0MEMyNCA0NC40MTgzIDI3LjU4MTcgNDggMzIgNDhaIiBmaWxsPSIjNjY2Ii8+Cjwvc3ZnPgo=';
-                      }}
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-bold text-white">{nominee.name}</h3>
-                    {category.base_points >= 50 && (
-                      <p className="text-sm text-gray-400">{category.base_points} points</p>
+            {category.nominees.map((nominee: any) => {
+              const percentage = nomineePercentages[nominee.id] || 0;
+              
+              return (
+                <motion.div
+                  key={nominee.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => handleSelect(nominee.id)}
+                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                    selectedNomineeId === nominee.id
+                      ? 'border-yellow-500 bg-yellow-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center space-x-4">
+                    {nominee.tmdb_id && (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w92${nominee.tmdb_id}`}
+                        alt={nominee.name}
+                        className="w-16 h-24 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA2NCA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMzMzIi8+CjxwYXRoIGQ9Ik0zMiA0OEMzNi40MTgzIDQ4IDQwIDQ0LjQxODMgNDAgNDBDNDAgMzUuNTgxNyAzNi40MTgzIDMyIDMyIDMyQzI3LjU4MTcgMzIgMjQgMzUuNTgxNyAyNCA0MEMyNCA0NC40MTgzIDI3LjU4MTcgNDggMzIgNDhaIiBmaWxsPSIjNjY2Ii8+Cjwvc3ZnPgo=';
+                        }}
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-bold text-white">{nominee.name}</h3>
+                      {category.base_points >= 50 && (
+                        <p className="text-sm text-gray-400">{category.base_points} points</p>
+                      )}
+                      
+                      {/* User Percentage Display */}
+                      <div className="mt-2 flex items-center space-x-2">
+                        <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className="bg-blue-500 h-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-blue-500 min-w-12 text-right">
+                          {loadingPercentages ? '...' : `${percentage}%`}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedNomineeId === nominee.id && (
+                      <Check className="text-yellow-500" size={24} />
                     )}
                   </div>
-                  {selectedNomineeId === nominee.id && (
-                    <Check className="text-yellow-500" size={24} />
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       </div>
