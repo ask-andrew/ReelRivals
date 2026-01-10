@@ -227,7 +227,7 @@ const App: React.FC = () => {
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-all duration-700" />
           
           {/* Beta Badge */}
-          <div className="absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+          <div className="absolute bottom-4 right-4 bg-yellow-500/80 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
             Beta
           </div>
           
