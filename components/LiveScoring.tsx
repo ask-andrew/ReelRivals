@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Zap, TrendingUp, Users, Award } from 'lucide-react';
 import { getAllPlayersWithScores } from '../src/instantService';
-import { dbCore } from '../src/instant';
+import { db } from '../src/instant';
 
 interface LiveScore {
   userId: string;
@@ -73,7 +73,7 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
 
   const fetchRecentWins = async () => {
     try {
-      const resultsQuery = await dbCore.queryOnce({
+      const resultsQuery = await db.queryOnce({
         results: {
           $: {
             where: {},
@@ -81,14 +81,11 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
           },
           category: {
             name: true
-          },
-          nominee: {
-            name: true
           }
         }
-      });
+      } as any);
 
-      if (resultsQuery.data.results) {
+      if (resultsQuery?.data?.results) {
         const wins = resultsQuery.data.results.map((result: any) => ({
           category: result.category?.name || 'Unknown',
           winner: result.nominee?.name || 'Unknown',

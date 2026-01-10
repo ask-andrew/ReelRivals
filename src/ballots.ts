@@ -128,10 +128,12 @@ export async function createOrUpdateBallot(
 
 export async function lockBallot(ballotId: string): Promise<{ error: any }> {
   try {
-    const { error } = await (supabase
+    const { error } = await supabase
       .from('ballots')
-      .update({ is_locked: true } as any)
-      .eq('id', ballotId) as any)
+      .update({ is_locked: true })
+      .eq('id', ballotId)
+      .select()
+      .single()
 
     return { error }
   } catch (error) {
