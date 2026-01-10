@@ -544,6 +544,7 @@ export async function getAllPlayersWithScores(eventId: string) {
         $: {
           where: { event_id: eventId },
         },
+        picks: {}
       },
     });
 
