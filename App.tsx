@@ -26,6 +26,94 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [standingsRefresh, setStandingsRefresh] = useState(0);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const SEASON_BADGES = [
+  {
+    id: 'first-ballot',
+    emoji: '🎬',
+    name: 'First Timer',
+    description: 'Submit your first ballot',
+    unlocked: false,
+    category: 'participation'
+  },
+  {
+    id: 'perfect-picks',
+    emoji: '👁️',
+    name: 'Eagle Eye',
+    description: 'Get 10+ correct picks in one event',
+    unlocked: false,
+    category: 'accuracy'
+  },
+  {
+    id: 'power-player',
+    emoji: '⚡',
+    name: 'Power Player',
+    description: 'Use all 3 power picks correctly',
+    unlocked: false,
+    category: 'strategy'
+  },
+  {
+    id: 'circuit-champion',
+    emoji: '🏆',
+    name: 'Circuit Champion',
+    description: 'Win an event overall',
+    unlocked: false,
+    category: 'victory'
+  },
+  {
+    id: 'consistent',
+    emoji: '📈',
+    name: 'Consistent Critic',
+    description: 'Submit ballots for 3+ events',
+    unlocked: false,
+    category: 'participation'
+  },
+  {
+    id: 'perfect-event',
+    emoji: '🎯',
+    name: 'Perfect Score',
+    description: 'Get 100% correct picks in an event',
+    unlocked: false,
+    category: 'accuracy'
+  }
+];
+
+const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative shrink-0">
+      <div
+        className={`w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-2xl transition-all duration-300 cursor-pointer shrink-0 ${
+          badge.unlocked 
+            ? 'bg-yellow-500/20 border-yellow-500/50 hover:bg-yellow-500/30 hover:scale-105' 
+            : 'grayscale opacity-50 hover:opacity-70'
+        }`}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {badge.emoji}
+      </div>
+      
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-black/95 border border-yellow-500/30 rounded-lg p-3 shadow-xl z-50">
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-lg">{badge.emoji}</span>
+            <span className={`text-sm font-bold ${badge.unlocked ? 'text-yellow-500' : 'text-gray-400'}`}>
+              {badge.name}
+            </span>
+          </div>
+          <p className="text-[10px] text-gray-300 leading-relaxed">{badge.description}</p>
+          <div className="mt-2 text-[8px] text-gray-500 uppercase tracking-widest">
+            {badge.category}
+          </div>
+          {badge.unlocked && (
+            <div className="mt-1 text-[8px] text-green-500 font-bold">✓ UNLOCKED</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
   useEffect(() => {
     const initSession = async () => {
@@ -366,15 +454,36 @@ const App: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Season Badges</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Season Badges</h3>
+              <span className="text-[10px] text-gray-400">0 of {SEASON_BADGES.length} unlocked</span>
+            </div>
             <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide">
-              {['🐴', '👁️', '🧹', '🔥'].map((emoji, i) => (
-                <div key={i} className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-2xl grayscale opacity-50 shrink-0">
-                  {emoji}
-                </div>
+              {SEASON_BADGES.map((badge) => (
+                <BadgeCard key={badge.id} badge={badge} />
               ))}
             </div>
-            <p className="text-[10px] text-center text-gray-600 italic">Participate in more events to unlock badges</p>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+              <h4 className="text-sm font-bold text-yellow-500 mb-2">How to Unlock Badges</h4>
+              <div className="space-y-2 text-[10px] text-gray-300">
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500">🎬</span>
+                  <span><strong>Participation:</strong> Submit ballots and engage with events</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-blue-500">🎯</span>
+                  <span><strong>Accuracy:</strong> Make correct predictions and perfect scores</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-yellow-500">⚡</span>
+                  <span><strong>Strategy:</strong> Use power picks wisely</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-purple-500">🏆</span>
+                  <span><strong>Victory:</strong> Win events and dominate the circuit</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <button className="w-full text-red-900 font-bold py-4 text-[10px] tracking-[0.2em] uppercase mt-8 opacity-40 hover:opacity-100 transition-opacity">Reset Season Progress</button>
