@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [standingsRefresh, setStandingsRefresh] = useState(0);
 
   useEffect(() => {
     const initSession = async () => {
@@ -73,7 +74,7 @@ const App: React.FC = () => {
     setUser(newUser);
   };
 
-  const handleBallotComplete = (picks: Record<string, Pick>) => {
+  const handleBallotComplete = async (picks: Record<string, Pick>) => {
     const newBallot: Ballot = {
       userId: user?.id || '',
       eventId: 'golden-globes-2026',
@@ -93,6 +94,37 @@ const App: React.FC = () => {
       type: 'pick'
     };
     setActivities(prev => [newActivity, ...prev]);
+
+    // Refresh the ballot from database to ensure consistency
+    try {
+      if (user) {
+        const refreshedBallot = await getBallot(user.id, 'golden-globes-2026');
+        if (refreshedBallot && refreshedBallot.picks) {
+          const completedCount = refreshedBallot.picks.length;
+          setIsBallotComplete(completedCount === CATEGORIES.length);
+          
+          // Convert picks to the expected format
+          const picksMap: Record<string, Pick> = {};
+          refreshedBallot.picks.forEach((pick: any) => {
+            picksMap[pick.category_id] = {
+              nomineeId: pick.nominee_id,
+              isPowerPick: pick.is_power_pick
+            };
+          });
+          
+          setBallot({
+            userId: user.id,
+            eventId: 'golden-globes-2026',
+            picks: picksMap
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing ballot after completion:', error);
+    }
+
+    // Trigger standings refresh
+    setStandingsRefresh(prev => prev + 1);
   };
 
   if (loading) {
@@ -264,7 +296,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} />
+        <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} refreshTrigger={standingsRefresh} />
 
         <ActivityFeed activities={activities} />
         
