@@ -19,7 +19,11 @@ interface PlayerStats {
   completionRate: number;
 }
 
-export const PlayerList: React.FC = () => {
+interface PlayerListProps {
+  refreshTrigger?: number;
+}
+
+export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +33,7 @@ export const PlayerList: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [refreshTrigger]);
 
   const loadData = async () => {
     try {

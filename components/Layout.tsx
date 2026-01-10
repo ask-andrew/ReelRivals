@@ -13,7 +13,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'ballot', icon: Award, label: 'Ballot' },
     { id: 'live', icon: Trophy, label: 'Live' },
-    { id: 'leagues', icon: Users, label: 'Leagues' },
+    { id: 'leagues', icon: Users, label: 'The Critics' },
     { id: 'profile', icon: UserIcon, label: 'Profile' },
     { id: 'admin', icon: Settings, label: 'Admin' },
   ];

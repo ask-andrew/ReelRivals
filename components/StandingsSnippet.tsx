@@ -44,7 +44,7 @@ const StandingsSnippet: React.FC<StandingsSnippetProps> = ({ onViewLeague, refre
       <div className="space-y-4">
         <div className="flex justify-between items-center px-1">
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Season Standings</h3>
-          <button onClick={onViewLeague} className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">View League</button>
+          <button onClick={onViewLeague} className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">View Critics</button>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
           {[1, 2, 3].map((i) => (
@@ -66,7 +66,7 @@ const StandingsSnippet: React.FC<StandingsSnippetProps> = ({ onViewLeague, refre
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
         <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Season Standings</h3>
-        <button onClick={onViewLeague} className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">View League</button>
+        <button onClick={onViewLeague} className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">View Critics</button>
       </div>
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
         {players.length > 0 ? (

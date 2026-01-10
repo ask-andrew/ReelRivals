@@ -338,7 +338,7 @@ const App: React.FC = () => {
           isLive={false} 
         />
       )}
-      {activeTab === 'leagues' && <PlayerList />}
+      {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}
       {activeTab === 'profile' && (
         <div className="space-y-8 py-8 px-6">
           {/* Profile Header */}
