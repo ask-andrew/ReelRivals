@@ -435,7 +435,13 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         />
       )}
       {activeTab === 'live-demo' && (
-        <LiveScoringDemo />
+        <div>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 m-4">
+            <h3 className="text-yellow-500 font-bold mb-2">🎬 Live Scoring Demo</h3>
+            <p className="text-sm text-gray-300 mb-4">This is a demonstration of what the live scoring page will look like during the actual awards ceremony!</p>
+          </div>
+          <LiveScoringDemo />
+        </div>
       )}
       {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}
       {activeTab === 'profile' && (

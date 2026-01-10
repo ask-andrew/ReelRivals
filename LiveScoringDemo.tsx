@@ -72,6 +72,8 @@ const LiveScoringDemo: React.FC = () => {
   const [recentWins, setRecentWins] = useState(mockRecentWins);
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
+  console.log('LiveScoringDemo rendering, isLive:', isLive);
+
   // Simulate live updates
   useEffect(() => {
     if (!isLive) return;
