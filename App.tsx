@@ -9,7 +9,7 @@ import ShareModal from './components/ShareModal';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
-import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot } from './src/instantService';
+import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCategories } from './src/instantService';
 import type { InstantUser } from './src/instant';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [standingsRefresh, setStandingsRefresh] = useState(0);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
 
   useEffect(() => {
     const initSession = async () => {
@@ -33,7 +34,14 @@ const App: React.FC = () => {
         setUser(currentUser);
         
         if (currentUser) {
-          const { league, error } = await getOrCreateDefaultLeague(currentUser.id);
+          const [{ categories: cats, error: catsError }, { league, error }] = await Promise.all([
+            getCategories('golden-globes-2026'),
+            getOrCreateDefaultLeague(currentUser.id)
+          ]);
+          
+          if (catsError) throw catsError;
+          setDbCategories(cats || []);
+          
           if (league) {
             setUserLeagueId(league.id);
           }
@@ -42,7 +50,7 @@ const App: React.FC = () => {
           const existingBallot = await getBallot(currentUser.id, 'golden-globes-2026');
           if (existingBallot && existingBallot.picks) {
             const completedCount = existingBallot.picks.length;
-            setIsBallotComplete(completedCount === CATEGORIES.length);
+            setIsBallotComplete(completedCount === (cats?.length || 0));
             
             // Convert picks to the expected format
             const picksMap: Record<string, Pick> = {};
@@ -101,7 +109,7 @@ const App: React.FC = () => {
         const refreshedBallot = await getBallot(user.id, 'golden-globes-2026');
         if (refreshedBallot && refreshedBallot.picks) {
           const completedCount = refreshedBallot.picks.length;
-          setIsBallotComplete(completedCount === CATEGORIES.length);
+          setIsBallotComplete(completedCount === dbCategories.length);
           
           // Convert picks to the expected format
           const picksMap: Record<string, Pick> = {};
@@ -250,7 +258,7 @@ const App: React.FC = () => {
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Ballot</p>
               <p className={`text-sm font-bold ${isBallotComplete ? 'text-green-500' : 'text-yellow-500'}`}>
-                {isBallotComplete ? 'Locked In' : `${ballot ? Object.keys(ballot.picks).length : 0} of ${CATEGORIES.length} Picks`}
+                {isBallotComplete ? 'Locked In' : `${ballot ? Object.keys(ballot.picks).length : 0} of ${dbCategories.length || CATEGORIES.length} Picks`}
               </p>
             </div>
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
