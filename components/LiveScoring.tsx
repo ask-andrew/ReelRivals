@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Zap, TrendingUp, Users, Award } from 'lucide-react';
-import { supabase } from '../src/supabase';
+import { getAllPlayersWithScores } from '../src/instantService';
+import { dbCore } from '../src/instant';
 
 interface LiveScore {
   userId: string;
@@ -11,6 +12,7 @@ interface LiveScore {
   powerPicksHit: number;
   rank: number;
   previousRank: number;
+  trend: 'up' | 'down' | 'same';
 }
 
 interface LiveScoringProps {
@@ -23,196 +25,266 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
   const [scores, setScores] = useState<LiveScore[]>([]);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [connected, setConnected] = useState(false);
+  const [recentWins, setRecentWins] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isLive) return;
 
     // Initial load
     fetchScores();
+    fetchRecentWins();
 
-    // Real-time subscription
-    const subscription = supabase
-      .channel(`live-scores-${eventId}-${leagueId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'scores',
-          filter: `event_id=eq.${eventId}&league_id=eq.${leagueId}`
-        },
-        (payload) => {
-          console.log('Score update:', payload);
-          fetchScores();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'results',
-          filter: `category_id=in.(select id from categories where event_id=eq.${eventId})`
-        },
-        (payload) => {
-          console.log('Winner announced:', payload);
-          fetchScores();
-        }
-      )
-      .subscribe((status) => {
-        setConnected(status === 'SUBSCRIBED');
-      });
+    // Set up real-time polling (InstantDB doesn't have built-in real-time like Supabase)
+    const interval = setInterval(() => {
+      fetchScores();
+      fetchRecentWins();
+    }, 5000); // Poll every 5 seconds
+
+    setConnected(true);
 
     return () => {
-      subscription.unsubscribe();
+      clearInterval(interval);
     };
   }, [eventId, leagueId, isLive]);
 
   const fetchScores = async () => {
     try {
-      const { data: scoresData, error } = await supabase
-        .from('scores')
-        .select(`
-          *,
-          user:users(id, username, avatar_emoji)
-        `)
-        .eq('event_id', eventId)
-        .eq('league_id', leagueId)
-        .order('total_points', { ascending: false });
+      const result = await getAllPlayersWithScores(eventId);
+      if (!result.error) {
+        const formattedScores = result.players.map((player, index) => ({
+          userId: player.id,
+          username: player.username,
+          avatarEmoji: player.avatar_emoji,
+          totalPoints: player.totalPoints,
+          correctPicks: player.correctPicks,
+          powerPicksHit: player.powerPicksHit,
+          rank: index + 1,
+          previousRank: index + 1, // Would need to track previous state
+          trend: 'same' as const // Would need to calculate based on previous rank
+        }));
 
-      if (error) throw error;
-
-      const formattedScores = scoresData.map((score, index) => ({
-        userId: score.user.id,
-        username: score.user.username,
-        avatarEmoji: score.user.avatar_emoji,
-        totalPoints: score.total_points,
-        correctPicks: score.correct_picks,
-        powerPicksHit: score.power_picks_hit,
-        rank: index + 1,
-        previousRank: index + 1 // Would need to track previous state
-      }));
-
-      setScores(formattedScores);
-      setLastUpdate(new Date());
+        setScores(formattedScores);
+        setLastUpdate(new Date());
+      }
     } catch (error) {
       console.error('Error fetching scores:', error);
     }
   };
 
-  const getRankChange = (current: number, previous: number) => {
-    if (current < previous) return 'up';
-    if (current > previous) return 'down';
-    return 'same';
+  const fetchRecentWins = async () => {
+    try {
+      const resultsQuery = await dbCore.queryOnce({
+        results: {
+          $: {
+            where: {},
+            limit: 5
+          },
+          category: {
+            name: true
+          },
+          nominee: {
+            name: true
+          }
+        }
+      });
+
+      if (resultsQuery.data.results) {
+        const wins = resultsQuery.data.results.map((result: any) => ({
+          category: result.category?.name || 'Unknown',
+          winner: result.nominee?.name || 'Unknown',
+          time: formatTimeAgo(result.announced_at)
+        }));
+        setRecentWins(wins);
+      }
+    } catch (error) {
+      console.error('Error fetching recent wins:', error);
+    }
   };
 
-  const getRankIcon = (change: string) => {
-    switch (change) {
-      case 'up':
-        return <TrendingUp size={14} className="text-green-500" />;
-      case 'down':
-        return <TrendingUp size={14} className="text-red-500 rotate-180" />;
-      default:
-        return null;
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${Math.floor(hours / 24)} day${Math.floor(hours / 24) > 1 ? 's' : ''} ago`;
+  };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'up': return <TrendingUp className="w-4 h-4 text-green-500" />;
+      case 'down': return <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />;
+      default: return <div className="w-4 h-4" />;
     }
   };
 
   if (!isLive) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
-        <Trophy size={24} className="mx-auto text-yellow-500 mb-2" />
-        <p className="text-sm text-gray-400">Live scoring will begin during the ceremony</p>
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <div className="text-center">
+          <Trophy className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">Live Scoring</h3>
+          <p className="text-gray-400 mb-4">The show hasn't started yet</p>
+          <p className="text-sm text-gray-500">Check back during the ceremony for real-time updates!</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Live Status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${connected ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`} />
-          <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
-            {connected ? 'Live' : 'Connecting...'}
-          </span>
-        </div>
-        {lastUpdate && (
-          <span className="text-[10px] text-gray-500">
-            Updated {lastUpdate.toLocaleTimeString()}
-          </span>
-        )}
-      </div>
-
-      {/* Top 3 Leaders */}
-      <div className="grid grid-cols-3 gap-4">
-        {scores.slice(0, 3).map((score, index) => (
-          <div
-            key={score.userId}
-            className={`bg-gradient-to-br rounded-2xl p-4 text-center border ${
-              index === 0
-                ? 'from-yellow-500/20 to-yellow-600/10 border-yellow-500/30'
-                : index === 1
-                ? 'from-gray-400/20 to-gray-500/10 border-gray-400/30'
-                : 'from-orange-600/20 to-orange-700/10 border-orange-600/30'
-            }`}
-          >
-            <div className="text-2xl mb-1">{score.avatarEmoji}</div>
-            <div className="flex items-center justify-center space-x-1 mb-2">
-              <span className="text-lg font-bold">{index === 0 ? '👑' : index === 1 ? '🥈' : '🥉'}</span>
-              {getRankIcon(getRankChange(score.rank, score.previousRank))}
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-yellow-500 mb-1">Live Scoring</h2>
+          <div className="flex items-center space-x-3">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
+              connected ? 'bg-red-500/20 border border-red-500' : 'bg-gray-700 border border-gray-600'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`} />
+              <span className={`text-sm font-bold ${connected ? 'text-red-400' : 'text-gray-400'}`}>
+                {connected ? 'LIVE' : 'CONNECTING...'}
+              </span>
             </div>
-            <p className="text-xs font-bold text-yellow-500 mb-1">{score.username}</p>
-            <p className="text-lg font-bold text-white">{score.totalPoints}</p>
-            <p className="text-[10px] text-gray-500">{score.correctPicks} correct</p>
+            {lastUpdate && (
+              <span className="text-sm text-gray-400">
+                Last updated: {lastUpdate.toLocaleTimeString()}
+              </span>
+            )}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Full Leaderboard */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center space-x-2">
-            <Users size={16} className="text-yellow-500" />
-            <h3 className="text-sm font-bold text-yellow-500">Full Standings</h3>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-linear-to-br from-yellow-600/20 to-yellow-800/20 border border-yellow-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            <span className="text-xs text-yellow-400 font-bold">LEADER</span>
           </div>
+          <div className="text-xl font-bold text-yellow-500">{scores[0]?.username || 'N/A'}</div>
+          <div className="text-sm text-gray-300">{scores[0]?.totalPoints || 0} pts</div>
         </div>
         
-        <div className="divide-y divide-white/5">
-          {scores.map((score) => (
-            <div key={score.userId} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors">
-              <div className="flex items-center space-x-3">
-                <span className="text-xs font-bold text-gray-500 w-4">{score.rank}</span>
-                <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-sm">
-                  {score.avatarEmoji}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{score.username}</p>
-                  <div className="flex items-center space-x-2 text-[10px] text-gray-500">
-                    <span>{score.correctPicks} correct</span>
-                    {score.powerPicksHit > 0 && (
-                      <span className="flex items-center space-x-1">
-                        <Zap size={10} className="text-yellow-500" />
-                        <span>{score.powerPicksHit} power hits</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-yellow-500">{score.totalPoints}</p>
-                <p className="text-[8px] text-gray-500 uppercase font-black">points</p>
-              </div>
-            </div>
-          ))}
+        <div className="bg-linear-to-br from-blue-600/20 to-blue-800/20 border border-blue-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Users className="w-5 h-5 text-blue-500" />
+            <span className="text-xs text-blue-400 font-bold">PLAYERS</span>
+          </div>
+          <div className="text-xl font-bold text-blue-500">{scores.length}</div>
+          <div className="text-sm text-gray-300">Active critics</div>
+        </div>
+        
+        <div className="bg-linear-to-br from-green-600/20 to-green-800/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Award className="w-5 h-5 text-green-500" />
+            <span className="text-xs text-green-400 font-bold">WINS</span>
+          </div>
+          <div className="text-xl font-bold text-green-500">{recentWins.length}</div>
+          <div className="text-sm text-gray-300">Announced</div>
+        </div>
+        
+        <div className="bg-linear-to-br from-purple-600/20 to-purple-800/20 border border-purple-500/30 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Zap className="w-5 h-5 text-purple-500" />
+            <span className="text-xs text-purple-400 font-bold">POWER PICKS</span>
+          </div>
+          <div className="text-xl font-bold text-purple-500">
+            {scores.reduce((sum, s) => sum + s.powerPicksHit, 0)}
+          </div>
+          <div className="text-sm text-gray-300">Total hits</div>
         </div>
       </div>
 
-      {/* Share Results */}
-      <div className="flex justify-center">
-        <button className="flex items-center space-x-2 bg-yellow-500/20 border border-yellow-500/30 px-4 py-2 rounded-full text-yellow-500 hover:bg-yellow-500/30 transition-colors">
-          <Award size={14} />
-          <span className="text-xs font-bold uppercase tracking-widest">Share Results</span>
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Live Leaderboard */}
+        <div className="lg:col-span-2">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+            <h3 className="text-xl font-bold text-yellow-500 mb-4">Live Leaderboard</h3>
+            <div className="space-y-3">
+              {scores.map((score, index) => (
+                <div
+                  key={score.userId}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    index === 0 
+                      ? 'bg-yellow-500/10 border-yellow-500/50 shadow-lg shadow-yellow-500/20' 
+                      : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-4">
+                    {/* Rank */}
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                      index === 0 ? 'bg-yellow-500 text-black' : 
+                      index === 1 ? 'bg-gray-400 text-black' : 
+                      index === 2 ? 'bg-orange-600 text-white' : 
+                      'bg-gray-700 text-gray-300'
+                    }`}>
+                      {score.rank}
+                    </div>
+                    
+                    {/* Avatar */}
+                    <div className="w-10 h-10 bg-linear-to-br from-yellow-600 to-yellow-800 rounded-full flex items-center justify-center text-lg">
+                      {score.avatarEmoji}
+                    </div>
+                    
+                    {/* Name & Stats */}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-white">{score.username}</span>
+                        {getTrendIcon(score.trend)}
+                      </div>
+                      <div className="flex items-center space-x-3 text-xs text-gray-400 mt-1">
+                        <span>{score.correctPicks} correct</span>
+                        {score.powerPicksHit > 0 && (
+                          <span className="flex items-center space-x-1">
+                            <Zap className="w-3 h-3 text-yellow-500" />
+                            <span>{score.powerPicksHit} power</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Points */}
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-yellow-500">{score.totalPoints}</div>
+                    <div className="text-xs text-gray-400">points</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Wins */}
+        <div className="lg:col-span-1">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+            <h3 className="text-xl font-bold text-yellow-500 mb-4">Recent Wins</h3>
+            <div className="space-y-3">
+              {recentWins.map((win, index) => (
+                <div key={index} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-green-400 font-bold">{win.category}</span>
+                    <span className="text-xs text-gray-500">{win.time}</span>
+                  </div>
+                  <div className="text-sm text-gray-300 font-medium">{win.winner}</div>
+                </div>
+              ))}
+            </div>
+            
+            {connected && (
+              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-xs text-red-400 font-bold">LIVE UPDATES</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
