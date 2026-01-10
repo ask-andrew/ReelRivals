@@ -13,10 +13,11 @@ import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCatego
 import type { InstantUser } from './src/instant';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
+import LiveScoringDemo from './LiveScoringDemo';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<InstantUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'live-demo' | 'leagues' | 'profile' | 'admin'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isBallotComplete, setIsBallotComplete] = useState(false);
@@ -399,10 +400,17 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         <div className="flex justify-center pb-8">
           <button 
             onClick={() => setShareModalOpen(true)}
-            className="flex items-center space-x-2 text-yellow-500/60 hover:text-yellow-500 transition-colors"
+            className="flex items-center space-x-2 text-yellow-500/60 hover:text-yellow-500 transition-colors mr-4"
           >
             <Share2 size={16} />
             <span className="text-xs font-bold uppercase tracking-widest">Invite to League</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('live-demo')}
+            className="flex items-center space-x-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg transition-colors border border-yellow-500/30"
+          >
+            <Trophy size={16} />
+            <span className="text-xs font-bold uppercase tracking-widest">View Live Demo</span>
           </button>
         </div>
       </div>
@@ -425,6 +433,9 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           leagueId={userLeagueId || 'default'} 
           isLive={false} 
         />
+      )}
+      {activeTab === 'live-demo' && (
+        <LiveScoringDemo />
       )}
       {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}
       {activeTab === 'profile' && (
