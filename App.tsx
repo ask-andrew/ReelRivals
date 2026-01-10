@@ -453,34 +453,75 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Season Badges</h3>
-              <span className="text-[10px] text-gray-400">0 of {SEASON_BADGES.length} unlocked</span>
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-2">Season Achievements</h3>
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <div className="h-px bg-linear-to-r from-transparent via-yellow-500/50 to-transparent flex-1"></div>
+                <span className="text-[10px] text-gray-400 font-medium">0 of {SEASON_BADGES.length} unlocked</span>
+                <div className="h-px bg-linear-to-r from-transparent via-yellow-500/50 to-transparent flex-1"></div>
+              </div>
             </div>
-            <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide">
-              {SEASON_BADGES.map((badge) => (
-                <BadgeCard key={badge.id} badge={badge} />
-              ))}
+            
+            <div className="relative">
+              <div className="absolute inset-0 bg-linear-to-r from-yellow-500/10 via-orange-500/5 to-yellow-500/10 rounded-2xl blur-xl"></div>
+              <div className="relative bg-black/40 border border-yellow-500/20 rounded-2xl p-6 backdrop-blur-sm">
+                <div className="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide">
+                  {SEASON_BADGES.map((badge, index) => (
+                    <BadgeCard key={badge.id} badge={badge} />
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-              <h4 className="text-sm font-bold text-yellow-500 mb-2">How to Unlock Badges</h4>
-              <div className="space-y-2 text-[10px] text-gray-300">
-                <div className="flex items-center space-x-2">
-                  <span className="text-green-500">🎬</span>
-                  <span><strong>Participation:</strong> Submit ballots and engage with events</span>
+
+            <div className="relative group">
+              <div className="absolute inset-0 bg-linear-to-br from-yellow-500/10 via-purple-500/5 to-orange-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-700"></div>
+              <div className="relative bg-linear-to-br from-gray-900/80 to-black/60 border border-yellow-500/30 rounded-2xl p-6 backdrop-blur-sm group-hover:border-yellow-500/50 transition-all duration-300">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-8 h-8 bg-linear-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                    <span className="text-black text-sm font-bold">?</span>
+                  </div>
+                  <h4 className="text-lg font-bold text-yellow-500">How to Unlock Achievements</h4>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-blue-500">🎯</span>
-                  <span><strong>Accuracy:</strong> Make correct predictions and perfect scores</span>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-start space-x-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg group-hover:bg-green-500/10 transition-colors">
+                    <span className="text-green-400 text-lg mt-0.5">🎬</span>
+                    <div>
+                      <span className="text-green-400 font-bold text-sm">Participation</span>
+                      <p className="text-gray-300 text-[10px] mt-1">Submit ballots and engage with events throughout the season</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg group-hover:bg-blue-500/10 transition-colors">
+                    <span className="text-blue-400 text-lg mt-0.5">🎯</span>
+                    <div>
+                      <span className="text-blue-400 font-bold text-sm">Accuracy</span>
+                      <p className="text-gray-300 text-[10px] mt-1">Make correct predictions and achieve perfect scores</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg group-hover:bg-yellow-500/10 transition-colors">
+                    <span className="text-yellow-400 text-lg mt-0.5">⚡</span>
+                    <div>
+                      <span className="text-yellow-400 font-bold text-sm">Strategy</span>
+                      <p className="text-gray-300 text-[10px] mt-1">Master the art of power picks and tactical gameplay</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3 p-3 bg-purple-500/5 border border-purple-500/20 rounded-lg group-hover:bg-purple-500/10 transition-colors">
+                    <span className="text-purple-400 text-lg mt-0.5">🏆</span>
+                    <div>
+                      <span className="text-purple-400 font-bold text-sm">Victory</span>
+                      <p className="text-gray-300 text-[10px] mt-1">Dominate events and claim your place in cinema history</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-yellow-500">⚡</span>
-                  <span><strong>Strategy:</strong> Use power picks wisely</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-purple-500">🏆</span>
-                  <span><strong>Victory:</strong> Win events and dominate the circuit</span>
+                
+                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                  <p className="text-center text-[10px] text-gray-400 italic">
+                    <span className="text-yellow-500 font-bold">Pro Tip:</span> Each achievement unlocks unique bragging rights and showcases your expertise as a film critic!
+                  </p>
                 </div>
               </div>
             </div>
