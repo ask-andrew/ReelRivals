@@ -199,91 +199,87 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {/* Live Leaderboard */}
-        <div className="lg:col-span-2">
-          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
-            <h3 className="text-xl font-bold text-yellow-500 mb-4">Live Leaderboard</h3>
-            <div className="space-y-3">
-              {scores.map((score, index) => (
-                <div
-                  key={score.userId}
-                  className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    index === 0 
-                      ? 'bg-yellow-500/10 border-yellow-500/50 shadow-lg shadow-yellow-500/20' 
-                      : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'
-                  }`}
-                >
-                  <div className="flex items-center space-x-4">
-                    {/* Rank */}
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
-                      index === 0 ? 'bg-yellow-500 text-black' : 
-                      index === 1 ? 'bg-gray-400 text-black' : 
-                      index === 2 ? 'bg-orange-600 text-white' : 
-                      'bg-gray-700 text-gray-300'
-                    }`}>
-                      {score.rank}
-                    </div>
-                    
-                    {/* Avatar */}
-                    <div className="w-10 h-10 bg-linear-to-br from-yellow-600 to-yellow-800 rounded-full flex items-center justify-center text-lg">
-                      {score.avatarEmoji}
-                    </div>
-                    
-                    {/* Name & Stats */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-white">{score.username}</span>
-                        {getTrendIcon(score.trend)}
-                      </div>
-                      <div className="flex items-center space-x-3 text-xs text-gray-400 mt-1">
-                        <span>{score.correctPicks} correct</span>
-                        {score.powerPicksHit > 0 && (
-                          <span className="flex items-center space-x-1">
-                            <Zap className="w-3 h-3 text-yellow-500" />
-                            <span>{score.powerPicksHit} power</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+          <h3 className="text-xl font-bold text-yellow-500 mb-4">Live Leaderboard</h3>
+          <div className="space-y-3">
+            {scores.map((score, index) => (
+              <div
+                key={score.userId}
+                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                  index === 0 
+                    ? 'bg-yellow-500/10 border-yellow-500/50 shadow-lg shadow-yellow-500/20' 
+                    : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center space-x-4">
+                  {/* Rank */}
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-500 text-black' : 
+                    index === 1 ? 'bg-gray-400 text-black' : 
+                    index === 2 ? 'bg-orange-600 text-white' : 
+                    'bg-gray-700 text-gray-300'
+                  }`}>
+                    {score.rank}
                   </div>
                   
-                  {/* Points */}
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-yellow-500">{score.totalPoints}</div>
-                    <div className="text-xs text-gray-400">points</div>
+                  {/* Avatar */}
+                  <div className="w-10 h-10 bg-linear-to-br from-yellow-600 to-yellow-800 rounded-full flex items-center justify-center text-lg">
+                    {score.avatarEmoji}
+                  </div>
+                  
+                  {/* Name & Stats */}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-white">{score.username}</span>
+                      {getTrendIcon(score.trend)}
+                    </div>
+                    <div className="flex items-center space-x-3 text-xs text-gray-400 mt-1">
+                      <span>{score.correctPicks} correct</span>
+                      {score.powerPicksHit > 0 && (
+                        <span className="flex items-center space-x-1">
+                          <Zap className="w-3 h-3 text-yellow-500" />
+                          <span>{score.powerPicksHit} power</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                
+                {/* Points */}
+                <div className="text-right">
+                  <div className="text-xl font-bold text-yellow-500">{score.totalPoints}</div>
+                  <div className="text-xs text-gray-400">points</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Recent Wins */}
-        <div className="lg:col-span-1">
-          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
-            <h3 className="text-xl font-bold text-yellow-500 mb-4">Recent Wins</h3>
-            <div className="space-y-3">
-              {recentWins.map((win, index) => (
-                <div key={index} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-green-400 font-bold">{win.category}</span>
-                    <span className="text-xs text-gray-500">{win.time}</span>
-                  </div>
-                  <div className="text-sm text-gray-300 font-medium">{win.winner}</div>
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+          <h3 className="text-xl font-bold text-yellow-500 mb-4">Recent Wins</h3>
+          <div className="space-y-3">
+            {recentWins.map((win, index) => (
+              <div key={index} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-green-400 font-bold">{win.category}</span>
+                  <span className="text-xs text-gray-500">{win.time}</span>
                 </div>
-              ))}
-            </div>
-            
-            {connected && (
-              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-xs text-red-400 font-bold">LIVE UPDATES</span>
-                </div>
+                <div className="text-sm text-gray-300 font-medium">{win.winner}</div>
               </div>
-            )}
+            ))}
           </div>
+          
+          {connected && (
+            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-xs text-red-400 font-bold">LIVE UPDATES</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

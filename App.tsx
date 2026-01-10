@@ -14,11 +14,10 @@ import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCatego
 import type { InstantUser } from './src/instant';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
-import LiveScoringDemo from './LiveScoringDemo';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<InstantUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'live-demo' | 'leagues' | 'profile' | 'admin' | 'analytics'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin' | 'analytics'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isBallotComplete, setIsBallotComplete] = useState(false);
@@ -448,15 +447,6 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           leagueId={userLeagueId || 'default'} 
           isLive={false} 
         />
-      )}
-      {activeTab === 'live-demo' && (
-        <div>
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 m-4">
-            <h3 className="text-yellow-500 font-bold mb-2">🎬 Live Scoring Demo</h3>
-            <p className="text-sm text-gray-300 mb-4">This is a demonstration of what the live scoring page will look like during the actual awards ceremony!</p>
-          </div>
-          <LiveScoringDemo />
-        </div>
       )}
       {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}
       {activeTab === 'analytics' && (
