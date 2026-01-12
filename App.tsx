@@ -10,8 +10,7 @@ import Analytics from './components/Analytics';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Lock } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT, GOLDEN_GLOBES_2026_DEADLINE } from './constants';
-import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCategories } from './src/instantService';
-import { getCurrentUser as getCurrentUserInstant, signOut as signOutInstant, handleOAuthCallback, type InstantUser } from './src/auth-instant';
+import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCategories, type InstantUser } from './src/instantService';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
 
@@ -122,21 +121,6 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
   useEffect(() => {
     const initSession = async () => {
       try {
-        // Check for OAuth callback first
-        if (window.location.hash || window.location.search.includes('token')) {
-          const { user: oauthUser, error: oauthError } = await handleOAuthCallback();
-          if (oauthUser) {
-            setUser(oauthUser);
-            setLoading(false);
-            return;
-          }
-          if (oauthError) {
-            setError(oauthError);
-            setLoading(false);
-            return;
-          }
-        }
-
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         
