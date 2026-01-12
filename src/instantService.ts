@@ -1006,3 +1006,424 @@ async function calculateScoresForCategory(eventId: string, categoryId: string, w
     throw error;
   }
 }
+
+// --- Analytics Functions --- //
+
+export async function getWinnersForEvent(eventId: string): Promise<{ winners: any[], error: any }> {
+  try {
+    const resultsQuery = await dbCore.queryOnce({
+      results: {
+        $: {}
+      },
+      categories: {
+        $: {
+          where: { event_id: eventId }
+        }
+      },
+      nominees: {
+        $: {}
+      }
+    });
+
+    const allResults = resultsQuery.data.results || [];
+    const eventCategories = resultsQuery.data.categories || [];
+    const allNominees = resultsQuery.data.nominees || [];
+    
+    const eventCategoryIds = new Set(eventCategories.map((c: any) => c.id));
+    
+    // Filter results to only include categories from this event
+    const eventResults = allResults.filter((r: any) => eventCategoryIds.has(r.category_id));
+    
+    // Enrich results with category and nominee names
+    const winners = eventResults.map((result: any) => {
+      const category = eventCategories.find((c: any) => c.id === result.category_id);
+      const winnerNominee = allNominees.find((n: any) => n.id === result.winner_nominee_id);
+      
+      return {
+        categoryId: result.category_id,
+        categoryName: (category as any)?.name || 'Unknown Category',
+        winnerNomineeId: result.winner_nominee_id,
+        winnerNomineeName: (winnerNominee as any)?.name || 'Unknown Nominee',
+        announcedAt: result.announced_at
+      };
+    });
+
+    return { winners, error: null };
+    
+  } catch (error) {
+    console.error('[getWinnersForEvent] Error:', error);
+    return { winners: [], error };
+  }
+}
+
+export async function signupForEventNotifications(userId: string, eventId: string): Promise<{ success: boolean, error: any }> {
+  try {
+    console.log('[signupForEventNotifications] Signing up user:', userId, 'for event:', eventId);
+    
+    // Check if user already signed up
+    const existingSignupQuery = await dbCore.queryOnce({
+      notification_signups: {
+        $: {
+          where: {
+            user_id: userId,
+            event_id: eventId
+          }
+        }
+      }
+    });
+    
+    const existingSignups = existingSignupQuery.data.notification_signups || [];
+    
+    if (existingSignups.length > 0) {
+      console.log('[signupForEventNotifications] User already signed up');
+      return { success: true, error: null };
+    }
+    
+    // Create new notification signup
+    const signupId = id();
+    await dbCore.transact([
+      dbCore.tx.notification_signups[signupId].create({
+        user_id: userId,
+        event_id: eventId,
+        created_at: Date.now(),
+        notified: false
+      })
+    ]);
+    
+    console.log('[signupForEventNotifications] Successfully signed up user');
+    return { success: true, error: null };
+    
+  } catch (error) {
+    console.error('[signupForEventNotifications] Error:', error);
+    return { success: false, error };
+  }
+}
+
+export async function getAnalyticsData(leagueId: string, eventId: string): Promise<{ analytics: any, error: any }> {
+  try {
+    console.log('[getAnalyticsData] Fetching data for league:', leagueId, 'event:', eventId);
+    
+    // For global analytics, always get all ballots for the event
+    console.log('[getAnalyticsData] Getting all event ballots for global analytics...');
+    const ballotsResult = await (dbCore.queryOnce as any)({
+      ballots: {
+        $: {
+          where: { 
+            event_id: eventId
+          }
+        },
+        picks: {}
+      }
+    });
+    
+    let ballots = ballotsResult.data.ballots || [];
+    console.log('[getAnalyticsData] Found all ballots for event:', ballots.length);
+    
+    // Get all data we need in parallel
+    const [
+      categoriesResult, 
+      winnersResult,
+      usersResult
+    ] = await Promise.all([
+      dbCore.queryOnce({
+        categories: {
+          $: {
+            where: { event_id: eventId }
+          },
+          nominees: {}
+        }
+      }),
+      getWinnersForEvent(eventId),
+      dbCore.queryOnce({
+        users: {
+          $: {}
+        }
+      })
+    ]);
+
+    const categories = categoriesResult.data.categories || [];
+    const winners = winnersResult.winners || [];
+    const users = usersResult.data.users || [];
+
+    console.log('[getAnalyticsData] Found categories:', categories.length);
+    console.log('[getAnalyticsData] Found winners:', winners.length);
+    console.log('[getAnalyticsData] Found users:', users.length);
+
+    // Debug: Print some ballot info
+    if (ballots.length > 0) {
+      console.log('[getAnalyticsData] Sample ballot IDs:', ballots.slice(0, 3).map((b: any) => b.id));
+      console.log('[getAnalyticsData] Sample ballot user IDs:', ballots.slice(0, 3).map((b: any) => b.user_id));
+      console.log('[getAnalyticsData] Sample ballot pick counts:', ballots.slice(0, 3).map((b: any) => b.picks?.length || 0));
+    }
+
+    // Process analytics data
+    const analytics = processAnalyticsData(ballots, categories, winners, users);
+    
+    return { analytics, error: null };
+    
+  } catch (error) {
+    console.error('[getAnalyticsData] Error:', error);
+    return { analytics: null, error };
+  }
+}
+
+function processAnalyticsData(ballots: any[], categories: any[], winners: any[], users: any[]) {
+  const nomineePopularity: Record<string, any> = {};
+  const powerPickAnalysis: Record<string, any> = {};
+  const categoryAnalytics: Record<string, any> = {};
+  let totalPicks = 0;
+  let totalCorrectPicks = 0;
+  let totalPowerPicks = 0;
+  let correctPowerPicks = 0;
+
+  // Create lookup maps
+  const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
+  const nomineeMap = new Map();
+  const winnerMap = new Map(winners.map((w: any) => [w.categoryId, w.winnerNomineeId]));
+  const userMap = new Map(users.map((u: any) => [u.id, u]));
+
+  categories.forEach((category: any) => {
+    if (category.nominees) {
+      category.nominees.forEach((nominee: any) => {
+        nomineeMap.set(nominee.id, nominee);
+      });
+    }
+  });
+
+  // Process each ballot and pick
+  ballots.forEach(ballot => {
+    if (!ballot.picks) return;
+    
+    ballot.picks.forEach((pick: any) => {
+      totalPicks++;
+      const category = categoryMap.get(pick.category_id);
+      const nominee = nomineeMap.get(pick.nominee_id);
+      
+      if (!category || !nominee) return;
+
+      // Nominee popularity
+      if (!nomineePopularity[pick.nominee_id]) {
+        nomineePopularity[pick.nominee_id] = {
+          name: nominee.name,
+          count: 0,
+          percentage: 0,
+          powerPickCount: 0,
+          correctPicks: 0,
+          correctPowerPicks: 0, // Track correct power picks separately
+          isWinner: false
+        };
+      }
+      nomineePopularity[pick.nominee_id].count++;
+      
+      if (pick.is_power_pick) {
+        totalPowerPicks++;
+        nomineePopularity[pick.nominee_id].powerPickCount++;
+        
+        // Power pick analysis
+        if (!powerPickAnalysis[pick.nominee_id]) {
+          powerPickAnalysis[pick.nominee_id] = {
+            nomineeName: nominee.name,
+            count: 0,
+            category: category.name,
+            successRate: 0
+          };
+        }
+        powerPickAnalysis[pick.nominee_id].count++;
+      }
+
+      // Check if pick was correct
+      const winnerId = winnerMap.get(pick.category_id);
+      const isCorrect = pick.nominee_id === winnerId;
+      
+      if (isCorrect) {
+        totalCorrectPicks++;
+        nomineePopularity[pick.nominee_id].correctPicks++;
+        if (pick.is_power_pick) {
+          correctPowerPicks++;
+          nomineePopularity[pick.nominee_id].correctPowerPicks++; // Track correct power picks
+        }
+      }
+
+      // Category analytics
+      if (!categoryAnalytics[pick.category_id]) {
+        categoryAnalytics[pick.category_id] = {
+          categoryName: category.name,
+          totalPicks: 0,
+          uniqueNominees: new Set(),
+          winnerNomineeId: winnerId,
+          winnerNomineeName: nomineeMap.get(winnerId)?.name || 'Unknown',
+          consensusCorrect: false
+        };
+      }
+      categoryAnalytics[pick.category_id].totalPicks++;
+      categoryAnalytics[pick.category_id].uniqueNominees.add(pick.nominee_id);
+    });
+  });
+
+  // Calculate percentages and determine winners
+  Object.keys(nomineePopularity).forEach(nomineeId => {
+    const data = nomineePopularity[nomineeId];
+    // Calculate percentage based on category total, not global total
+    // We need to find which category this nominee belongs to
+    const nomineeCategory = Array.from(categoryMap.values()).find((cat: any) => 
+      cat.nominees?.some((nom: any) => nom.id === nomineeId)
+    );
+    
+    if (nomineeCategory) {
+      const categoryTotalPicks = categoryAnalytics[nomineeCategory.id]?.totalPicks || 1;
+      data.percentage = (data.count / categoryTotalPicks) * 100;
+    } else {
+      data.percentage = 0; // Fallback if category not found
+    }
+    
+    data.accuracy = data.count > 0 ? (data.correctPicks / data.count) * 100 : 0;
+    
+    // Check if this nominee was a winner
+    const isWinner = Array.from(winnerMap.values()).includes(nomineeId);
+    data.isWinner = isWinner;
+  });
+
+  // Calculate power pick success rates
+  Object.keys(powerPickAnalysis).forEach(nomineeId => {
+    const data = powerPickAnalysis[nomineeId];
+    const nomineeData = nomineePopularity[nomineeId];
+    // Success rate = (correct power picks) / (total power picks) * 100
+    data.successRate = nomineeData && nomineeData.powerPickCount > 0 
+      ? (nomineeData.correctPowerPicks / nomineeData.powerPickCount) * 100 
+      : 0;
+  });
+
+  // Calculate category insights
+  Object.keys(categoryAnalytics).forEach(categoryId => {
+    const data = categoryAnalytics[categoryId];
+    data.uniqueNominees = data.uniqueNominees.size;
+    
+    // Find most popular pick in this category
+    let mostPopularPick = null;
+    let highestCount = 0;
+    
+    Object.entries(nomineePopularity).forEach(([nomineeId, nomineeData]: [string, any]) => {
+      // Check if this nominee belongs to this category
+      const category = categoryMap.get(categoryId);
+      if (category?.nominees?.some((n: any) => n.id === nomineeId)) {
+        if (nomineeData.count > highestCount) {
+          highestCount = nomineeData.count;
+          mostPopularPick = nomineeData;
+        }
+      }
+    });
+    
+    data.mostPopularPick = mostPopularPick;
+    data.consensusCorrect = mostPopularPick?.isWinner || false;
+    data.upset = mostPopularPick && !mostPopularPick.isWinner && mostPopularPick.percentage > 30;
+  });
+
+  // Generate insights
+  const insights = generateInsights(
+    nomineePopularity, 
+    powerPickAnalysis, 
+    categoryAnalytics, 
+    {
+      totalPicks,
+      totalCorrectPicks,
+      totalPowerPicks,
+      correctPowerPicks,
+      overallAccuracy: totalPicks > 0 ? (totalCorrectPicks / totalPicks) * 100 : 0,
+      powerPickSuccessRate: totalPowerPicks > 0 ? (correctPowerPicks / totalPowerPicks) * 100 : 0
+    },
+    ballots.length
+  );
+
+  return {
+    totalBallots: ballots.length,
+    nomineePopularity,
+    powerPickAnalysis,
+    categoryAnalytics,
+    overallStats: {
+      totalPicks,
+      totalCorrectPicks,
+      totalPowerPicks,
+      correctPowerPicks,
+      overallAccuracy: totalPicks > 0 ? (totalCorrectPicks / totalPicks) * 100 : 0,
+      powerPickSuccessRate: totalPowerPicks > 0 ? (correctPowerPicks / totalPowerPicks) * 100 : 0
+    },
+    insights
+  };
+}
+
+function generateInsights(nomineePopularity: any, powerPickAnalysis: any, categoryAnalytics: any, stats: any, totalBallots: number) {
+  const insights = [];
+
+  // Most popular winner
+  const popularWinners = Object.entries(nomineePopularity)
+    .filter(([, data]: [string, any]) => data.isWinner)
+    .sort(([, a], [, b]: [string, any]) => (b as any).count - (a as any).count);
+  
+  if (popularWinners.length > 0) {
+    const [winnerId, winnerData] = popularWinners[0] as [string, any];
+    insights.push({
+      type: 'popular_winner',
+      title: '🏆 Crowd Favorite Won',
+      description: `${winnerData.name} was the most popular pick (${winnerData.count} picks, ${winnerData.percentage.toFixed(1)}%) and took home the award!`,
+      impact: 'high'
+    });
+  }
+
+  // Biggest upsets
+  const upsets = Object.entries(categoryAnalytics)
+    .filter(([, data]: [string, any]) => data.upset)
+    .sort(([, a], [, b]: [string, any]) => (b as any).mostPopularPick.percentage - (a as any).mostPopularPick.percentage);
+  
+  if (upsets.length > 0) {
+    const upset = upsets[0][1] as any;
+    insights.push({
+      type: 'upset',
+      title: '😲 Biggest Upset',
+      description: `${upset.mostPopularPick.name} had ${upset.mostPopularPick.percentage.toFixed(1)}% of picks but lost to ${upset.winnerNomineeName}`,
+      impact: 'high'
+    });
+  }
+
+  // Power pick effectiveness
+  if (stats.powerPickSuccessRate > 60) {
+    insights.push({
+      type: 'power_pick_success',
+      title: '⚡ Power Picks Paid Off',
+      description: `Power picks had a ${stats.powerPickSuccessRate.toFixed(1)}% success rate - well above random chance!`,
+      impact: 'medium'
+    });
+  } else if (stats.powerPickSuccessRate < 30) {
+    insights.push({
+      type: 'power_pick_fail',
+      title: '⚡ Power Picks Missed',
+      description: `Only ${stats.powerPickSuccessRate.toFixed(1)}% of power picks were correct - sometimes the underdog wins!`,
+      impact: 'medium'
+    });
+  }
+
+  // Consensus categories
+  const consensusCategories = Object.entries(categoryAnalytics)
+    .filter(([, data]: [string, any]) => data.consensusCorrect)
+    .length;
+  
+  if (consensusCategories > 10) {
+    insights.push({
+      type: 'consensus',
+      title: '🎯 Wisdom of the Crowd',
+      description: `${consensusCategories} categories went to the most popular pick - the crowd knew best!`,
+      impact: 'medium'
+    });
+  }
+
+  // Participation insight
+  if (totalBallots > 100) {
+    insights.push({
+      type: 'participation',
+      title: '👥 Great Turnout',
+      description: `${totalBallots} people made their picks - that's some serious award show dedication!`,
+      impact: 'low'
+    });
+  }
+
+  return insights;
+}

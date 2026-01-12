@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp } from 'lucide-react';
-import { getBallotsByLeague, getCategories } from '../src/ballots';
+import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp, Trophy, Target, Flame, Crown, AlertTriangle, Share2, MessageCircle, Twitter, Link } from 'lucide-react';
+import { getAnalyticsData } from '../src/instantService';
 import type { Ballot, Category } from '../src/ballots';
 
 interface TrendData {
@@ -14,11 +14,45 @@ interface TrendData {
 
 interface AnalyticsData {
   totalBallots: number;
-  nomineePopularity: Record<string, { name: string; count: number; percentage: number; powerPickCount: number }>;
-  powerPickAnalysis: Record<string, { nomineeName: string; count: number; category: string }>;
-  categoryParticipation: Record<string, { categoryName: string; totalPicks: number; uniqueNominees: number }>;
-  userActivity: Array<{ username: string; pickCount: number; powerPickCount: number; avatar: string }>;
-  trends: TrendData[];
+  nomineePopularity: Record<string, { 
+    name: string; 
+    count: number; 
+    percentage: number; 
+    powerPickCount: number;
+    correctPicks: number;
+    accuracy: number;
+    isWinner: boolean;
+  }>;
+  powerPickAnalysis: Record<string, { 
+    nomineeName: string; 
+    count: number; 
+    category: string;
+    successRate: number;
+  }>;
+  categoryAnalytics: Record<string, { 
+    categoryName: string; 
+    totalPicks: number; 
+    uniqueNominees: number;
+    winnerNomineeId: string;
+    winnerNomineeName: string;
+    consensusCorrect: boolean;
+    upset: boolean;
+    mostPopularPick: any;
+  }>;
+  overallStats: {
+    totalPicks: number;
+    totalCorrectPicks: number;
+    totalPowerPicks: number;
+    correctPowerPicks: number;
+    overallAccuracy: number;
+    powerPickSuccessRate: number;
+  };
+  insights: Array<{
+    type: string;
+    title: string;
+    description: string;
+    impact: 'high' | 'medium' | 'low';
+  }>;
 }
 
 const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, eventId }) => {
@@ -48,133 +82,11 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       setLoading(true);
       setError(null);
 
-      // Fetch ballots and categories in parallel
-      const [{ ballots, error: ballotsError }, { categories: cats, error: categoriesError }] = await Promise.all([
-        getBallotsByLeague(leagueId, eventId),
-        getCategories(eventId)
-      ]);
+      const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, eventId);
 
-      if (ballotsError) throw ballotsError;
-      if (categoriesError) throw categoriesError;
+      if (analyticsError) throw analyticsError;
 
-      setCategories(cats || []);
-
-      // Filter out test users if enabled
-      const filteredBallots = excludeTestUsers 
-        ? ballots.filter(ballot => !isTestUser(ballot.user_id)) // Note: We'd need to join with users table for usernames
-        : ballots;
-
-      // Initialize analytics data structure
-      const nomineePopularity: Record<string, { name: string; count: number; percentage: number; powerPickCount: number }> = {};
-      const powerPickAnalysis: Record<string, { nomineeName: string; count: number; category: string }> = {};
-      const categoryParticipation: Record<string, { categoryName: string; totalPicks: number; uniqueNominees: number }> = {};
-      const userActivity: Array<{ username: string; pickCount: number; powerPickCount: number; avatar: string }> = [];
-
-      // Process ballots
-      let totalPicks = 0;
-      const userPickCounts: Record<string, { pickCount: number; powerPickCount: number }> = {};
-
-      filteredBallots.forEach(ballot => {
-        if (!userPickCounts[ballot.user_id]) {
-          userPickCounts[ballot.user_id] = { pickCount: 0, powerPickCount: 0 };
-        }
-
-        ballot.picks.forEach(pick => {
-          totalPicks++;
-          userPickCounts[ballot.user_id].pickCount++;
-          
-          if (pick.is_power_pick) {
-            userPickCounts[ballot.user_id].powerPickCount++;
-          }
-
-          // Find nominee and category names
-          const category = cats?.find(c => c.id === pick.category_id);
-          const nominee = category?.nominees?.find(n => n.id === pick.nominee_id);
-
-          if (nominee && category) {
-            // Nominee popularity
-            if (!nomineePopularity[nominee.id]) {
-              nomineePopularity[nominee.id] = { name: nominee.name, count: 0, percentage: 0, powerPickCount: 0 };
-            }
-            nomineePopularity[nominee.id].count++;
-            if (pick.is_power_pick) {
-              nomineePopularity[nominee.id].powerPickCount++;
-            }
-
-            // Power pick analysis
-            if (pick.is_power_pick) {
-              if (!powerPickAnalysis[nominee.id]) {
-                powerPickAnalysis[nominee.id] = { nomineeName: nominee.name, count: 0, category: category.name };
-              }
-              powerPickAnalysis[nominee.id].count++;
-            }
-
-            // Category participation
-            if (!categoryParticipation[category.id]) {
-              categoryParticipation[category.id] = { categoryName: category.name, totalPicks: 0, uniqueNominees: new Set().size };
-            }
-            categoryParticipation[category.id].totalPicks++;
-          }
-        });
-      });
-
-      // Calculate percentages and unique nominees
-      Object.keys(nomineePopularity).forEach(nomineeId => {
-        nomineePopularity[nomineeId].percentage = totalPicks > 0 
-          ? (nomineePopularity[nomineeId].count / totalPicks) * 100 
-          : 0;
-      });
-
-      // Convert user activity to array (simplified - in real implementation would fetch user details)
-      const activityArray = Object.entries(userPickCounts).map(([userId, counts]) => ({
-        username: `User_${userId.slice(0, 8)}`, // Simplified username
-        pickCount: counts.pickCount,
-        powerPickCount: counts.powerPickCount,
-        avatar: '👤'
-      })).sort((a, b) => b.pickCount - a.pickCount).slice(0, 10);
-
-      // Calculate trends (mock data for now - in real implementation would fetch historical data)
-      const trends: TrendData[] = Object.entries(nomineePopularity).slice(0, 10).map(([nomineeId, data]) => {
-        // Mock trend calculation - in real implementation, compare with previous events
-        const mockPreviousPercentage = Math.random() * 20; // Random previous percentage
-        const trendPercentage = data.percentage - mockPreviousPercentage;
-        let trend: 'up' | 'down' | 'stable' | 'new';
-        
-        if (mockPreviousPercentage === 0) {
-          trend = 'new';
-        } else if (Math.abs(trendPercentage) < 2) {
-          trend = 'stable';
-        } else if (trendPercentage > 0) {
-          trend = 'up';
-        } else {
-          trend = 'down';
-        }
-
-        return {
-          nomineeId,
-          nomineeName: data.name,
-          currentEvent: { count: data.count, percentage: data.percentage },
-          previousEvents: [
-            {
-              eventId: 'oscars-2025',
-              eventName: 'Oscars 2025',
-              count: Math.floor(mockPreviousPercentage * totalPicks / 100),
-              percentage: mockPreviousPercentage
-            }
-          ],
-          trend,
-          trendPercentage: Math.abs(trendPercentage)
-        };
-      });
-
-      setAnalyticsData({
-        totalBallots: filteredBallots.length,
-        nomineePopularity,
-        powerPickAnalysis,
-        categoryParticipation,
-        userActivity: activityArray,
-        trends
-      });
+      setAnalyticsData(analytics);
 
     } catch (err) {
       console.error('Analytics fetch error:', err);
@@ -218,306 +130,355 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
   }
 
   // Sort nominees by popularity
-  const sortedNominees = (Object.entries(analyticsData.nomineePopularity) as [string, { name: string; count: number; percentage: number; powerPickCount: number }][])
+  const sortedNominees = (Object.entries(analyticsData.nomineePopularity) as [string, { name: string; count: number; percentage: number; powerPickCount: number; accuracy: number; isWinner: boolean }][])
     .sort(([, a], [, b]) => b.count - a.count)
     .slice(0, 15);
 
-  // Sort power picks
-  const sortedPowerPicks = (Object.entries(analyticsData.powerPickAnalysis) as [string, { nomineeName: string; count: number; category: string }][])
-    .sort(([, a], [, b]) => b.count - a.count)
+  // Sort power picks by success rate
+  const sortedPowerPicks = (Object.entries(analyticsData.powerPickAnalysis) as [string, { nomineeName: string; count: number; category: string; successRate: number }][])
+    .sort(([, a], [, b]) => b.successRate - a.successRate)
     .slice(0, 10);
 
+  // Get upsets and consensus categories
+  const upsets = Object.entries(analyticsData.categoryAnalytics)
+    .filter(([, data]: [string, any]) => data.upset)
+    .sort(([, a], [, b]: [string, any]) => (b as any).mostPopularPick.percentage - (a as any).mostPopularPick.percentage)
+    .slice(0, 5) as [string, any][];
+
+  const consensusCategories = Object.entries(analyticsData.categoryAnalytics)
+    .filter(([, data]: [string, any]) => data.consensusCorrect)
+    .slice(0, 5) as [string, any][];
+
   return (
-    <div className="space-y-8 py-8 px-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-cinzel font-bold">Pick Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">
-            Voting Patterns & Insights
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          {/* Test User Filter */}
-          <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
-            <Filter size={16} className="text-gray-400" />
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={excludeTestUsers}
-                onChange={(e) => setExcludeTestUsers(e.target.checked)}
-                className="rounded text-yellow-500 focus:ring-yellow-500 focus:ring-offset-0"
-              />
-              <span className="text-sm text-gray-300">Exclude Test Users</span>
-            </label>
+    <div className="min-h-screen bg-linear-to-br from-gray-900 via-black to-gray-900">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-linear-to-r from-yellow-600/20 via-yellow-500/10 to-yellow-600/20 border-b border-yellow-500/20">
+        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="relative px-4 py-12">
+          <div className="max-w-lg mx-auto text-center">
+            <div className="flex justify-center mb-4">
+              <Trophy className="w-12 h-12 text-yellow-500" />
+            </div>
+            <h1 className="text-3xl font-cinzel font-bold text-white mb-3">
+              The Results Are In!
+            </h1>
+            <p className="text-lg text-gray-300 mb-6">
+              Golden Globes 2026 - Complete Analytics
+            </p>
+            
+            {/* Key Stats */}
+            <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                <Users className="w-6 h-6 text-blue-400 mx-auto mb-1" />
+                <p className="text-xl font-bold text-white">{analyticsData.totalBallots}</p>
+                <p className="text-xs text-gray-300">Players</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
+                <p className="text-xl font-bold text-white">{analyticsData.overallStats.overallAccuracy.toFixed(1)}%</p>
+                <p className="text-xs text-gray-300">Accuracy</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                <Zap className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
+                <p className="text-xl font-bold text-white">{analyticsData.overallStats.powerPickSuccessRate.toFixed(1)}%</p>
+                <p className="text-xs text-gray-300">Power Success</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                <Flame className="w-6 h-6 text-orange-400 mx-auto mb-1" />
+                <p className="text-xl font-bold text-white">{upsets.length}</p>
+                <p className="text-xs text-gray-300">Major Upsets</p>
+              </div>
+            </div>
           </div>
-          
-          {/* Refresh Button */}
-          <button
-            onClick={() => setRefreshKey(prev => prev + 1)}
-            className="flex items-center space-x-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg transition-colors border border-yellow-500/30"
-          >
-            <RefreshCw size={16} />
-            <span className="text-sm font-bold">Refresh</span>
-          </button>
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-2">
-            <Users size={20} className="text-blue-500" />
-            <span className="text-[10px] text-gray-500 font-bold uppercase">Total Ballots</span>
+      <div className="px-4 py-8 max-w-lg mx-auto space-y-8">
+        
+        {/* Share Results */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <h3 className="text-xl font-bold text-blue-400 mb-4 flex items-center">
+            <Share2 className="w-5 h-5 mr-2" />
+            Share Your Results
+          </h3>
+          <p className="text-gray-400 text-sm mb-4 italic">📤 Let friends see how you did</p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => {
+                  const text = `🏆 My Golden Globes 2026 Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join for BAFTAs 2026! 🎭`;
+                  const url = window.location.href;
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                }}
+                className="bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              >
+                <Twitter size={16} />
+                <span className="text-sm">Twitter</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const text = `🏆 My Golden Globes 2026 Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join for BAFTAs 2026! 🎭`;
+                  navigator.clipboard.writeText(text);
+                }}
+                className="bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              >
+                <MessageCircle size={16} />
+                <span className="text-sm">iMessage</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const text = `🏆 My Golden Globes 2026 Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join for BAFTAs 2026! 🎭`;
+                  const url = window.location.href;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+                }}
+                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              >
+                <MessageCircle size={16} />
+                <span className="text-sm">WhatsApp</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const url = window.location.href;
+                  navigator.clipboard.writeText(url);
+                }}
+                className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+              >
+                <Link size={16} />
+                <span className="text-sm">Copy Link</span>
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 text-center">Challenge friends to beat your score for the next show!</p>
           </div>
-          <p className="text-2xl font-cinzel font-bold">{analyticsData.totalBallots}</p>
-          <p className="text-[10px] text-gray-400 mt-1">
-            {excludeTestUsers ? 'Excluding test accounts' : 'Including all accounts'}
-          </p>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-2">
-            <BarChart3 size={20} className="text-green-500" />
-            <span className="text-[10px] text-gray-500 font-bold uppercase">Total Picks</span>
-          </div>
-          <p className="text-2xl font-cinzel font-bold">
-            {(Object.values(analyticsData.nomineePopularity) as { name: string; count: number; percentage: number; powerPickCount: number }[]).reduce((sum, n) => sum + n.count, 0)}
-          </p>
-          <p className="text-[10px] text-gray-400 mt-1">Across all categories</p>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-2">
-            <Zap size={20} className="text-yellow-500" />
-            <span className="text-[10px] text-gray-500 font-bold uppercase">Power Picks</span>
-          </div>
-          <p className="text-2xl font-cinzel font-bold">
-            {(Object.values(analyticsData.powerPickAnalysis) as { nomineeName: string; count: number; category: string }[]).reduce((sum, p) => sum + p.count, 0)}
-          </p>
-          <p className="text-[10px] text-gray-400 mt-1">Strategic selections</p>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-2">
-            <TrendingUp size={20} className="text-purple-500" />
-            <span className="text-[10px] text-gray-500 font-bold uppercase">Categories</span>
-          </div>
-          <p className="text-2xl font-cinzel font-bold">{categories.length}</p>
-          <p className="text-[10px] text-gray-400 mt-1">Award categories</p>
-        </div>
-      </div>
-
-      {/* Most Popular Picks */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Award size={20} className="text-yellow-500" />
-          <h3 className="text-lg font-bold text-yellow-500">Most Popular Picks</h3>
         </div>
         
-        <div className="space-y-3">
-          {sortedNominees.map(([nomineeId, data], index) => (
-            <div key={nomineeId} className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-yellow-500/20 border border-yellow-500/30 rounded-lg flex items-center justify-center text-sm font-bold text-yellow-500">
-                {index + 1}
+        {/* Key Insights */}
+        <div className="bg-linear-to-br from-yellow-900/30 via-black to-yellow-900/30 rounded-2xl p-6 border border-yellow-500/30">
+          <h2 className="text-2xl font-cinzel font-bold text-yellow-500 mb-4 flex items-center">
+            <Crown className="w-6 h-6 mr-2" />
+            Key Insights
+          </h2>
+          <p className="text-gray-400 text-sm mb-4 italic">🎭 The tea nobody asked for but everyone needs</p>
+          <div className="space-y-4">
+            {analyticsData.insights.map((insight, index) => (
+              <div 
+                key={index}
+                className={`p-4 rounded-xl border backdrop-blur-sm transition-all ${
+                  insight.impact === 'high' 
+                    ? 'bg-red-500/10 border-red-500/30' 
+                    : insight.impact === 'medium' 
+                    ? 'bg-yellow-500/10 border-yellow-500/30'
+                    : 'bg-white/5 border-white/20'
+                }`}
+              >
+                <h3 className="text-base font-bold text-white mb-1">{insight.title}</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">{insight.description}</p>
               </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-white">{data.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-bold text-white">{data.count}</span>
-                    <span className="text-[10px] text-gray-400">({data.percentage.toFixed(1)}%)</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Overall Stats First */}
+        <div className="bg-linear-to-r from-purple-900/30 via-pink-900/20 to-purple-900/30 rounded-2xl p-6 border border-purple-500/30">
+          <h3 className="text-xl font-bold text-purple-400 mb-4">Global Performance</h3>
+          <p className="text-gray-400 text-sm mb-4 italic">📊 How badly did we all do?</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center bg-white/5 rounded-xl p-3">
+              <p className="text-2xl font-bold text-white mb-1">{analyticsData.totalBallots}</p>
+              <p className="text-xs text-gray-300">Players</p>
+            </div>
+            <div className="text-center bg-white/5 rounded-xl p-3">
+              <p className="text-2xl font-bold text-green-400 mb-1">{analyticsData.overallStats.overallAccuracy.toFixed(1)}%</p>
+              <p className="text-xs text-gray-300">Accuracy</p>
+            </div>
+            <div className="text-center bg-white/5 rounded-xl p-3">
+              <p className="text-2xl font-bold text-yellow-400 mb-1">{analyticsData.overallStats.powerPickSuccessRate.toFixed(1)}%</p>
+              <p className="text-xs text-gray-300">Power Success</p>
+            </div>
+            <div className="text-center bg-white/5 rounded-xl p-3">
+              <p className="text-2xl font-bold text-orange-400 mb-1">{upsets.length}</p>
+              <p className="text-xs text-gray-300">Major Upsets</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Crowd Favorites Who Won */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <h3 className="text-xl font-bold text-green-400 mb-4 flex items-center">
+            <Trophy className="w-5 h-5 mr-2" />
+            Crowd Favorites Who Won
+          </h3>
+          <p className="text-gray-400 text-sm mb-4 italic">🎉 The rare times we were actually right</p>
+          <div className="space-y-3">
+            {sortedNominees.filter(([, data]) => data.isWinner).slice(0, 3).map(([nomineeId, data], index) => (
+              <div key={nomineeId} className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white font-medium">{data.name}</span>
+                  <div className="flex items-center space-x-1">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <span className="text-green-400 font-bold text-sm">{data.count}</span>
                   </div>
                 </div>
-                <div className="w-full bg-white/10 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2 mb-2">
                   <div 
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
+                    className="bg-linear-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(data.percentage, 100)}%` }}
                   />
                 </div>
-                {data.powerPickCount > 0 && (
-                  <div className="flex items-center space-x-1 mt-1">
-                    <Zap size={10} className="text-yellow-500" />
-                    <span className="text-[8px] text-yellow-500">
-                      {data.powerPickCount} power pick{data.powerPickCount !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Power Pick Analysis */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Zap size={20} className="text-yellow-500" />
-          <h3 className="text-lg font-bold text-yellow-500">Power Pick Strategy</h3>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {sortedPowerPicks.map(([nomineeId, data]) => (
-            <div key={nomineeId} className="bg-white/5 border border-white/10 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-sm font-medium text-white">{data.nomineeName}</p>
-                  <p className="text-[10px] text-gray-400">{data.category}</p>
-                </div>
-                <div className="flex items-center space-x-1 bg-yellow-500/20 border border-yellow-500/30 rounded px-2 py-1">
-                  <Zap size={12} className="text-yellow-500" />
-                  <span className="text-[10px] font-bold text-yellow-500">{data.count}</span>
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span>{data.percentage.toFixed(1)}% of all picks</span>
+                  <span>{data.accuracy.toFixed(1)}% accuracy</span>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Multi-Award Show Trends */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Calendar size={20} className="text-yellow-500" />
-          <h3 className="text-lg font-bold text-yellow-500">Award Show Trends</h3>
-        </div>
-        
-        <div className="space-y-4">
-          {analyticsData.trends.map((trend) => (
-            <div key={trend.nomineeId} className="bg-white/5 border border-white/10 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <p className="text-sm font-medium text-white">{trend.nomineeName}</p>
-                    {trend.trend === 'new' && (
-                      <span className="bg-green-500/20 text-green-500 text-[8px] px-2 py-1 rounded-full font-bold">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-4 text-[10px] text-gray-400">
-                    <span>Current: {trend.currentEvent.count} picks ({trend.currentEvent.percentage.toFixed(1)}%)</span>
-                    {trend.previousEvents.length > 0 && (
-                      <span>Previous: {trend.previousEvents[0].eventName} - {trend.previousEvents[0].percentage.toFixed(1)}%</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {trend.trend === 'up' && (
-                    <div className="flex items-center space-x-1 text-green-500">
-                      <ArrowTrendingUp size={16} />
-                      <span className="text-sm font-bold">+{trend.trendPercentage.toFixed(1)}%</span>
+        {/* Biggest Upsets */}
+        {upsets.length > 0 && (
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+            <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Biggest Upsets
+            </h3>
+            <p className="text-gray-400 text-sm mb-4 italic">💀 When the crowd was spectacularly wrong</p>
+            <div className="space-y-3">
+              {upsets.slice(0, 3).map(([categoryId, data], index) => (
+                <div key={categoryId} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <p className="text-white font-medium text-sm">{data.categoryName}</p>
+                      <p className="text-xs text-gray-400">Expected: {data.mostPopularPick?.name}</p>
                     </div>
-                  )}
-                  {trend.trend === 'down' && (
-                    <div className="flex items-center space-x-1 text-red-500">
-                      <TrendingDown size={16} />
-                      <span className="text-sm font-bold">-{trend.trendPercentage.toFixed(1)}%</span>
+                    <div className="text-right ml-2">
+                      <p className="text-red-400 font-bold text-xs">UPSET</p>
+                      <p className="text-xs text-gray-400">{data.mostPopularPick?.percentage?.toFixed(1)}% picks</p>
                     </div>
-                  )}
-                  {trend.trend === 'stable' && (
-                    <div className="flex items-center space-x-1 text-yellow-500">
-                      <span className="text-sm font-bold">±{trend.trendPercentage.toFixed(1)}%</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Mini trend visualization */}
-              <div className="flex items-center space-x-2 mt-2">
-                <div className="flex-1 bg-white/10 rounded-full h-1.5 relative">
-                  <div 
-                    className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(trend.currentEvent.percentage, 100)}%` }}
-                  />
-                </div>
-                {trend.previousEvents.length > 0 && (
-                  <div className="flex-1 bg-white/10 rounded-full h-1.5 relative opacity-60">
-                    <div 
-                      className="bg-gray-500 h-1.5 rounded-full"
-                      style={{ width: `${Math.min(trend.previousEvents[0].percentage, 100)}%` }}
-                    />
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-300">Winner: <span className="text-white font-medium">{data.winnerNomineeName}</span></p>
+                    <div className="flex items-center space-x-1 text-red-400">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span className="text-xs font-bold">SHOCKER</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Top Users Activity */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Users size={20} className="text-yellow-500" />
-          <h3 className="text-lg font-bold text-yellow-500">Most Active Users</h3>
-        </div>
-        
-        <div className="space-y-3">
-          {analyticsData.userActivity.map((user, index) => (
-            <div key={user.username} className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-yellow-500/20 border border-yellow-500/30 rounded-lg flex items-center justify-center text-sm font-bold text-yellow-500">
-                {index + 1}
-              </div>
-              <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-lg">
-                {user.avatar}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">{user.username}</p>
-                <div className="flex items-center space-x-4 text-[10px] text-gray-400">
-                  <span>{user.pickCount} picks</span>
-                  {user.powerPickCount > 0 && (
-                    <span className="flex items-center space-x-1 text-yellow-500">
-                      <Zap size={10} />
-                      <span>{user.powerPickCount} power</span>
-                    </span>
-                  )}
+        {/* Power Pick Analysis */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <h3 className="text-xl font-bold text-yellow-400 mb-4 flex items-center">
+            <Zap className="w-5 h-5 mr-2" />
+            Power Pick Strategy
+          </h3>
+          <p className="text-gray-400 text-sm mb-4 italic">⚡ Where our confidence went to die (or thrive)</p>
+          <div className="space-y-3">
+            {sortedPowerPicks.slice(0, 5).map(([nomineeId, data]) => (
+              <div key={nomineeId} className="bg-linear-to-r from-yellow-500/10 to-yellow-600/5 border border-yellow-500/30 rounded-xl p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <p className="text-white font-medium text-sm">{data.nomineeName}</p>
+                    <p className="text-xs text-gray-400">{data.category}</p>
+                  </div>
+                  <div className={`px-2 py-1 rounded-full text-xs font-bold ml-2 ${
+                    data.successRate > 60 
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : data.successRate > 30
+                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  }`}>
+                    {data.successRate.toFixed(0)}% success
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-3 h-3 text-yellow-400" />
+                    <span className="text-xs text-gray-300">{data.count} power picks</span>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {data.successRate > 60 ? '🔥 Hot' : data.successRate > 30 ? '⚖️ Mixed' : '❌ Cold'}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        {/* Wisdom of the Crowd */}
+        {consensusCategories.length > 0 && (
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+            <h3 className="text-xl font-bold text-blue-400 mb-4 flex items-center">
+              <Target className="w-5 h-5 mr-2" />
+              Wisdom of the Crowd
+            </h3>
+            <p className="text-gray-300 text-sm mb-4 italic">🧠 Sometimes the hive mind actually works</p>
+            <p className="text-gray-400 text-xs mb-4">Categories where the most popular pick correctly predicted the winner</p>
+            <div className="space-y-2">
+              {consensusCategories.slice(0, 5).map(([categoryId, data]) => (
+                <div key={categoryId} className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+                  <p className="text-white font-medium text-sm mb-1">{data.categoryName}</p>
+                  <p className="text-xs text-gray-300">Winner: {data.winnerNomineeName}</p>
+                  <div className="flex items-center mt-1 text-xs text-blue-400">
+                    <Target className="w-3 h-3 mr-1" />
+                    Consensus Correct
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detailed Performance */}
+        <div className="bg-linear-to-r from-purple-900/30 via-pink-900/20 to-purple-900/30 rounded-2xl p-6 border border-purple-500/30">
+          <h3 className="text-xl font-bold text-purple-400 mb-4">Detailed Performance</h3>
+          <p className="text-gray-400 text-sm mb-4 italic">🔍 The nerdy numbers nobody asked for</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-white mb-1">{analyticsData.overallStats.totalPicks}</p>
+              <p className="text-xs text-gray-300">Total Picks</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-green-400 mb-1">{analyticsData.overallStats.totalCorrectPicks}</p>
+              <p className="text-xs text-gray-300">Correct</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-yellow-400 mb-1">{analyticsData.overallStats.totalPowerPicks}</p>
+              <p className="text-xs text-gray-300">Power Picks</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-purple-400 mb-1">{analyticsData.overallStats.correctPowerPicks}</p>
+              <p className="text-xs text-gray-300">Power Hits</p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* Insights Section */}
-      <div className="bg-linear-to-br from-yellow-900/20 via-black to-black border border-yellow-500/30 rounded-2xl p-6">
-        <h3 className="text-lg font-bold text-yellow-500 mb-4">📊 Key Insights</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-sm font-bold text-white mb-2">Consensus Picks</h4>
-            <p className="text-[10px] text-gray-300">
-              {sortedNominees[0] && `${sortedNominees[0][1].name} leads with ${sortedNominees[0][1].count} picks (${sortedNominees[0][1].percentage.toFixed(1)}%)`}
-            </p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-sm font-bold text-white mb-2">Power Strategy</h4>
-            <p className="text-[10px] text-gray-300">
-              {sortedPowerPicks[0] && `${sortedPowerPicks[0][1].nomineeName} is the top power pick choice`}
-            </p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-sm font-bold text-white mb-2">Trending Films</h4>
-            <p className="text-[10px] text-gray-300">
-              {analyticsData.trends.filter(t => t.trend === 'up').length} films gaining momentum, {analyticsData.trends.filter(t => t.trend === 'down').length} losing steam
-            </p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-sm font-bold text-white mb-2">Cross-Show Patterns</h4>
-            <p className="text-[10px] text-gray-300">
-              {analyticsData.trends.filter(t => t.trend === 'stable').length > 0 ? 'Consistent favorites across award shows' : 'Shifting preferences detected'}
-            </p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-sm font-bold text-white mb-2">Participation</h4>
-            <p className="text-[10px] text-gray-300">
-              {analyticsData.totalBallots} users have submitted ballots
-            </p>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-sm font-bold text-white mb-2">Competitive Balance</h4>
-            <p className="text-[10px] text-gray-300">
-              {sortedNominees.length > 0 && sortedNominees[0][1].percentage > 50 ? 'Strong consensus' : 'Diverse predictions'}
-            </p>
-          </div>
+      {/* Controls */}
+      <div className="fixed bottom-4 right-4 flex flex-col items-end space-y-2">
+        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={excludeTestUsers}
+              onChange={(e) => setExcludeTestUsers(e.target.checked)}
+              className="rounded text-yellow-500 focus:ring-yellow-500"
+            />
+            <span className="text-xs text-white">Exclude Test Users</span>
+          </label>
         </div>
+        <button
+          onClick={() => setRefreshKey(prev => prev + 1)}
+          className="bg-yellow-500 hover:bg-yellow-400 text-black px-3 py-2 rounded-lg font-bold transition-colors flex items-center space-x-1"
+        >
+          <RefreshCw size={14} />
+          <span className="text-sm">Refresh</span>
+        </button>
       </div>
     </div>
   );

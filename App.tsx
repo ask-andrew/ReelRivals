@@ -10,7 +10,7 @@ import Analytics from './components/Analytics';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
-import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCategories, type InstantUser } from './src/instantService';
+import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser } from './src/instantService';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
 
@@ -305,25 +305,58 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
                   className={`snap-center shrink-0 w-40 rounded-2xl p-4 border transition-all duration-300 ${
                     isActive 
                       ? 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.1)]' 
-                      : 'bg-white/5 border-white/10 opacity-60'
+                      : 'bg-linear-to-br from-green-600/30 to-green-700/50 border-green-400/70 shadow-lg'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xl">{event.icon}</span>
                     {isActive && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,1)]" />}
+                    {!isActive && event.status === 'completed' && <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />}
                   </div>
                   <h4 className="text-xs font-bold truncate mb-1">{event.name}</h4>
-                  <p className="text-[10px] text-gray-500 font-medium">{event.date}</p>
+                  <p className="text-[10px] text-gray-400 font-medium">{event.date}</p>
                   <div className="mt-3">
                     <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${
-                      isActive ? 'bg-yellow-500 text-black' : 'bg-white/10 text-gray-400'
+                      isActive ? 'bg-yellow-500 text-black' : 'bg-green-500/20 text-green-400 border border-green-500/30'
                     }`}>
-                      {event.status === 'open' ? 'Live Now' : event.status}
+                      {event.status === 'open' ? 'Live Now' : event.status === 'completed' ? '✅ Completed' : event.status}
                     </span>
                   </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* BAFTAs 2026 Promotion */}
+        <div className="bg-linear-to-r from-blue-900/30 via-purple-900/20 to-blue-900/30 border border-blue-500/30 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-blue-400">🎬 BAFTAs 2026</h3>
+            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full font-bold">Coming Soon</span>
+          </div>
+          <p className="text-sm text-gray-300 mb-4">Ready for the next awards show? Make your predictions and see if you can improve your score!</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-400">Challenge friends to beat your Golden Globes results</p>
+            <button 
+              onClick={async () => {
+                if (!user) return;
+                
+                try {
+                  const result = await signupForEventNotifications(user.id, 'baftas-2026');
+                  if (result.success) {
+                    alert('🎬 Thanks! We\'ll notify you when BAFTAs 2026 predictions open.');
+                  } else {
+                    alert('🎬 Something went wrong. Please try again.');
+                  }
+                } catch (error) {
+                  console.error('Notification signup error:', error);
+                  alert('🎬 Something went wrong. Please try again.');
+                }
+              }}
+              className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+            >
+              Notify Me
+            </button>
           </div>
         </div>
 

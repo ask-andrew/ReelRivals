@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Home, Award, Trophy, Users, User as UserIcon, Settings, BarChart3, LogOut } from 'lucide-react';
+import { Home, Award, Trophy, Users, User as UserIcon, BarChart3, LogOut } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: 'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin' | 'analytics';
+  activeTab: 'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'analytics';
   onTabChange: (tab: any) => void;
   onSignOut: () => void;
 }
@@ -17,7 +17,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onSig
     { id: 'leagues', icon: Users, label: 'The Critics' },
     { id: 'analytics', icon: BarChart3, label: 'Analytics' },
     { id: 'profile', icon: UserIcon, label: 'Profile' },
-    { id: 'admin', icon: Settings, label: 'Admin' },
   ];
 
   return (

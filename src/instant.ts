@@ -81,6 +81,12 @@ const schema = i.schema({
       winner_nominee_id: i.string(),
       announced_at: i.number(),
     }),
+    notification_signups: i.entity({
+      user_id: i.string(),
+      event_id: i.string(),
+      created_at: i.number(),
+      notified: i.boolean(),
+    }),
   },
   links: {
     categoriesNominees: {

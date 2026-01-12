@@ -98,11 +98,15 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     }
   };
 
-  const getPickCorrectness = (nomineeId: string, categoryId: string): boolean => {
+  // Simple correctness check for visual styling
+  const getCategoryCorrectness = (categoryId: string): 'correct' | 'incorrect' | 'no-pick' => {
+    if (!resultsLoaded || !picks[categoryId]) return 'no-pick';
+    
+    const pick = picks[categoryId];
     const result = results.find(r => r.category_id === categoryId);
-    const isCorrect = result && result.winner_nominee_id === nomineeId;
-    console.log(`[BallotSwiperDB] Checking pick - Category: ${categoryId}, Nominee: ${nomineeId}, Winner: ${result?.winner_nominee_id}, Correct: ${isCorrect}`);
-    return isCorrect;
+    if (!result) return 'no-pick';
+    
+    return result.winner_nominee_id === pick.nomineeId ? 'correct' : 'incorrect';
   };
 
   const loadData = async () => {
@@ -307,9 +311,10 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    isComplete
-                      ? 'border-yellow-500/30 bg-yellow-500/5'
-                      : 'border-white/10 bg-white/5'
+                    !resultsLoaded ? 'border-white/10 bg-white/5' :
+                    getCategoryCorrectness(cat.id) === 'correct' ? 'border-green-500/50 bg-green-500/10' :
+                    getCategoryCorrectness(cat.id) === 'incorrect' ? 'border-red-500/50 bg-red-500/10' :
+                    'border-white/10 bg-white/5'
                   } hover:border-yellow-500/50 ${
                     isGoldenGlobesCompleted ? 'cursor-not-allowed opacity-75' : ''
                   }`}
@@ -327,9 +332,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                       {nominee ? (
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-yellow-500 ml-10">
-                            {resultsLoaded && getPickCorrectness(nominee.id, category.id) ? '\u2713' : ''} {nominee.name}
+                            {resultsLoaded && getCategoryCorrectness(cat.id) === 'correct' ? '\u2713' : ''} {nominee.name}
                           </p>
-                          {resultsLoaded && getPickCorrectness(nominee.id, category.id) && (
+                          {resultsLoaded && getCategoryCorrectness(cat.id) === 'correct' && (
                             <span className="text-xs text-green-400 ml-2">CORRECT</span>
                           )}
                         </div>
