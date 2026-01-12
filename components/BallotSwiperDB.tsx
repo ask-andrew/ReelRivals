@@ -324,7 +324,24 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                       {nominee ? (
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-yellow-500 ml-10">
-                            {getPickCorrectness(nominee.id, cat.id) ? '\\u2713' : ''} {nominee.name}
+                            {getPickCorrectness(nominee.id, category.id) ? '\u2713' : ''} {nominee.name}
+                          </p>
+                          {getPickCorrectness(nominee.id, category.id) && (
+                            <span className="text-xs text-green-400 ml-2">CORRECT</span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 ml-10">No selection</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {isComplete ? (
+                        <Check className="text-yellow-500" size={20} />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-600" />
+                      )}
+                      <ChevronRight className="text-gray-400" size={20} />
+                    </div>
                   </div>
                 </motion.div>
               );
