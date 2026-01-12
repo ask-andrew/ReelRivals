@@ -39,12 +39,12 @@ const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63
 
 try {
   console.log('🔗 Testing InstantDB connection...');
-  const db = init({ appId: APP_ID });
+  const dbCore = init({ appId: APP_ID });
   
-  // Simple test query
-  const result = await db.query({ users: { $: { where: {} } } });
+  // Simple test query using the same pattern as live scraping
+  const result = await dbCore.query({ users: { $: { where: {} } } });
   console.log('✅ InstantDB connection successful');
-  console.log(`📊 Found ${result.users?.length || 0} users`);
+  console.log(`📊 Found ${result.data?.users?.length || 0} users`);
   
 } catch (error) {
   console.error('❌ InstantDB connection failed:', error.message);

@@ -1,5 +1,4 @@
-
-export type Avatar = '🎬' | '🍿' | '🏆' | '🎭' | '🎥' | '✨' | '🌟' | '📺';
+export type Avatar = '🎬' | '🍿' | '🏆' | '🎭' | '🎥' | '✨' | '🌟' | '📺' | '🎭' | '🎥' | '✨' | '🌟' | '📺';
 
 export interface User {
   id: string;
@@ -7,6 +6,14 @@ export interface User {
   avatar_emoji: string;
   totalScore: number;
   email?: string; // Optional for future notifications
+}
+
+export interface InstantUser {
+  id: string;
+  email: string;
+  username: string;
+  avatar_emoji: string;
+  created_at: number;
 }
 
 export interface Nominee {

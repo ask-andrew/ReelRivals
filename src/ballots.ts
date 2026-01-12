@@ -1,279 +1,130 @@
-import { supabase } from './supabase'
-import type { Database } from './supabase'
+import { dbCore } from './instant';
+import { id } from '@instantdb/core';
+import { 
+  getCategories, 
+  getBallot, 
+  saveBallotPick, 
+  saveBallotPicks,
+  getActivePlayers,
+  getAllPlayersWithScores,
+  getPlayerStats,
+  getNomineePercentages
+} from './instantService';
 
-export type Category = Database['public']['Tables']['categories']['Row'] & {
-  nominees: Database['public']['Tables']['nominees']['Row'][]
+// Types from InstantDB schema
+export type Category = {
+  id: string;
+  event_id: string;
+  name: string;
+  display_order: number;
+  base_points: number;
+  emoji: string;
+  nominees?: any[];
 }
 
-export type Ballot = Database['public']['Tables']['ballots']['Row'] & {
-  picks: Database['public']['Tables']['picks']['Row'][]
+export type Ballot = {
+  id: string;
+  picks?: { id: string; }[];
 }
 
-export type Pick = Database['public']['Tables']['picks']['Row']
-
-export async function getCategories(eventId: string): Promise<{ categories: Category[], error: any }> {
-  try {
-    const { data, error } = await supabase
-      .from('categories')
-      .select(`
-        *,
-        nominees (
-          id,
-          name,
-          tmdb_id,
-          display_order
-        )
-      `)
-      .eq('event_id', eventId)
-      .order('display_order')
-      .order('nominees.display_order', { foreignTable: 'nominees' })
-
-    if (error) throw error
-
-    return { categories: data || [], error: null }
-  } catch (error) {
-    return { categories: [], error }
-  }
+export type Pick = {
+  id: string;
+  ballot_id: string;
+  category_id: string;
+  nominee_id: string;
+  is_power_pick: boolean;
+  created_at: number;
 }
 
-export async function getUserBallot(userId: string, eventId: string, leagueId: string): Promise<{ ballot: Ballot | null, error: any }> {
-  try {
-    const { data, error } = await supabase
-      .from('ballots')
-      .select(`
-        *,
-        picks (
-          id,
-          category_id,
-          nominee_id,
-          is_power_pick
-        )
-      `)
-      .eq('user_id', userId)
-      .eq('event_id', eventId)
-      .eq('league_id', leagueId)
-      .single()
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-      throw error
-    }
-
-    return { ballot: data, error: null }
-  } catch (error) {
-    return { ballot: null, error }
-  }
-}
-
+// Additional functions not available in instantService
 export async function createOrUpdateBallot(
   userId: string,
   eventId: string,
   leagueId: string,
   picks: { categoryId: string, nomineeId: string, isPowerPick: boolean }[]
 ): Promise<{ ballot: Ballot | null, error: any }> {
-  try {
-    // First, get or create the ballot
-    const { ballot: existingBallot, error: ballotError } = await getUserBallot(userId, eventId, leagueId)
-    
-    if (ballotError) throw ballotError
-
-    let ballotId: string
-
-    if (existingBallot) {
-      ballotId = existingBallot.id
-    } else {
-      // Create new ballot
-      const { data: newBallot, error: createError } = await (supabase
-        .from('ballots')
-        .insert({
-          user_id: userId,
-          event_id: eventId,
-          league_id: leagueId
-        } as any)
-        .select()
-        .single() as any)
-
-      if (createError) throw createError
-      ballotId = newBallot?.id
-    }
-
-    // Delete existing picks
-    const { error: deleteError } = await supabase
-      .from('picks')
-      .delete()
-      .eq('ballot_id', ballotId)
-
-    if (deleteError) throw deleteError
-
-    // Insert new picks
-    const picksToInsert = picks.map(pick => ({
-      ballot_id: ballotId,
-      category_id: pick.categoryId,
-      nominee_id: pick.nomineeId,
-      is_power_pick: pick.isPowerPick
-    }))
-
-    const { error: insertError } = await (supabase
-      .from('picks')
-      .insert(picksToInsert as any) as any)
-
-    if (insertError) throw insertError
-
-    // Return the complete ballot
-    const result = await getUserBallot(userId, eventId, leagueId)
-    return result
-  } catch (error) {
-    return { ballot: null, error }
+  const result = await saveBallotPicks(userId, eventId, leagueId, picks);
+  if (result.error) {
+    return { ballot: null, error: result.error };
   }
+  
+  const ballotResult = await getBallot(userId, eventId);
+  return { ballot: ballotResult, error: null };
 }
 
 export async function lockBallot(ballotId: string): Promise<{ error: any }> {
-  try {
-    const { error } = await supabase
-      .from('ballots')
-      .update({ is_locked: true })
-      .eq('id', ballotId)
-      .select()
-      .single()
+  const ballotQuery = await dbCore.queryOnce({
+    ballots: {
+      $: { where: { id: ballotId } }
+    }
+  });
 
-    return { error }
-  } catch (error) {
-    return { error }
+  if (ballotQuery.data.ballots.length === 0) {
+    return { error: { message: 'Ballot not found' } };
   }
+
+  const ballot = ballotQuery.data.ballots[0];
+
+  await dbCore.transact([
+    dbCore.tx.ballots[ballotId].update({
+      is_locked: true
+    })
+  ]);
+
+  return { error: null };
 }
 
-export async function getEvent(eventId: string): Promise<{ event: Database['public']['Tables']['events']['Row'] | null, error: any }> {
-  try {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', eventId)
-      .single()
+export async function getEvent(eventId: string): Promise<{ event: any | null, error: any }> {
+  const events = {
+    'golden-globes-2026': {
+      id: 'golden-globes-2026',
+      name: 'Golden Globes 2026',
+      ceremony_date: '2026-01-11',
+      picks_lock_at: '2026-01-11T19:00:00-06:00',
+      is_active: true,
+      is_complete: false
+    }
+  };
 
-    if (error) throw error
-
-    return { event: data, error: null }
-  } catch (error) {
-    return { event: null, error }
-  }
-}
-
-export async function getBallot(ballotId: string): Promise<{ ballot: Ballot | null, error: any }> {
-  try {
-    const { data, error } = await supabase
-      .from('ballots')
-      .select(`
-        *,
-        picks (
-          id,
-          category_id,
-          nominee_id,
-          is_power_pick
-        )
-      `)
-      .eq('id', ballotId)
-      .single()
-
-    if (error) throw error
-
-    return { ballot: data, error: null }
-  } catch (error) {
-    return { ballot: null, error }
-  }
+  const event = events[eventId as keyof typeof events] || null;
+  return { event, error: null };
 }
 
 export async function getBallotsByLeague(leagueId: string, eventId: string): Promise<{ ballots: Ballot[], error: any }> {
-  try {
-    const { data, error } = await supabase
-      .from('ballots')
-      .select(`
-        *,
-        picks (
-          id,
-          category_id,
-          nominee_id,
-          is_power_pick
-        )
-      `)
-      .eq('league_id', leagueId)
-      .eq('event_id', eventId)
+  const ballotsQuery = await dbCore.queryOnce({
+    ballots: {
+      $: {
+        where: { 
+          league_id: leagueId,
+          event_id: eventId
+        }
+      },
+      picks: {}
+    },
+    users: {}
+  });
 
-    if (error) throw error
+  const ballots = ballotsQuery.data.ballots.map((ballot: any) => ({
+    ...ballot,
+    username: ballot.users?.username || 'Unknown'
+  }));
 
-    return { ballots: data || [], error: null }
-  } catch (error) {
-    return { ballots: [], error }
-  }
+  return { ballots, error: null };
 }
 
-export async function getNomineePercentages(categoryId: string, eventId: string, leagueId: string): Promise<{ percentages: Record<string, number>, totalUsers: number, error: any }> {
-  try {
-    // Get all ballots for this category in the league/event
-    const { data: ballots, error: ballotsError } = await supabase
-      .from('ballots')
-      .select(`
-        user_id,
-        picks!inner(
-          category_id,
-          nominee_id
-        )
-      `)
-      .eq('event_id', eventId)
-      .eq('league_id', leagueId)
-      .eq('picks.category_id', categoryId)
-
-    if (ballotsError) throw ballotsError
-
-    // Get user information for all ballots
-    const userIds = (ballots as any[])?.map((b: any) => b.user_id) || []
-    if (userIds.length === 0) {
-      return { percentages: {}, totalUsers: 0, error: null }
-    }
-
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, email, username')
-      .in('id', userIds)
-
-    if (usersError) throw usersError
-
-    // Create a map of user info for quick lookup
-    const userMap = new Map()
-    ;(users as any[])?.forEach((user: any) => {
-      userMap.set(user.id, user)
-    })
-
-    // Filter out test users (emails containing 'test' or 'demo', case-insensitive)
-    const realUserBallots = (ballots as any[])?.filter((ballot: any) => {
-      const user = userMap.get(ballot.user_id)
-      if (!user) return false
-      
-      const email = user.email || ''
-      const username = user.username || ''
-      return !email.toLowerCase().includes('test') && 
-             !email.toLowerCase().includes('demo') &&
-             !username.toLowerCase().includes('test') && 
-             !username.toLowerCase().includes('demo')
-    }) || []
-
-    // Count picks for each nominee
-    const nomineeCounts: Record<string, number> = {}
-    realUserBallots.forEach((ballot: any) => {
-      const nomineeId = ballot.picks.nominee_id
-      nomineeCounts[nomineeId] = (nomineeCounts[nomineeId] || 0) + 1
-    })
-
-    // Calculate percentages
-    const totalUsers = realUserBallots.length
-    const percentages: Record<string, number> = {}
-    
-    if (totalUsers > 0) {
-      Object.keys(nomineeCounts).forEach(nomineeId => {
-        percentages[nomineeId] = Math.round((nomineeCounts[nomineeId] / totalUsers) * 100)
-      })
-    }
-
-    return { percentages, totalUsers, error: null }
-  } catch (error) {
-    return { percentages: {}, totalUsers: 0, error }
-  }
+export async function getUserBallot(userId: string, eventId: string, leagueId: string): Promise<{ ballot: Ballot | null, error: any }> {
+  const ballotResult = await getBallot(userId, eventId);
+  return { ballot: ballotResult, error: null };
 }
+
+// Export all functions for backward compatibility
+export { 
+  getCategories,
+  getBallot,
+  saveBallotPick,
+  saveBallotPicks,
+  getActivePlayers,
+  getAllPlayersWithScores,
+  getPlayerStats,
+  getNomineePercentages
+};

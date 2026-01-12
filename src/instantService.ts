@@ -724,15 +724,30 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
 // --- Bulk save function - saves multiple picks at once
 export async function getResults(eventId: string): Promise<{ results: any[], error: any }> {
   try {
-    const resultsQuery = await dbCore.queryOnce({
-      results: {
-        $: {
-          where: { event_id: eventId }
+    // Get all results and categories to filter by event
+    const [resultsQuery, categoriesQuery] = await Promise.all([
+      dbCore.queryOnce({
+        results: {
+          $: {}
         }
-      }
-    });
+      }),
+      dbCore.queryOnce({
+        categories: {
+          $: {
+            where: { event_id: eventId }
+          }
+        }
+      })
+    ]);
 
-    return { results: resultsQuery.data.results || [], error: null };
+    const allResults = resultsQuery.data.results || [];
+    const eventCategories = categoriesQuery.data.categories || [];
+    const eventCategoryIds = new Set(eventCategories.map((c: any) => c.id));
+    
+    // Filter results to only include categories from this event
+    const eventResults = allResults.filter((result: any) => eventCategoryIds.has(result.category_id));
+
+    return { results: eventResults, error: null };
   } catch (error) {
     return { results: [], error };
   }
@@ -770,5 +785,224 @@ export async function saveBallotPicks(
   } catch (error) {
     console.error("Error in saveBallotPicks:", error);
     return { error };
+  }
+}
+
+// --- Scoring Calculation Functions --- //
+
+export async function calculateScoresForEvent(eventId: string): Promise<{ success: boolean, error: any }> {
+  try {
+    console.log('[calculateScoresForEvent] Starting score calculation for event:', eventId);
+    
+    // Get all results and all categories
+    const resultsQuery = await dbCore.queryOnce({
+      results: {
+        $: {}
+      }
+    });
+
+    const categoriesQuery = await dbCore.queryOnce({
+      categories: {
+        $: {
+          where: { event_id: eventId }
+        }
+      }
+    });
+
+    const allResults = resultsQuery.data.results || [];
+    const eventCategories = categoriesQuery.data.categories || [];
+    const eventCategoryIds = new Set(eventCategories.map((c: any) => c.id));
+    
+    // Filter results to only include categories from this event
+    const eventResults = allResults.filter((r: any) => eventCategoryIds.has(r.category_id));
+    
+    console.log('[calculateScoresForEvent] Found results for event:', eventResults.length);
+
+    // Process each result
+    for (const result of eventResults as any[]) {
+      await calculateScoresForCategory(eventId, result.category_id, result.winner_nominee_id);
+    }
+
+    console.log('[calculateScoresForEvent] Score calculation completed');
+    return { success: true, error: null };
+    
+  } catch (error) {
+    console.error('[calculateScoresForEvent] Error calculating scores:', error);
+    return { success: false, error };
+  }
+}
+
+// --- Automatic Score Trigger --- //
+
+export async function addWinnerAndCalculateScores(
+  categoryId: string, 
+  winnerNomineeId: string
+): Promise<{ success: boolean, error: any }> {
+  try {
+    console.log('[addWinnerAndCalculateScores] Adding winner and calculating scores');
+    
+    // Add the winner result
+    const resultId = id();
+    await dbCore.transact([
+      dbCore.tx.results[resultId].create({
+        category_id: categoryId,
+        winner_nominee_id: winnerNomineeId,
+        announced_at: Date.now()
+      })
+    ]);
+
+    console.log('[addWinnerAndCalculateScores] Winner added, calculating scores...');
+    
+    // Get the event_id for this category
+    const categoriesQuery = await dbCore.queryOnce({
+      categories: {
+        $: {
+          where: { id: categoryId }
+        }
+      }
+    });
+
+    const category = (categoriesQuery.data.categories?.[0] as any);
+    const eventId = category?.event_id;
+
+    if (eventId) {
+      // Calculate scores for this event
+      await calculateScoresForEvent(eventId);
+    }
+
+    return { success: true, error: null };
+    
+  } catch (error) {
+    console.error('[addWinnerAndCalculateScores] Error:', error);
+    return { success: false, error };
+  }
+}
+
+async function calculateScoresForCategory(eventId: string, categoryId: string, winnerNomineeId: string): Promise<void> {
+  try {
+    console.log('[calculateScoresForCategory] Processing category:', categoryId, 'winner:', winnerNomineeId);
+    
+    // Get all picks for this category
+    const picksQuery = await dbCore.queryOnce({
+      picks: {
+        $: {
+          where: {
+            category_id: categoryId
+          }
+        }
+      }
+    });
+
+    const picks = picksQuery.data.picks || [];
+    console.log('[calculateScoresForCategory] Found picks:', picks.length);
+
+    // Get category info for base points
+    const categoriesQuery = await dbCore.queryOnce({
+      categories: {
+        $: {
+          where: { id: categoryId }
+        }
+      }
+    });
+
+    const category = (categoriesQuery.data.categories?.[0] as any);
+    const basePoints = category?.base_points || 50;
+
+    // Get ballots for user/league info
+    const ballotIds = [...new Set((picks as any[]).map((p: any) => p.ballot_id))];
+    const ballotsQuery = await dbCore.queryOnce({
+      ballots: {
+        $: {
+          where: {
+            id: { in: ballotIds }
+          }
+        }
+      }
+    });
+
+    const ballots = (ballotsQuery.data.ballots || []) as any[];
+    const ballotMap = new Map(ballots.map((b: any) => [b.id, b]));
+
+    // Group picks by user and league
+    const userLeaguePicks = (picks as any[]).reduce((acc, pick) => {
+      const ballot = ballotMap.get(pick.ballot_id);
+      if (!ballot) return acc;
+      
+      const key = `${ballot.user_id}-${ballot.league_id}`;
+      if (!acc[key]) {
+        acc[key] = {
+          userId: ballot.user_id,
+          leagueId: ballot.league_id,
+          correctPicks: 0,
+          powerPicksHit: 0,
+          totalPoints: 0
+        };
+      }
+
+      const isCorrect = pick.nominee_id === winnerNomineeId;
+      const isPowerPick = pick.is_power_pick;
+
+      if (isCorrect) {
+        acc[key].correctPicks++;
+        acc[key].totalPoints += isPowerPick ? basePoints * 3 : basePoints; // Power picks are worth 3x
+        if (isPowerPick) {
+          acc[key].powerPicksHit++;
+        }
+      }
+
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Update scores for each user/league combination
+    for (const [key, scoreData] of Object.entries(userLeaguePicks as any)) {
+      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData as any;
+
+      // Check if score already exists
+      const existingScoresQuery = await dbCore.queryOnce({
+        scores: {
+          $: {
+            where: {
+              user_id: userId,
+              league_id: leagueId,
+              event_id: eventId
+            }
+          }
+        }
+      });
+
+      const existingScores = existingScoresQuery.data.scores || [];
+
+      if (existingScores.length > 0) {
+        // Update existing score
+        await dbCore.transact([
+          dbCore.tx.scores[existingScores[0].id].update({
+            total_points: totalPoints,
+            correct_picks: correctPicks,
+            power_picks_hit: powerPicksHit,
+            updated_at: Date.now()
+          })
+        ]);
+        console.log('[calculateScoresForCategory] Updated score for user:', userId);
+      } else {
+        // Create new score
+        const scoreId = id();
+        await dbCore.transact([
+          dbCore.tx.scores[scoreId].create({
+            user_id: userId,
+            league_id: leagueId,
+            event_id: eventId,
+            total_points: totalPoints,
+            correct_picks: correctPicks,
+            power_picks_hit: powerPicksHit,
+            updated_at: Date.now()
+          })
+        ]);
+        console.log('[calculateScoresForCategory] Created new score for user:', userId);
+      }
+    }
+    
+  } catch (error) {
+    console.error('[calculateScoresForCategory] Error:', error);
+    throw error;
   }
 }

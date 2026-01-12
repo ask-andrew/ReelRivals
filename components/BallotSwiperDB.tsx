@@ -23,6 +23,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [totalUsers, setTotalUsers] = useState(0);
   const [loadingPercentages, setLoadingPercentages] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [resultsLoaded, setResultsLoaded] = useState(false);
   
   // Golden Globes is completed - no new picks allowed but full viewing enabled
   const isGoldenGlobesCompleted = true;
@@ -89,6 +90,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
       
       if (results && results.length > 0) {
         setResults(results);
+        setResultsLoaded(true);
         console.log('Loaded results for correctness checking:', results);
       }
     } catch (error) {
@@ -98,8 +100,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
   const getPickCorrectness = (nomineeId: string, categoryId: string): boolean => {
     const result = results.find(r => r.category_id === categoryId);
-    if (!result) return false;
-    return result.winner_nominee_id === nomineeId;
+    const isCorrect = result && result.winner_nominee_id === nomineeId;
+    console.log(`[BallotSwiperDB] Checking pick - Category: ${categoryId}, Nominee: ${nomineeId}, Winner: ${result?.winner_nominee_id}, Correct: ${isCorrect}`);
+    return isCorrect;
   };
 
   const loadData = async () => {
@@ -324,9 +327,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                       {nominee ? (
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-yellow-500 ml-10">
-                            {getPickCorrectness(nominee.id, category.id) ? '\u2713' : ''} {nominee.name}
+                            {resultsLoaded && getPickCorrectness(nominee.id, category.id) ? '\u2713' : ''} {nominee.name}
                           </p>
-                          {getPickCorrectness(nominee.id, category.id) && (
+                          {resultsLoaded && getPickCorrectness(nominee.id, category.id) && (
                             <span className="text-xs text-green-400 ml-2">CORRECT</span>
                           )}
                         </div>

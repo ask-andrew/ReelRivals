@@ -49,7 +49,10 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
 
   const fetchScores = async () => {
     try {
+      console.log('[LiveScoring] Fetching scores for event:', eventId);
       const result = await getAllPlayersWithScores(eventId);
+      console.log('[LiveScoring] Scores result:', result);
+      
       if (!result.error) {
         const formattedScores = result.players.map((player, index) => ({
           userId: player.id,
@@ -63,11 +66,14 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
           trend: 'same' as const // Would need to calculate based on previous rank
         }));
 
+        console.log('[LiveScoring] Formatted scores:', formattedScores);
         setScores(formattedScores);
         setLastUpdate(new Date());
+      } else {
+        console.error('[LiveScoring] Error fetching scores:', result.error);
       }
     } catch (error) {
-      console.error('Error fetching scores:', error);
+      console.error('[LiveScoring] Error in fetchScores:', error);
     }
   };
 
@@ -76,22 +82,47 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
       const resultsQuery = await db.queryOnce({
         results: {
           $: {
-            where: {},
-            limit: 5
-          },
-          category: {
-            name: true
+            limit: 15
           }
         }
       } as any);
 
-      if (resultsQuery?.data?.results) {
-        const wins = resultsQuery.data.results.map((result: any) => ({
-          category: result.category?.name || 'Unknown',
-          winner: result.nominee?.name || 'Unknown',
-          time: formatTimeAgo(result.announced_at)
-        }));
-        setRecentWins(wins);
+      if (resultsQuery.data?.results) {
+        // Fetch detailed information for each result
+        const winsWithDetails = await Promise.all(
+          resultsQuery.data.results.map(async (result: any) => {
+            // Get category details
+            const categoryQuery = await db.queryOnce({
+              categories: {
+                $: {
+                  where: { id: result.category_id }
+                }
+              }
+            });
+
+            // Get nominee details  
+            const nomineeQuery = await db.queryOnce({
+              nominees: {
+                $: {
+                  where: { id: result.winner_nominee_id }
+                }
+              }
+            });
+
+            const category = (categoryQuery?.data?.categories?.[0] as any);
+            const nominee = (nomineeQuery?.data?.nominees?.[0] as any);
+
+            return {
+              categoryId: result.category_id,
+              nomineeId: result.winner_nominee_id,
+              categoryName: category?.name || 'Unknown Category',
+              winnerName: nominee?.name || 'Unknown Winner',
+              time: formatTimeAgo(result.announced_at)
+            };
+          })
+        );
+
+        setRecentWins(winsWithDetails);
       }
     } catch (error) {
       console.error('Error fetching recent wins:', error);
@@ -261,10 +292,10 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
             {recentWins.map((win, index) => (
               <div key={index} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-green-400 font-bold">{win.category}</span>
+                  <span className="text-xs text-green-400 font-bold">{win.categoryName}</span>
                   <span className="text-xs text-gray-500">{win.time}</span>
                 </div>
-                <div className="text-sm text-gray-300 font-medium">{win.winner}</div>
+                <div className="text-sm text-gray-300 font-medium">🏆 {win.winnerName}</div>
               </div>
             ))}
           </div>

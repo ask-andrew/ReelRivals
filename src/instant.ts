@@ -130,6 +130,30 @@ const schema = i.schema({
             has: 'many',
             label: 'picks'
         }
+    },
+    resultsCategory: {
+      forward: {
+        on: 'results',
+        has: 'one',
+        label: 'category'
+      },
+      reverse: {
+        on: 'categories',
+        has: 'many',
+        label: 'results'
+      }
+    },
+    resultsNominee: {
+      forward: {
+        on: 'results',
+        has: 'one',
+        label: 'nominee'
+      },
+      reverse: {
+        on: 'nominees',
+        has: 'many',
+        label: 'results'
+      }
     }
   }
 });

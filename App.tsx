@@ -451,7 +451,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         <LiveScoring 
           eventId="golden-globes-2026" 
           leagueId={userLeagueId || 'default'} 
-          isLive={false} 
+          isLive={true} 
         />
       )}
       {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}

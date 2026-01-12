@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
+    "@instantdb/admin": "^0.22.101",
     "@instantdb/core": "^0.22.96",
     "@instantdb/react": "^0.22.96",
     "@supabase/supabase-js": "^2.89.0",

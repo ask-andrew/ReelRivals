@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Avatar } from '../types';
-import { signUp, signIn, getCurrentUser, signOut, type InstantUser } from '../src/instantService';
+import { signUp, signIn, type InstantUser } from '../src/instantService';
 
 interface OnboardingProps {
   onComplete: (user: InstantUser) => void;
@@ -14,7 +14,6 @@ const AVATARS: Avatar[] = ['🎬', '🍿', '🏆', '🎭', '🎥', '✨', '🌟'
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar>('🎬');
   const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,7 +49,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         
         const { user, error } = await signUp(
           email.trim(),
-          password.trim(),
           name.trim(),
           selectedAvatar
         );
@@ -114,18 +112,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </button>
             <button
               type="button"
-              onClick={() => {
-                try {
-                  const authUrl = createAuthorizationURL({
-                    clientName: "google-web",
-                    redirectURL: window.location.origin + '/'
-                  });
-                  console.log('Redirecting to OAuth URL:', authUrl);
-                  window.location.href = authUrl;
-                } catch (error) {
-                  console.error('Error creating OAuth URL:', error);
-                }
-              }}
+              onClick={() => setIsLogin(true)}
               className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
                 isLogin 
                   ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg' 
@@ -133,28 +120,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               }`}
             >
               <span className="relative z-10">SIGN IN</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  const authUrl = createAuthorizationURL({
-                    clientName: "google-web", 
-                    redirectURL: window.location.origin + '/'
-                  });
-                  console.log('Redirecting to OAuth URL:', authUrl);
-                  window.location.href = authUrl;
-                } catch (error) {
-                  console.error('Error creating OAuth URL:', error);
-                }
-              }}
-              className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
-                isLogin 
-                  ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <span className="relative z-10">GOOGLE SIGN IN</span>
             </button>
           </div>
         </div>
@@ -199,7 +164,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. OscarWinner99"
+                placeholder="What should other critics call you?"
                 className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
                 required
               />
@@ -222,18 +187,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           {!isLogin && (
             <p className="text-xs text-text-tertiary text-left italic px-1">We'll notify you when new ballots open for the next show.</p>
           )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={isLogin ? 'Enter your password' : 'Create a password'}
-            className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
-            required
-          />
         </div>
 
         <motion.button
