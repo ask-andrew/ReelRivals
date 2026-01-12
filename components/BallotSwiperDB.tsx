@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users } from 'lucide-react';
 import { Pick } from '../types';
-import { getCategories, saveBallotPick, getBallot, getNomineePercentages } from '../src/instantService';
+import { getCategories, saveBallotPick, getBallot, getNomineePercentages, getResults } from '../src/instantService';
 
 interface BallotSwiperProps {
   onComplete: (picks: Record<string, Pick>) => void;
@@ -22,6 +22,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [nomineePercentages, setNomineePercentages] = useState<Record<string, number>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [loadingPercentages, setLoadingPercentages] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
   
   // Golden Globes is completed - no new picks allowed but full viewing enabled
   const isGoldenGlobesCompleted = true;
@@ -30,6 +31,10 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
   useEffect(() => {
     loadData();
+    // Load results for completed event to show correctness
+    if (isGoldenGlobesCompleted) {
+      loadResults();
+    }
   }, []);
 
   // Update selected nominee when category changes
@@ -75,6 +80,26 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     } finally {
       setLoadingPercentages(false);
     }
+  };
+
+  const loadResults = async () => {
+    try {
+      const eventId = 'golden-globes-2026';
+      const { results } = await getResults(eventId);
+      
+      if (results && results.length > 0) {
+        setResults(results);
+        console.log('Loaded results for correctness checking:', results);
+      }
+    } catch (error) {
+      console.error('Error loading results:', error);
+    }
+  };
+
+  const getPickCorrectness = (nomineeId: string, categoryId: string): boolean => {
+    const result = results.find(r => r.category_id === categoryId);
+    if (!result) return false;
+    return result.winner_nominee_id === nomineeId;
   };
 
   const loadData = async () => {
@@ -297,19 +322,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                         )}
                       </div>
                       {nominee ? (
-                        <p className="text-sm text-yellow-500 ml-10">✓ {nominee.name}</p>
-                      ) : (
-                        <p className="text-sm text-gray-500 ml-10">No selection</p>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {isComplete ? (
-                        <Check className="text-yellow-500" size={20} />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full border-2 border-gray-600" />
-                      )}
-                      <ChevronRight className="text-gray-400" size={20} />
-                    </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-yellow-500 ml-10">
+                            {getPickCorrectness(nominee.id, cat.id) ? '\\u2713' : ''} {nominee.name}
                   </div>
                 </motion.div>
               );

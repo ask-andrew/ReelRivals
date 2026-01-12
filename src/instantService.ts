@@ -722,6 +722,22 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
 }
 
 // --- Bulk save function - saves multiple picks at once
+export async function getResults(eventId: string): Promise<{ results: any[], error: any }> {
+  try {
+    const resultsQuery = await dbCore.queryOnce({
+      results: {
+        $: {
+          where: { event_id: eventId }
+        }
+      }
+    });
+
+    return { results: resultsQuery.data.results || [], error: null };
+  } catch (error) {
+    return { results: [], error };
+  }
+}
+
 export async function saveBallotPicks(
   userId: string,
   eventId: string,
