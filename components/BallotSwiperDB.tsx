@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users } from 'lucide-react';
+import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users, Lock } from 'lucide-react';
 import { Pick } from '../types';
 import { getCategories, saveBallotPick, getBallot, getNomineePercentages } from '../src/instantService';
+import { GOLDEN_GLOBES_2026_DEADLINE } from '../constants';
 
 interface BallotSwiperProps {
   onComplete: (picks: Record<string, Pick>) => void;
@@ -22,6 +23,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [nomineePercentages, setNomineePercentages] = useState<Record<string, number>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [loadingPercentages, setLoadingPercentages] = useState(false);
+  
+  // Check if picks are locked based on deadline
+  const isPicksLocked = Date.now() > GOLDEN_GLOBES_2026_DEADLINE.getTime();
 
   const category = categories[currentCategoryIndex];
 
@@ -106,6 +110,11 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
         if (Object.keys(loadedPicks).length > 0) {
           setViewMode('review');
         }
+        
+        // NEW: If picks are locked, force review mode to prevent editing
+        if (isPicksLocked) {
+          setViewMode('review');
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -115,12 +124,22 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   };
 
   const handleSelect = (nomineeId: string) => {
+    // Prevent selection if picks are locked
+    if (isPicksLocked) {
+      return;
+    }
     setSelectedNomineeId(nomineeId);
   };
 
   const handleConfirmPick = async (isPower: boolean = false) => {
     if (!selectedNomineeId || !category) return;
     if (isPower && powerPicksLeft <= 0) return;
+    
+    // Prevent new picks if locked
+    if (isPicksLocked) {
+      alert('Picks are locked for this event! You can view your selections but cannot make new picks.');
+      return;
+    }
 
     // Store previous state for rollback
     const previousPicks = picks;
@@ -174,8 +193,14 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     }
   };
 
-  // NEW: Jump to specific category for editing
+  // NEW: Jump to specific category for editing (only if not locked)
   const handleEditCategory = (categoryIndex: number) => {
+    if (isPicksLocked) {
+      // Don't allow editing if locked, just show the category
+      setCurrentCategoryIndex(categoryIndex);
+      setViewMode('review');
+      return;
+    }
     setCurrentCategoryIndex(categoryIndex);
     setViewMode('edit');
   };
@@ -214,11 +239,20 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
               <h2 className="text-2xl font-bold text-yellow-500">Your Ballot</h2>
               <p className="text-sm text-gray-400 mt-1">
                 {completedCount} of {totalCategories} categories complete
+                {isPicksLocked && ' • Picks Locked'}
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <Zap className="text-yellow-500" size={16} />
-              <span className="text-sm font-bold">{powerPicksLeft} Power Picks Left</span>
+              {isPicksLocked && (
+                <div className="flex items-center space-x-1 text-red-400">
+                  <Lock size={16} />
+                  <span className="text-sm font-bold">Locked</span>
+                </div>
+              )}
+              <div className="flex items-center space-x-2">
+                <Zap className="text-yellow-500" size={16} />
+                <span className="text-sm font-bold">{powerPicksLeft} Power Picks Left</span>
+              </div>
             </div>
           </div>
           
@@ -249,7 +283,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                     isComplete
                       ? 'border-yellow-500/30 bg-yellow-500/5'
                       : 'border-white/10 bg-white/5'
-                  } hover:border-yellow-500/50`}
+                  } hover:border-yellow-500/50 ${
+                    isPicksLocked ? 'cursor-not-allowed opacity-75' : ''
+                  }`}
                   onClick={() => handleEditCategory(index)}
                 >
                   <div className="flex items-center justify-between">
@@ -284,7 +320,17 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
         {/* Submit Button */}
         <div className="p-6 border-t border-white/10">
-          {allComplete ? (
+          {isPicksLocked ? (
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 mb-3 text-red-400">
+                <Lock size={20} />
+                <span className="font-bold">Picks are locked</span>
+              </div>
+              <p className="text-sm text-gray-400">
+                The deadline has passed. You can view your selections but cannot make changes.
+              </p>
+            </div>
+          ) : allComplete ? (
             <button
               onClick={() => onComplete(picks)}
               className="w-full bg-linear-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-primary/30 hover:shadow-primary/50 transform hover:scale-105"

@@ -7,11 +7,11 @@ import LiveScoring from './components/LiveScoring';
 import ActivityFeed from './components/ActivityFeed';
 import ShareModal from './components/ShareModal';
 import Analytics from './components/Analytics';
-import { Trophy, Zap, ChevronRight, Share2, Calendar, Target } from 'lucide-react';
+import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Lock } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
-import { CATEGORIES, SEASON_CIRCUIT } from './constants';
+import { CATEGORIES, SEASON_CIRCUIT, GOLDEN_GLOBES_2026_DEADLINE } from './constants';
 import { getCurrentUser, getOrCreateDefaultLeague, signOut, getBallot, getCategories } from './src/instantService';
-import type { InstantUser } from './src/instant';
+import { getCurrentUser as getCurrentUserInstant, signOut as signOutInstant, handleOAuthCallback, type InstantUser } from './src/auth-instant';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
 
@@ -27,6 +27,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [standingsRefresh, setStandingsRefresh] = useState(0);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
+  
+  // Check if picks are locked based on deadline
+  const isPicksLocked = Date.now() > GOLDEN_GLOBES_2026_DEADLINE.getTime();
   const SEASON_BADGES = [
   {
     id: 'first-ballot',
@@ -119,6 +122,21 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
   useEffect(() => {
     const initSession = async () => {
       try {
+        // Check for OAuth callback first
+        if (window.location.hash || window.location.search.includes('token')) {
+          const { user: oauthUser, error: oauthError } = await handleOAuthCallback();
+          if (oauthUser) {
+            setUser(oauthUser);
+            setLoading(false);
+            return;
+          }
+          if (oauthError) {
+            setError(oauthError);
+            setLoading(false);
+            return;
+          }
+        }
+
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         
@@ -346,15 +364,28 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           <p className="text-sm text-gray-400 mb-6 leading-relaxed">The movie circuit begins. Secure your spot on the leaderboard before the curtain rises.</p>
           
           {/* Deadline Countdown */}
-          <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-3 mb-6">
+          <div className={`rounded-xl p-3 mb-6 ${
+            isPicksLocked 
+              ? 'bg-red-900/20 border border-red-500/30' 
+              : 'bg-red-900/20 border border-red-500/30'
+          }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-red-400 uppercase tracking-wide">Picks Lock In</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  isPicksLocked ? 'bg-red-600' : 'bg-red-500 animate-pulse'
+                }`} />
+                <span className="text-xs font-bold text-red-400 uppercase tracking-wide">
+                  {isPicksLocked ? 'Picks Locked' : 'Picks Lock In'}
+                </span>
               </div>
               <span className="text-sm font-bold text-white">Jan 11, 2026 @ 3pm PT</span>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1 ml-4">Make your picks before the show starts!</p>
+            <p className="text-[10px] text-gray-500 mt-1 ml-4">
+              {isPicksLocked 
+                ? 'The deadline has passed. Picks are now locked!' 
+                : 'Make your picks before the show starts!'
+              }
+            </p>
           </div>
           
           <div className="grid grid-cols-2 gap-4 mb-8">
@@ -387,12 +418,32 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           </div>
 
           <button 
-            onClick={() => setActiveTab('ballot')}
-            className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-2xl py-4 flex items-center justify-center space-x-2 transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] active:scale-95"
+            onClick={() => {
+              if (isPicksLocked) {
+                setActiveTab('ballot'); // Still allow viewing locked ballot
+              } else {
+                setActiveTab('ballot');
+              }
+            }}
+            className={`w-full font-black rounded-2xl py-4 flex items-center justify-center space-x-2 transition-all ${
+              isPicksLocked 
+                ? 'bg-gray-600 hover:bg-gray-500 text-white cursor-not-allowed' 
+                : 'bg-yellow-400 hover:bg-yellow-300 text-black shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] active:scale-95'
+            }`}
+            disabled={isPicksLocked}
           >
-            <Target size={18} strokeWidth={2.5} />
-            <span className="uppercase tracking-[0.15em] text-xs">{isBallotComplete ? 'Modify Ballot' : 'Make Your Picks'}</span>
-            <ChevronRight size={18} />
+            {isPicksLocked ? (
+              <>
+                <Lock size={18} strokeWidth={2.5} />
+                <span className="uppercase tracking-[0.15em] text-xs">View Locked Ballot</span>
+              </>
+            ) : (
+              <>
+                <Target size={18} strokeWidth={2.5} />
+                <span className="uppercase tracking-[0.15em] text-xs">{isBallotComplete ? 'Modify Ballot' : 'Make Your Picks'}</span>
+                <ChevronRight size={18} />
+              </>
+            )}
           </button>
         </div>
 
@@ -420,11 +471,11 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
             <span className="text-xs font-bold uppercase tracking-widest">Invite to League</span>
           </button>
           <button 
-            onClick={() => setActiveTab('live-demo')}
+            onClick={() => setActiveTab('live')}
             className="flex items-center space-x-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg transition-colors border border-yellow-500/30"
           >
             <Trophy size={16} />
-            <span className="text-xs font-bold uppercase tracking-widest">View Live Demo</span>
+            <span className="text-xs font-bold uppercase tracking-widest">View Live Scores</span>
           </button>
         </div>
       </div>
