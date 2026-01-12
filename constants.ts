@@ -7,7 +7,7 @@ export interface AwardEvent {
 }
 
 export const SEASON_CIRCUIT: AwardEvent[] = [
-  { id: 'golden-globes-2026', name: 'Golden Globes', date: 'Jan 11, 2026', status: 'open', icon: '🏆' },
+  { id: 'golden-globes-2026', name: 'Golden Globes', date: 'Jan 11, 2026', status: 'completed', icon: '🏆' },
   { id: 'baftas-2026', name: 'BAFTA Awards', date: 'Feb 15, 2026', status: 'upcoming', icon: '🎭' },
   { id: 'sag-2026', name: 'SAG Awards', date: 'Feb 22, 2026', status: 'upcoming', icon: '👥' },
   { id: 'oscars-2026', name: 'The Oscars', date: 'Mar 2, 2026', status: 'upcoming', icon: '✨' }
