@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Avatar } from '../types';
-import { signUp, signIn, testInstantDB, type InstantUser } from '../src/instantService';
+import { signUp, signIn, getCurrentUser, signOut, createAuthorizationURL, type InstantUser } from '../src/auth-instant';
 
 interface OnboardingProps {
   onComplete: (user: InstantUser) => void;
@@ -32,7 +32,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     
     try {
       if (isLogin) {
-        const { user, error } = await signIn(email.trim());
+        const { user, error } = await signIn(email.trim(), password.trim());
         if (error) throw error;
         if (user) onComplete(user);
       } else {
@@ -50,6 +50,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         
         const { user, error } = await signUp(
           email.trim(),
+          password.trim(),
           name.trim(),
           selectedAvatar
         );
@@ -113,14 +114,47 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             </button>
             <button
               type="button"
-              onClick={() => setIsLogin(true)}
+              onClick={() => {
+                try {
+                  const authUrl = createAuthorizationURL({
+                    clientName: "google-web",
+                    redirectURL: window.location.origin + '/'
+                  });
+                  console.log('Redirecting to OAuth URL:', authUrl);
+                  window.location.href = authUrl;
+                } catch (error) {
+                  console.error('Error creating OAuth URL:', error);
+                }
+              }}
               className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
                 isLogin 
-                  ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg shadow-yellow-500/20 scale-105' 
+                  ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg' 
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <span className="relative z-10">LOG IN</span>
+              <span className="relative z-10">SIGN IN</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const authUrl = createAuthorizationURL({
+                    clientName: "google-web", 
+                    redirectURL: window.location.origin + '/'
+                  });
+                  console.log('Redirecting to OAuth URL:', authUrl);
+                  window.location.href = authUrl;
+                } catch (error) {
+                  console.error('Error creating OAuth URL:', error);
+                }
+              }}
+              className={`px-6 py-3 rounded-xl text-sm font-black transition-all relative overflow-hidden ${
+                isLogin 
+                  ? 'bg-linear-to-r from-[#D4AF37] to-[#B8860B] text-black shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <span className="relative z-10">GOOGLE SIGN IN</span>
             </button>
           </div>
         </div>
@@ -225,14 +259,28 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         </motion.button>
 
         {!loading && (
-          <motion.button
-            type="button"
-            onClick={handleDemoMode}
-            className="w-full bg-surface/50 hover:bg-surface text-text-tertiary hover:text-white font-medium py-3 rounded-xl border border-border/50 transition-all mt-3 text-sm"
-            whileHover={{ scale: 1.01 }}
-          >
-            🎮 Try Demo Mode (Skip Login)
-          </motion.button>
+          <>
+            <motion.button
+              type="button"
+              onClick={handleDemoMode}
+              className="w-full bg-surface/50 hover:bg-surface text-text-tertiary hover:text-white font-medium py-3 rounded-xl border border-border/50 transition-all mt-3 text-sm"
+              whileHover={{ scale: 1.01 }}
+            >
+              🎮 Try Demo Mode (Skip Login)
+            </motion.button>
+            {/* Debug OAuth callback */}
+            <button
+              type="button"
+              onClick={() => {
+                const testUrl = window.location.origin + "/?token=test123";
+                console.log("Testing OAuth callback with URL:", testUrl);
+                window.location.href = testUrl;
+              }}
+              className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-white py-2 rounded-lg text-xs mt-2"
+            >
+              🧪 Test OAuth Callback
+            </button>
+          </>
         )}
       </form>
 

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users, Lock } from 'lucide-react';
+import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users } from 'lucide-react';
 import { Pick } from '../types';
 import { getCategories, saveBallotPick, getBallot, getNomineePercentages } from '../src/instantService';
-import { GOLDEN_GLOBES_2026_DEADLINE } from '../constants';
 
 interface BallotSwiperProps {
   onComplete: (picks: Record<string, Pick>) => void;
@@ -19,13 +18,13 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<'review' | 'edit'>('edit'); // NEW: Track view mode
+  const [viewMode, setViewMode] = useState<'review' | 'edit'>('edit'); // Track view mode
   const [nomineePercentages, setNomineePercentages] = useState<Record<string, number>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [loadingPercentages, setLoadingPercentages] = useState(false);
   
-  // Check if picks are locked based on deadline
-  const isPicksLocked = Date.now() > GOLDEN_GLOBES_2026_DEADLINE.getTime();
+  // Golden Globes is completed - no new picks allowed but full viewing enabled
+  const isGoldenGlobesCompleted = true;
 
   const category = categories[currentCategoryIndex];
 
@@ -106,13 +105,13 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
         setPicks(loadedPicks);
         setPowerPicksLeft(Math.max(0, 3 - powerPicksUsed));
         
-        // NEW: If user has picks, start in review mode
+        // If user has picks, start in review mode
         if (Object.keys(loadedPicks).length > 0) {
           setViewMode('review');
         }
         
-        // NEW: If picks are locked, force review mode to prevent editing
-        if (isPicksLocked) {
+        // Golden Globes is completed - force review mode to prevent new picks
+        if (isGoldenGlobesCompleted) {
           setViewMode('review');
         }
       }
@@ -124,8 +123,8 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   };
 
   const handleSelect = (nomineeId: string) => {
-    // Prevent selection if picks are locked
-    if (isPicksLocked) {
+    // Golden Globes is completed - prevent new selections
+    if (isGoldenGlobesCompleted) {
       return;
     }
     setSelectedNomineeId(nomineeId);
@@ -135,9 +134,9 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     if (!selectedNomineeId || !category) return;
     if (isPower && powerPicksLeft <= 0) return;
     
-    // Prevent new picks if locked
-    if (isPicksLocked) {
-      alert('Picks are locked for this event! You can view your selections but cannot make new picks.');
+    // Golden Globes is completed - prevent new picks
+    if (isGoldenGlobesCompleted) {
+      alert('The Golden Globes ceremony has concluded! You can view your selections but cannot make new picks for this event.');
       return;
     }
 
@@ -193,10 +192,10 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     }
   };
 
-  // NEW: Jump to specific category for editing (only if not locked)
+  // Jump to specific category for editing (Golden Globes completed - only viewing)
   const handleEditCategory = (categoryIndex: number) => {
-    if (isPicksLocked) {
-      // Don't allow editing if locked, just show the category
+    if (isGoldenGlobesCompleted) {
+      // Don't allow editing since event is completed, just show the category
       setCurrentCategoryIndex(categoryIndex);
       setViewMode('review');
       return;
@@ -239,14 +238,14 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
               <h2 className="text-2xl font-bold text-yellow-500">Your Ballot</h2>
               <p className="text-sm text-gray-400 mt-1">
                 {completedCount} of {totalCategories} categories complete
-                {isPicksLocked && ' • Picks Locked'}
+                {isGoldenGlobesCompleted && ' • Event Completed'}
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              {isPicksLocked && (
-                <div className="flex items-center space-x-1 text-red-400">
-                  <Lock size={16} />
-                  <span className="text-sm font-bold">Locked</span>
+              {isGoldenGlobesCompleted && (
+                <div className="flex items-center space-x-1 text-green-400">
+                  <Check size={16} />
+                  <span className="text-sm font-bold">Completed</span>
                 </div>
               )}
               <div className="flex items-center space-x-2">
@@ -284,7 +283,7 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                       ? 'border-yellow-500/30 bg-yellow-500/5'
                       : 'border-white/10 bg-white/5'
                   } hover:border-yellow-500/50 ${
-                    isPicksLocked ? 'cursor-not-allowed opacity-75' : ''
+                    isGoldenGlobesCompleted ? 'cursor-not-allowed opacity-75' : ''
                   }`}
                   onClick={() => handleEditCategory(index)}
                 >
@@ -320,14 +319,14 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
         {/* Submit Button */}
         <div className="p-6 border-t border-white/10">
-          {isPicksLocked ? (
+          {isGoldenGlobesCompleted ? (
             <div className="text-center">
-              <div className="flex items-center justify-center space-x-2 mb-3 text-red-400">
-                <Lock size={20} />
-                <span className="font-bold">Picks are locked</span>
+              <div className="flex items-center justify-center space-x-2 mb-3 text-green-400">
+                <Check size={20} />
+                <span className="font-bold">Event Completed</span>
               </div>
               <p className="text-sm text-gray-400">
-                The deadline has passed. You can view your selections but cannot make changes.
+                The Golden Globes ceremony has concluded. You can view your selections and check the final standings.
               </p>
             </div>
           ) : allComplete ? (
