@@ -625,10 +625,17 @@ export async function getAllPlayersWithScores(eventId: string) {
 
 export async function getPlayerStats(eventId: string) {
   try {
-    // Get total users count
+    // Get all users
     const allUsersQuery = await dbCore.queryOnce({
       users: { $: {} }
     });
+
+    // Filter out test/demo accounts
+    const realUsers = allUsersQuery.data.users.filter((user: any) => 
+      !user.email.includes('demo') && 
+      !user.email.includes('test') && 
+      !user.email.includes('example')
+    );
 
     // Get active players (users with ballots that have picks)
     const activePlayersQuery = await dbCore.queryOnce({
@@ -641,11 +648,16 @@ export async function getPlayerStats(eventId: string) {
       users: {}
     });
 
-    const totalUsers = allUsersQuery.data.users.length;
+    const totalUsers = realUsers.length;
     
-    // Count only ballots that have at least one pick
+    // Count only ballots that have at least one pick (excluding test accounts)
     const activePlayers = activePlayersQuery.data.ballots.filter((ballot: any) => 
-      ballot.picks && ballot.picks.length > 0
+      ballot.picks && 
+      ballot.picks.length > 0 &&
+      ballot.users &&
+      !ballot.users.email.includes('demo') &&
+      !ballot.users.email.includes('test') &&
+      !ballot.users.email.includes('example')
     ).length;
     
     const completionRate = totalUsers > 0 ? Math.round((activePlayers / totalUsers) * 100) : 0;
