@@ -296,17 +296,17 @@ const goldenGlobesCategories = [
   }
 ];
 
-export async function ensureCategoriesSeeded() {
-  const eventId = "golden-globes-2026";
+export async function ensureCategoriesSeeded(eventId: string = "golden-globes-2026") {
+  console.log('[ensureCategoriesSeeded] Starting check for event:', eventId);
   
-  console.log('[ensureCategoriesSeeded] Starting check...');
-
   try {
     // Check if categories exist AND have nominees linked
     const cats = await dbCore.queryOnce({
-      categories: { 
-        $: { where: { event_id: eventId } },
-        nominees: {} 
+      categories: {
+        $: {
+          where: { event_id: eventId },
+        },
+        nominees: {}
       },
     });
 
@@ -314,19 +314,41 @@ export async function ensureCategoriesSeeded() {
     const existingCategories = cats.data.categories;
     console.log('[ensureCategoriesSeeded] Existing categories:', existingCategories.length);
     
-    // Force re-seed if the category count doesn't match our new official list (10 categories)
-    const isDataComplete = existingCategories.length === goldenGlobesCategories.length && 
+    // Get the right category data for this event
+    let eventCategories;
+    switch (eventId) {
+      case 'golden-globes-2026':
+        eventCategories = goldenGlobesCategories;
+        break;
+      case 'baftas-2026':
+        // TODO: Add BAFTA categories when available
+        eventCategories = goldenGlobesCategories; // Fallback for now
+        break;
+      case 'sag-2026':
+        // TODO: Add SAG categories when available
+        eventCategories = goldenGlobesCategories; // Fallback for now
+        break;
+      case 'oscars-2026':
+        // TODO: Add Oscars categories when available
+        eventCategories = goldenGlobesCategories; // Fallback for now
+        break;
+      default:
+        eventCategories = goldenGlobesCategories; // Fallback
+    }
+    
+    // Force re-seed if category count doesn't match our new official list (10 categories)
+    const isDataComplete = existingCategories.length === eventCategories.length && 
       existingCategories.every((c: any) => c.nominees && c.nominees.length > 0);
 
     console.log('[ensureCategoriesSeeded] Is data complete?', isDataComplete);
-    console.log('[ensureCategoriesSeeded] Expected categories:', goldenGlobesCategories.length);
+    console.log('[ensureCategoriesSeeded] Expected categories:', eventCategories.length);
 
     if (isDataComplete) {
       console.log('[ensureCategoriesSeeded] Data is good, no seeding needed');
       return existingCategories; // Return existing data
     }
 
-    console.log("⚠️ [ensureCategoriesSeeded] Detecting incomplete or old data. Re-seeding Golden Globes...");
+    console.log("⚠️ [ensureCategoriesSeeded] Detecting incomplete or old data. Re-seeding", eventId, "...");
 
     const txs = [];
 
@@ -336,53 +358,58 @@ export async function ensureCategoriesSeeded() {
       for (const cat of existingCategories) {
         txs.push(dbCore.tx.categories[cat.id].delete());
         if (cat.nominees && cat.nominees.length) {
-          for (const nom of cat.nominees) {
-            txs.push(dbCore.tx.nominees[nom.id].delete());
+          for (const nominee of cat.nominees) {
+            txs.push(dbCore.tx.nominees[nominee.id].delete());
           }
         }
       }
     }
 
     // 2. Create fresh data
-    console.log('[ensureCategoriesSeeded] Creating', goldenGlobesCategories.length, 'new categories');
-    for (let i = 0; i < goldenGlobesCategories.length; i++) {
-      const cat = goldenGlobesCategories[i];
+    console.log('[ensureCategoriesSeeded] Creating', eventCategories.length, 'new categories for', eventId);
+    for (let i = 0; i < eventCategories.length; i++) {
+      const cat = eventCategories[i];
       const catId = id();
-
-      txs.push(
-        dbCore.tx.categories[catId].update({
-          event_id: eventId,
-          name: cat.name,
-          display_order: i + 1,
-          base_points: cat.base_points,
-          emoji: cat.emoji,
-        })
-      );
-
-      for (const nom of cat.nominees) {
-        const nomId = id();
-        txs.push(
-          dbCore.tx.nominees[nomId].update({
-            name: nom.name,
-            tmdb_id: nom.tmdb_id || "",
-            display_order: 0,
-          }).link({category: catId})
-        );
+      
+      txs.push(dbCore.tx.categories[catId].update({
+        event_id: eventId,
+        name: cat.name,
+        base_points: cat.base_points,
+        emoji: cat.emoji,
+        display_order: i + 1,
+      }));
+      
+      // Create nominees for this category
+      if (cat.nominees && cat.nominees.length > 0) {
+        for (let j = 0; j < cat.nominees.length; j++) {
+          const nominee = cat.nominees[j];
+          const nomineeId = id();
+          
+          txs.push(dbCore.tx.nominees[nomineeId].update({
+            category_id: catId,
+            name: nominee.name,
+            display_order: j + 1,
+            tmdb_id: nominee.tmdb_id || "",
+          }));
+        }
       }
     }
 
     console.log('[ensureCategoriesSeeded] Executing', txs.length, 'transactions...');
     await dbCore.transact(txs);
-    console.log("✅ [ensureCategoriesSeeded] Re-seeding complete!");
+    console.log("✅ [ensureCategoriesSeeded] Re-seeding complete for", eventId, "!");
     
-    // Query again to get the fresh data
+    // Query again to get fresh data
     const freshCats = await dbCore.queryOnce({
-      categories: { 
-        $: { where: { event_id: eventId } },
-        nominees: {} 
+      categories: {
+        $: {
+          where: { event_id: eventId },
+        },
+        nominees: {}
       },
     });
     
+    console.log('[ensureCategoriesSeeded] Returning fresh categories:', freshCats.data.categories.length);
     return freshCats.data.categories;
   } catch (error) {
     console.error("❌ [ensureCategoriesSeeded] ERROR:", error);
@@ -396,7 +423,8 @@ export async function getCategories(eventId: string) {
   try {
     console.log('[getCategories] Starting - eventId:', eventId);
     
-    const categories = await ensureCategoriesSeeded();
+    // First ensure categories are seeded for this event
+    const categories = await ensureCategoriesSeeded(eventId);
     
     console.log('[getCategories] Got categories from seeding:', categories.length);
 
