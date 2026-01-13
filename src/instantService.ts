@@ -296,6 +296,338 @@ const goldenGlobesCategories = [
   }
 ];
 
+const baftaCategories = [
+  {
+    name: 'Best Film',
+    base_points: 50,
+    emoji: '🏆',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Outstanding British Film',
+    base_points: 50,
+    emoji: '🇬🇧',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Outstanding Debut by a British Writer, Director or Producer',
+    base_points: 50,
+    emoji: '🌟',
+    nominees: [
+      { name: 'The Ceremony', tmdb_id: "" },
+      { name: 'The Man in My Basement', tmdb_id: "" },
+      { name: 'Mother Vera', tmdb_id: "" },
+      { name: 'My Father\'s Shadow', tmdb_id: "" },
+      { name: 'Pillion', tmdb_id: "" },
+      { name: 'Ocean with David Attenborough', tmdb_id: "" },
+      { name: 'The Shadow Scholars', tmdb_id: "" },
+      { name: 'Urchin', tmdb_id: "" },
+      { name: 'A Want In Her', tmdb_id: "" },
+      { name: 'Wasteman', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Children\'s & Family Film',
+    base_points: 50,
+    emoji: '👨‍👩‍👧‍👦',
+    nominees: [
+      { name: 'Arco', tmdb_id: "" },
+      { name: 'Boong', tmdb_id: "" },
+      { name: 'Elio', tmdb_id: "" },
+      { name: 'Grow', tmdb_id: "" },
+      { name: 'How to Train Your Dragon', tmdb_id: "" },
+      { name: 'Lilo & Stitch', tmdb_id: "" },
+      { name: 'Little Amelie', tmdb_id: "" },
+      { name: 'Zootropolis 2', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Film Not in the English Language',
+    base_points: 50,
+    emoji: '🌍',
+    nominees: [
+      { name: 'It Was Just an Accident', tmdb_id: "" },
+      { name: 'La Grazia', tmdb_id: "" },
+      { name: 'Left-Handed Girl', tmdb_id: "" },
+      { name: 'No Other Choice', tmdb_id: "" },
+      { name: 'Nouvelle Vague', tmdb_id: "" },
+      { name: 'Rental Family', tmdb_id: "" },
+      { name: 'The Secret Agent', tmdb_id: "" },
+      { name: 'Sentimental Value', tmdb_id: "" },
+      { name: 'Sirāt', tmdb_id: "" },
+      { name: 'The Voice of Hind Rajab', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Documentary',
+    base_points: 50,
+    emoji: '📽️',
+    nominees: [
+      { name: '2000 Meters To Andriivka', tmdb_id: "" },
+      { name: 'Apocalypse In The Tropics', tmdb_id: "" },
+      { name: 'Becoming Led Zeppelin', tmdb_id: "" },
+      { name: 'Cover-Up', tmdb_id: "" },
+      { name: 'The Librarians', tmdb_id: "" },
+      { name: 'Mr Nobody Against Putin', tmdb_id: "" },
+      { name: 'Ocean with David Attenborough', tmdb_id: "" },
+      { name: 'One to One: John & Yoko', tmdb_id: "" },
+      { name: 'The Perfect Neighbour', tmdb_id: "" },
+      { name: 'Riefenstahl', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Animated Film',
+    base_points: 50,
+    emoji: '🎨',
+    nominees: [
+      { name: 'Arco', tmdb_id: "" },
+      { name: 'The Bad Guys 2', tmdb_id: "" },
+      { name: 'Demon Slayer: Kimetsu no Yaiba Infinity Castle', tmdb_id: "" },
+      { name: 'Elio', tmdb_id: "" },
+      { name: 'Little Amelie', tmdb_id: "" },
+      { name: 'Zootropolis 2', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Director',
+    base_points: 50,
+    emoji: '🎬',
+    nominees: [
+      { name: 'Bugonia (Yorgos Lanthimos)', tmdb_id: "" },
+      { name: 'Die My Love (Lynne Ramsay)', tmdb_id: "" },
+      { name: 'Hamnet (Chloé Zhao)', tmdb_id: "" },
+      { name: 'A House of Dynamite (Kathryn Bigelow)', tmdb_id: "" },
+      { name: 'Marty Supreme (Josh Safdie)', tmdb_id: "" },
+      { name: 'One Battle After Another (Paul Thomas Anderson)', tmdb_id: "" },
+      { name: 'Rental Family (Hikari)', tmdb_id: "" },
+      { name: 'Sentimental Value (Joachim Trier)', tmdb_id: "" },
+      { name: 'Sinners (Ryan Coogler)', tmdb_id: "" },
+      { name: 'The Voice of Hind Rajab (Kaouther Ben Hania)', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Original Screenplay',
+    base_points: 50,
+    emoji: '✍️',
+    nominees: [
+      { name: 'Blue Moon', tmdb_id: "" },
+      { name: 'A House of Dynamite', tmdb_id: "" },
+      { name: 'I Swear', tmdb_id: "" },
+      { name: 'Is This Thing On?', tmdb_id: "" },
+      { name: 'It Was Just an Accident', tmdb_id: "" },
+      { name: 'Marty Supreme', tmdb_id: "" },
+      { name: 'The Secret Agent', tmdb_id: "" },
+      { name: 'Sentimental Value', tmdb_id: "" },
+      { name: 'Sinners', tmdb_id: "" },
+      { name: 'Weapons', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Adapted Screenplay',
+    base_points: 50,
+    emoji: '📖',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Actress',
+    base_points: 50,
+    emoji: '👩',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Actor',
+    base_points: 50,
+    emoji: '👨',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Supporting Actress',
+    base_points: 50,
+    emoji: '👩‍🦰',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Supporting Actor',
+    base_points: 50,
+    emoji: '👨‍🦱',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Casting',
+    base_points: 50,
+    emoji: '🎭',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Cinematography',
+    base_points: 50,
+    emoji: '📷',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Costume Design',
+    base_points: 50,
+    emoji: '👗',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Editing',
+    base_points: 50,
+    emoji: '✂️',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Makeup & Hair',
+    base_points: 50,
+    emoji: '💄',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Original Score',
+    base_points: 50,
+    emoji: '🎵',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Production Design',
+    base_points: 50,
+    emoji: '🏛️',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Special Visual Effects',
+    base_points: 50,
+    emoji: '💫',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best Sound',
+    base_points: 50,
+    emoji: '🔊',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best British Short Animation',
+    base_points: 50,
+    emoji: '🎞️',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  },
+  {
+    name: 'Best British Short Film',
+    base_points: 50,
+    emoji: '🎬',
+    nominees: [
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
+      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
+    ]
+  }
+];
+
 export async function ensureCategoriesSeeded(eventId: string = "golden-globes-2026") {
   console.log('[ensureCategoriesSeeded] Starting check for event:', eventId);
   
@@ -321,8 +653,7 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
         eventCategories = goldenGlobesCategories;
         break;
       case 'baftas-2026':
-        // TODO: Add BAFTA categories when available
-        eventCategories = goldenGlobesCategories; // Fallback for now
+        eventCategories = baftaCategories;
         break;
       case 'sag-2026':
         // TODO: Add SAG categories when available
