@@ -15,10 +15,18 @@ export async function testInstantDB() {
 
 // --- Auth Functions --- //
 
+// Simple password hashing function (for demo purposes)
+async function hashPassword(password: string): Promise<string> {
+  // In production, use bcrypt or similar
+  // For now, simple base64 encoding (NOT SECURE FOR PRODUCTION)
+  return btoa(password + 'reelrivals_salt');
+}
+
 export async function signUp(
   email: string,
   username: string,
-  avatarEmoji: string
+  avatarEmoji: string,
+  password?: string
 ): Promise<{ user: InstantUser | null; error: any }> {
   try {
     // Check if user already exists
@@ -38,6 +46,7 @@ export async function signUp(
       email,
       username,
       avatar_emoji: avatarEmoji,
+      password_hash: password ? await hashPassword(password) : undefined,
       created_at: Date.now(),
     };
 
@@ -54,7 +63,8 @@ export async function signUp(
 }
 
 export async function signIn(
-  email: string
+  email: string,
+  password?: string
 ): Promise<{ user: InstantUser | null; error: any }> {
   try {
     const userQuery = await dbCore.queryOnce({ users: { $: { where: { email } } } });
@@ -63,7 +73,16 @@ export async function signIn(
       return { user: null, error: { message: "User not found" } };
     }
 
-    const user = userQuery.data.users[0];
+    const user = userQuery.data.users[0] as any;
+    
+    // Verify password if provided
+    if (password && user.password_hash) {
+      const hashedPassword = await hashPassword(password);
+      if (hashedPassword !== user.password_hash) {
+        return { user: null, error: { message: "Incorrect password" } };
+      }
+    }
+
     localStorage.setItem("reelrivals_user_id", user.id);
 
     return { user: user as unknown as InstantUser, error: null };

@@ -14,6 +14,7 @@ const AVATARS: Avatar[] = ['🎬', '🍿', '🏆', '🎭', '🎥', '✨', '🌟'
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar>('🎬');
   const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     
     try {
       if (isLogin) {
-        const { user, error } = await signIn(email.trim());
+        const { user, error } = await signIn(email.trim(), password.trim());
         if (error) throw error;
         if (user) onComplete(user);
       } else {
@@ -47,10 +48,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           return;
         }
         
+        if (!password.trim()) {
+          setError('Password is required');
+          setLoading(false);
+          return;
+        }
+        
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+        
         const { user, error } = await signUp(
           email.trim(),
           name.trim(),
-          selectedAvatar
+          selectedAvatar,
+          password.trim()
         );
         
         if (error) throw error;
@@ -93,7 +107,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         className="mb-12 relative z-10"
       >
         <h1 className="text-6xl font-serif font-bold text-transparent bg-clip-text bg-linear-to-r from-[#D4AF37] via-[#FFD700] to-[#B8860B] mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
-        <p className="text-gray-400 font-light tracking-[0.3em] text-xs uppercase animate-pulse">Cinema's Ultimate Prediction League</p>
+        <p className="text-gray-400 font-light tracking-[0.3em] text-xs uppercase animate-pulse mb-4">Predict Award Winners • Compete with Friends • Become the Ultimate Film Critic</p>
       </motion.div>
 
       <form onSubmit={handleSubmit} className="w-full space-y-6 max-w-sm relative z-10">
@@ -172,22 +186,39 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           </>
         )}
 
-        <div className="space-y-2">
-          <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">
-            {isLogin ? 'Email Address' : '3. Email Address'}
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={isLogin ? 'your@email.com' : 'For season alerts & updates'}
-            className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
-            required
-          />
-          {!isLogin && (
-            <p className="text-xs text-text-tertiary text-left italic px-1">We'll notify you when new ballots open for the next show.</p>
-          )}
-        </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">
+                {isLogin ? 'Email Address' : '3. Email Address'}
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={isLogin ? 'your@email.com' : 'For season alerts & updates'}
+                className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
+                required
+              />
+              {!isLogin && (
+                <p className="text-xs text-text-tertiary text-left italic px-1">We'll notify you when new ballots open for the next show.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-text-tertiary uppercase tracking-widest text-left">
+                {isLogin ? 'Password' : '4. Password'}
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isLogin ? 'Enter your password' : 'Create a secure password (min 6 chars)'}
+                className="w-full bg-surface border border-border rounded-xl px-4 py-4 text-text placeholder-text-tertiary focus:outline-none focus:border-primary/50 transition-colors"
+                required
+              />
+              {!isLogin && (
+                <p className="text-xs text-text-tertiary text-left italic px-1">Keep your account safe with a strong password.</p>
+              )}
+            </div>
 
         <motion.button
           type="submit"

@@ -10,6 +10,7 @@ export interface InstantUser {
   email: string;
   username: string;
   avatar_emoji: string;
+  password_hash?: string;
   created_at: number;
 }
 
@@ -20,6 +21,7 @@ const schema = i.schema({
       email: i.string(),
       username: i.string(),
       avatar_emoji: i.string(),
+      password_hash: i.string().optional(),
       created_at: i.number(),
     }),
     leagues: i.entity({

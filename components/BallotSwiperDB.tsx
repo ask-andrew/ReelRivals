@@ -280,10 +280,6 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                   <span className="text-sm font-bold">Completed</span>
                 </div>
               )}
-              <div className="flex items-center space-x-2">
-                <Zap className="text-yellow-500" size={16} />
-                <span className="text-sm font-bold">{powerPicksLeft} Power Picks Left</span>
-              </div>
             </div>
           </div>
           
@@ -417,6 +413,42 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
     <div className="h-full flex flex-col bg-black">
       {/* Header */}
       <div className="p-6 border-b border-white/10">
+        {/* Prominent Power Picks Section */}
+        <div className="bg-linear-to-r from-yellow-900/40 via-orange-900/20 to-yellow-900/40 border-2 border-yellow-500/40 rounded-2xl p-4 mb-6 relative overflow-hidden">
+          <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse shadow-lg shadow-yellow-500/50">
+            <Zap size={16} className="text-black" fill="currentColor" />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-yellow-500 mb-1">⚡ Power Picks Strategy</h3>
+              <p className="text-sm text-gray-300">Select your 3 most confident predictions for <span className="text-yellow-500 font-bold">2x points</span></p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-black text-yellow-500 bg-yellow-500/20 rounded-xl px-3 py-1 border-2 border-yellow-500/50">
+                {powerPicksLeft}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Remaining</p>
+            </div>
+          </div>
+          
+          {powerPicksLeft === 3 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2 mt-3">
+              <p className="text-xs text-yellow-400 text-center">
+                <strong className="text-yellow-500">Pro Tip:</strong> Use Power Picks on categories you're most confident about. They're worth double points!
+              </p>
+            </div>
+          )}
+          
+          {powerPicksLeft === 0 && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 mt-3">
+              <p className="text-xs text-green-400 text-center">
+                <strong className="text-green-500">All Power Picks Used!</strong> You can change them anytime before the event.
+              </p>
+            </div>
+          )}
+        </div>
+        
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">{category.name}</h2>
           <div className="flex items-center space-x-4">
@@ -428,10 +460,6 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
                 View Summary ({completedCount}/{totalCategories})
               </button>
             )}
-            <div className="flex items-center space-x-2">
-              <Zap className="text-yellow-500" size={16} />
-              <span className="text-sm font-bold">{powerPicksLeft} Power Picks</span>
-            </div>
           </div>
         </div>
         
