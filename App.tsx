@@ -7,7 +7,7 @@ import LiveScoring from './components/LiveScoring';
 import ActivityFeed from './components/ActivityFeed';
 import ShareModal from './components/ShareModal';
 import Analytics from './components/Analytics';
-import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check } from 'lucide-react';
+import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check, BarChart3, Users } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
 import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser } from './src/instantService';
@@ -332,11 +332,42 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         <div className="bg-linear-to-r from-blue-900/30 via-purple-900/20 to-blue-900/30 border border-blue-500/30 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-blue-400">🎬 BAFTAs 2026</h3>
-            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full font-bold">Coming Soon</span>
+            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full font-bold">Feb 15, 2026</span>
           </div>
-          <p className="text-sm text-gray-300 mb-4">Ready for the next awards show? Make your predictions and see if you can improve your score!</p>
+          <p className="text-sm text-gray-300 mb-4">While you wait for BAFTAs predictions to open, review your Golden Globes performance and invite friends to join your league!</p>
+          
+          <div className="grid grid-cols-1 gap-3 mb-4">
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-1">
+                <BarChart3 size={14} className="text-blue-400" />
+                <span className="text-xs font-bold text-blue-400">Analyze Your Performance</span>
+              </div>
+              <p className="text-[10px] text-gray-400">See how your picks compared to other critics and identify patterns for BAFTAs</p>
+              <button 
+                onClick={() => setActiveTab('analytics')}
+                className="mt-2 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1 rounded-lg font-medium transition-colors w-full"
+              >
+                View Analytics
+              </button>
+            </div>
+            
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-1">
+                <Users size={14} className="text-green-400" />
+                <span className="text-xs font-bold text-green-400">Invite Friends</span>
+              </div>
+              <p className="text-[10px] text-gray-400">More friends = bigger competition and bragging rights!</p>
+              <button 
+                onClick={() => setShareModalOpen(true)}
+                className="mt-2 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-1 rounded-lg font-medium transition-colors w-full"
+              >
+                Invite to League
+              </button>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">Challenge friends to beat your Golden Globes results</p>
+            <p className="text-xs text-gray-400">Get notified when BAFTAs predictions open</p>
             <button 
               onClick={async () => {
                 if (!user) return;
@@ -344,7 +375,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
                 try {
                   const result = await signupForEventNotifications(user.id, 'baftas-2026');
                   if (result.success) {
-                    alert('🎬 Thanks! We\'ll notify you when BAFTAs 2026 predictions open.');
+                    alert('🎬 You\'ll be notified when BAFTAs 2026 predictions open!');
                   } else {
                     alert('🎬 Something went wrong. Please try again.');
                   }
@@ -378,7 +409,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           </div>
 
           <h2 className="text-3xl font-cinzel font-bold mb-2">Golden Globes</h2>
-          <p className="text-sm text-gray-400 mb-6 leading-relaxed">The movie circuit begins. Secure your spot on the leaderboard before the curtain rises.</p>
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed">The ceremony has concluded! Review your performance and prepare for BAFTAs.</p>
           
           {/* Event Status */}
           <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-3 mb-6">
@@ -392,7 +423,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
               <span className="text-sm font-bold text-white">Golden Globes 2026</span>
             </div>
             <p className="text-[10px] text-gray-500 mt-1 ml-4">
-              The ceremony has concluded! View your picks and check the final standings.
+              The ceremony has concluded! Review your picks and see how you ranked against other critics.
             </p>
           </div>
           
@@ -435,15 +466,45 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           </button>
         </div>
 
-        {/* Cumulative Scoring Highlight */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center space-x-4">
-          <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center border border-yellow-500/20">
-            <Trophy size={20} className="text-yellow-500" />
+        {/* Analytics Preview */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <BarChart3 size={20} className="text-yellow-500" />
+              <h3 className="text-lg font-bold text-white">Golden Globes Analytics</h3>
+            </div>
+            <button 
+              onClick={() => setActiveTab('analytics')}
+              className="text-xs text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
+            >
+              View Full Report
+            </button>
           </div>
-          <div className="flex-1">
-            <h4 className="text-xs font-bold uppercase tracking-widest mb-0.5">Circuit Championship</h4>
-            <p className="text-[10px] text-gray-500 leading-snug">Every event counts towards your season total. Win the overall crown on Oscar night.</p>
+          
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="bg-white/5 rounded-lg p-3 text-center">
+              <p className="text-2xl font-cinzel font-bold text-yellow-500 mb-1">📊</p>
+              <p className="text-xs text-gray-400">Performance Insights</p>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3 text-center">
+              <p className="text-2xl font-cinzel font-bold text-blue-500 mb-1">👥</p>
+              <p className="text-xs text-gray-400">Community Trends</p>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3 text-center">
+              <p className="text-2xl font-cinzel font-bold text-green-500 mb-1">⚡</p>
+              <p className="text-xs text-gray-400">Power Pick Analysis</p>
+            </div>
           </div>
+          
+          <p className="text-sm text-gray-300 mb-3">Discover patterns in your predictions and see how you compare to other critics. Use these insights to dominate BAFTAs!</p>
+          
+          <button 
+            onClick={() => setActiveTab('analytics')}
+            className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
+          >
+            <BarChart3 size={16} />
+            <span>Analyze Your Performance</span>
+          </button>
         </div>
 
         <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} refreshTrigger={standingsRefresh} />
