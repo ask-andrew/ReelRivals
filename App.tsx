@@ -4,9 +4,11 @@ import Onboarding from './components/Onboarding';
 import Layout from './components/Layout';
 import BallotSwiperDB from './components/BallotSwiperDB';
 import LiveScoring from './components/LiveScoring';
+import EnhancedLiveScoring from './components/EnhancedLiveScoring';
 import ActivityFeed from './components/ActivityFeed';
 import ShareModal from './components/ShareModal';
 import Analytics from './components/Analytics';
+import MobileAnalytics from './components/MobileAnalytics';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check, BarChart3, Users } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT } from './constants';
@@ -14,7 +16,24 @@ import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, ge
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
 
+// Mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+};
+
 const App: React.FC = () => {
+  const isMobile = useIsMobile();
   const [user, setUser] = useState<InstantUser | null>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin' | 'analytics'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
@@ -542,18 +561,33 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         />
       )}
       {activeTab === 'live' && (
-        <LiveScoring 
-          eventId="golden-globes-2026" 
-          leagueId={userLeagueId || 'default'} 
-          isLive={true} 
-        />
+        isMobile ? (
+          <EnhancedLiveScoring 
+            eventId="golden-globes-2026" 
+            leagueId={userLeagueId || 'default'} 
+            isLive={true} 
+          />
+        ) : (
+          <LiveScoring 
+            eventId="golden-globes-2026" 
+            leagueId={userLeagueId || 'default'} 
+            isLive={true} 
+          />
+        )
       )}
       {activeTab === 'leagues' && <PlayerList refreshTrigger={standingsRefresh} />}
       {activeTab === 'analytics' && (
-        <Analytics 
-          leagueId={userLeagueId || 'default'} 
-          eventId="golden-globes-2026" 
-        />
+        isMobile ? (
+          <MobileAnalytics 
+            leagueId={userLeagueId || 'default'} 
+            eventId="golden-globes-2026" 
+          />
+        ) : (
+          <Analytics 
+            leagueId={userLeagueId || 'default'} 
+            eventId="golden-globes-2026" 
+          />
+        )
       )}
       {activeTab === 'profile' && (
         <div className="space-y-8 py-8 px-6">

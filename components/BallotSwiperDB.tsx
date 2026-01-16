@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users } from 'lucide-react';
 import { Pick } from '../types';
 import { getCategories, saveBallotPick, getBallot, getNomineePercentages, getResults } from '../src/instantService';
+import PowerPickReminder from './PowerPickReminder';
+import PowerPickSelector from './PowerPickSelector';
 
 interface BallotSwiperProps {
   onComplete: (picks: Record<string, Pick>) => void;
@@ -18,12 +20,15 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<'review' | 'edit'>('edit'); // Track view mode
+  const [viewMode, setViewMode] = useState<'review' | 'edit' | 'power-picks'>('edit');
   const [nomineePercentages, setNomineePercentages] = useState<Record<string, number>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [loadingPercentages, setLoadingPercentages] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [resultsLoaded, setResultsLoaded] = useState(false);
+  const [showPowerPickReminder, setShowPowerPickReminder] = useState(false);
+  const [showPowerPickSelector, setShowPowerPickSelector] = useState(false);
+  const [hasSeenPowerPickReminder, setHasSeenPowerPickReminder] = useState(false);
   
   // Golden Globes is completed - no new picks allowed but full viewing enabled
   const isGoldenGlobesCompleted = true;
@@ -241,6 +246,42 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
   const totalCategories = categories.length;
   const allComplete = completedCount === totalCategories;
 
+  // Power pick reminder logic
+  useEffect(() => {
+    // Show reminder when user completes all picks but hasn't used power picks
+    if (allComplete && powerPicksLeft > 0 && !hasSeenPowerPickReminder && !isGoldenGlobesCompleted) {
+      setTimeout(() => {
+        setShowPowerPickReminder(true);
+      }, 1000);
+    }
+  }, [allComplete, powerPicksLeft, hasSeenPowerPickReminder]);
+
+  // Show reminder when user has made some picks and has power picks available
+  useEffect(() => {
+    if (completedCount >= 3 && powerPicksLeft > 0 && !hasSeenPowerPickReminder && !isGoldenGlobesCompleted) {
+      setTimeout(() => {
+        setShowPowerPickReminder(true);
+      }, 2000);
+    }
+  }, [completedCount, powerPicksLeft, hasSeenPowerPickReminder]);
+
+  const handlePowerPickReminder = (action: 'dismiss' | 'select' | 'continue') => {
+    setShowPowerPickReminder(false);
+    setHasSeenPowerPickReminder(true);
+    
+    if (action === 'select') {
+      setShowPowerPickSelector(true);
+    }
+  };
+
+  const handlePowerPickSelectorSave = async (updatedPicks: Record<string, Pick>) => {
+    // Count power picks in updated picks
+    const powerPickCount = Object.values(updatedPicks).filter(pick => pick.isPowerPick).length;
+    setPowerPicksLeft(Math.max(0, 3 - powerPickCount));
+    setPicks(updatedPicks);
+    setShowPowerPickSelector(false);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
@@ -274,6 +315,15 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
               </p>
             </div>
             <div className="flex items-center space-x-2">
+              {!isGoldenGlobesCompleted && powerPicksLeft > 0 && (
+                <button
+                  onClick={() => setShowPowerPickSelector(true)}
+                  className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center space-x-1"
+                >
+                  <Zap size={14} />
+                  <span>{powerPicksLeft} Power Picks</span>
+                </button>
+              )}
               {isGoldenGlobesCompleted && (
                 <div className="flex items-center space-x-1 text-green-400">
                   <Check size={16} />
@@ -691,6 +741,29 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
           </div>
         </div>
       </div>
+
+      {/* Power Pick Reminder */}
+      <PowerPickReminder
+        show={showPowerPickReminder}
+        powerPicksLeft={powerPicksLeft}
+        totalPicksMade={completedCount}
+        totalCategories={totalCategories}
+        onDismiss={() => handlePowerPickReminder('dismiss')}
+        onSelectPowerPicks={() => handlePowerPickReminder('select')}
+        onContinue={() => handlePowerPickReminder('continue')}
+      />
+
+      {/* Power Pick Selector */}
+      {showPowerPickSelector && (
+        <PowerPickSelector
+          picks={picks}
+          categories={categories}
+          powerPicksLeft={powerPicksLeft}
+          onSavePowerPicks={handlePowerPickSelectorSave}
+          onBack={() => setShowPowerPickSelector(false)}
+          onComplete={() => setShowPowerPickSelector(false)}
+        />
+      )}
     </div>
   );
 };
