@@ -104,10 +104,66 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="mb-12 relative z-10"
+        className="mb-8 relative z-10"
       >
         <h1 className="text-6xl font-serif font-bold text-transparent bg-clip-text bg-linear-to-r from-[#D4AF37] via-[#FFD700] to-[#B8860B] mb-3 drop-shadow-lg tracking-tighter">REEL RIVALS</h1>
         <p className="text-gray-400 font-light tracking-[0.3em] text-xs uppercase animate-pulse mb-4">Predict Award Winners • Compete with Friends • Become the Ultimate Film Critic</p>
+      </motion.div>
+
+      {/* Educational Content */}
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="mb-8 relative z-10 max-w-2xl mx-auto"
+      >
+        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/10 shadow-2xl">
+          <h2 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 text-center">Why Every Trophy Matters Differently</h2>
+          <p className="text-gray-300 text-xs md:text-sm mb-3 md:mb-4 text-center leading-relaxed">
+            Not all wins are equal. Master predictions by knowing who's behind the ballot.
+          </p>
+          
+          <div className="grid grid-cols-1 gap-3 md:gap-4">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-xl md:text-2xl">🏆</span>
+                <h3 className="text-yellow-400 font-bold text-xs md:text-sm">Industry Insiders</h3>
+              </div>
+              <p className="text-gray-300 text-xs leading-relaxed">
+                <strong className="text-white">Oscars & BAFTA:</strong> Craftspeople who value technical perfection.
+              </p>
+              <div className="text-yellow-400 text-xs font-bold mt-2">10K & 8K voters</div>
+            </div>
+            
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-xl md:text-2xl">🎭</span>
+                <h3 className="text-blue-400 font-bold text-xs md:text-sm">Union Giant</h3>
+              </div>
+              <p className="text-gray-300 text-xs leading-relaxed">
+                <strong className="text-white">SAG:</strong> 160K voters = "popular vote" with emotional weight.
+              </p>
+              <div className="text-blue-400 text-xs font-bold mt-2">160,000 voters</div>
+            </div>
+            
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-xl md:text-2xl">🌟</span>
+                <h3 className="text-red-400 font-bold text-xs md:text-sm">Global Tastemakers</h3>
+              </div>
+              <p className="text-gray-300 text-xs leading-relaxed">
+                <strong className="text-white">Globes:</strong> 300 journalists set the narrative.
+              </p>
+              <div className="text-red-400 text-xs font-bold mt-2">300 journalists</div>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30">
+            <p className="text-gray-400 text-xs text-center leading-relaxed">
+              <span className="text-yellow-500 font-bold">Pro Tip:</span> SAG wins often predict Oscar acting winners, while Globes set early momentum.
+            </p>
+          </div>
+        </div>
       </motion.div>
 
       <form onSubmit={handleSubmit} className="w-full space-y-6 max-w-sm relative z-10">

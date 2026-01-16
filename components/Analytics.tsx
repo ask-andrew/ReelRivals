@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp, Trophy, Target, Flame, Crown, AlertTriangle, Share2, MessageCircle, Twitter, Link } from 'lucide-react';
 import { getAnalyticsData } from '../src/instantService';
 import type { Ballot, Category } from '../src/ballots';
+import PowerScale from './PowerScale';
+import VoterOverlap from './VoterOverlap';
+import AwardsFunnel from './AwardsFunnel';
 
 interface TrendData {
   nomineeId: string;
@@ -453,6 +456,30 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
             <div className="bg-white/5 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-purple-400 mb-1">{analyticsData.overallStats.correctPowerPicks}</p>
               <p className="text-xs text-gray-300">Power Hits</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Educational Content Section */}
+        <div className="space-y-8">
+          <div className="bg-linear-to-br from-yellow-900/40 via-black to-yellow-900/40 rounded-2xl p-6 border border-yellow-500/30">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-cinzel font-bold text-yellow-500 flex items-center">
+                <Award className="w-6 h-6 mr-2" />
+                The Road to the Oscars
+              </h3>
+              <div className="text-xs text-gray-400 bg-yellow-500/20 px-3 py-1 rounded-full">
+                Understanding Awards Season
+              </div>
+            </div>
+            <p className="text-gray-300 text-sm mb-6 italic">
+              🎓 Master the art of awards prediction with these visual insights into how films are selected and awarded.
+            </p>
+            
+            <div className="space-y-6">
+              <PowerScale />
+              <VoterOverlap />
+              <AwardsFunnel />
             </div>
           </div>
         </div>
