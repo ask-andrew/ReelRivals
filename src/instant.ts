@@ -23,6 +23,10 @@ const schema = i.schema({
       avatar_emoji: i.string(),
       password_hash: i.string().optional(),
       created_at: i.number(),
+      user_type: i.string().optional(), // 'regular' | 'professional' | 'critic' | 'journalist'
+      professional_title: i.string().optional(), // e.g., "Film Critic, Variety"
+      organization: i.string().optional(), // e.g., "Variety", "The New York Times"
+      is_verified_pro: i.boolean().optional(),
     }),
     leagues: i.entity({
       name: i.string(),
@@ -56,6 +60,15 @@ const schema = i.schema({
       nominee_id: i.string(),
       is_power_pick: i.boolean(),
       created_at: i.number(),
+      is_professional_pick: i.boolean().optional(), // Legacy field for backwards compatibility
+    }),
+    professional_picks: i.entity({
+      user_id: i.string(),
+      category_id: i.string(),
+      nominee_id: i.string(),
+      confidence_level: i.number(), // 1-10 confidence rating
+      reasoning: i.string().optional(), // Brief explanation of the pick
+      created_at: i.number(),
     }),
     events: i.entity({
       name: i.string(),
@@ -83,11 +96,15 @@ const schema = i.schema({
       winner_nominee_id: i.string(),
       announced_at: i.number(),
     }),
-    notification_signups: i.entity({
+    professional_stats: i.entity({
       user_id: i.string(),
       event_id: i.string(),
+      total_picks: i.number(),
+      correct_picks: i.number(),
+      accuracy_percentage: i.number(),
+      average_confidence: i.number(),
       created_at: i.number(),
-      notified: i.boolean(),
+      updated_at: i.number(),
     }),
   },
   links: {
@@ -161,6 +178,42 @@ const schema = i.schema({
         on: 'nominees',
         has: 'many',
         label: 'results'
+      }
+    },
+    professionalPicksUser: {
+      forward: {
+        on: 'professional_picks',
+        has: 'one',
+        label: 'user'
+      },
+      reverse: {
+        on: 'users',
+        has: 'many',
+        label: 'professional_picks'
+      }
+    },
+    professionalPicksCategory: {
+      forward: {
+        on: 'professional_picks',
+        has: 'one',
+        label: 'category'
+      },
+      reverse: {
+        on: 'categories',
+        has: 'many',
+        label: 'professional_picks'
+      }
+    },
+    professionalPicksNominee: {
+      forward: {
+        on: 'professional_picks',
+        has: 'one',
+        label: 'nominee'
+      },
+      reverse: {
+        on: 'nominees',
+        has: 'many',
+        label: 'professional_picks'
       }
     }
   }

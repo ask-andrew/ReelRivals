@@ -1,184 +1,9 @@
+import { sendNotification, scrapeGoldenGlobesWinners } from './scraping-utils.mjs';
 import puppeteer from 'puppeteer';
 import { init } from '@instantdb/core';
 
-// Instant DB configuration
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
-
-// Initialize Instant DB Core Client
-const dbCore = init({
-  appId: APP_ID,
-});
-
-// Award show announcement dates for 2026
-const AWARD_SHOWS_2026 = [
-  {
-    id: 'golden-globes-2026',
-    name: 'Golden Globes',
-    ceremonyDate: '2026-01-11',
-    nomineesAnnounced: '2025-12-09',
-    scrapingEnabled: true
-  },
-  {
-    id: 'oscars-2026',
-    name: 'The Oscars',
-    ceremonyDate: '2026-03-02', 
-    nomineesAnnounced: '2026-01-17',
-    scrapingEnabled: true
-  }
-];
-
-// Web scraping configurations
-const SCRAPING_CONFIGS = {
-  'golden-globes-2026': {
-    winnersUrl: 'https://www.goldenglobes.com/winners',
-    checkInterval: 15 * 60 * 1000, // 15 minutes
-    selectors: {
-      winnerCard: '.winner-card',
-      categoryName: '.category-name',
-      winnerName: '.winner-name',
-      movieTitle: '.movie-title'
-    }
-  },
-  'oscars-2026': {
-    winnersUrl: 'https://www.oscars.org/ceremonies/2026/winners',
-    checkInterval: 15 * 60 * 1000, // 15 minutes,
-    selectors: {
-      winnerCard: '.award-card',
-      categoryName: '.award-category',
-      winnerName: '.winner-name',
-      movieTitle: '.film-title'
-    }
-  }
-};
-
-async function scrapeGoldenGlobesWinners() {
-  console.log('🎬 Scraping Golden Globes winners...');
-  
-  let browser;
-  try {
-    browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    
-    // Set user agent to avoid blocking
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    
-    await page.goto('https://www.goldenglobes.com/winners', { 
-      waitUntil: 'networkidle2',
-      timeout: 30000 
-    });
-    
-    // Wait for winner content to load
-    await page.waitForSelector('.winner-card, .winner-item, .award-winner', { timeout: 10000 });
-    
-    // Extract winners
-    const winners = await page.evaluate(() => {
-      const results = [];
-      
-      // Try multiple possible selectors
-      const selectors = [
-        '.winner-card',
-        '.winner-item', 
-        '.award-winner',
-        '.category-winner'
-      ];
-      
-      let winnerCards = [];
-      for (const selector of selectors) {
-        winnerCards = document.querySelectorAll(selector);
-        if (winnerCards.length > 0) break;
-      }
-      
-      winnerCards.forEach((card, index) => {
-        try {
-          // Try multiple selectors for category name
-          const categorySelectors = [
-            '.category-name',
-            '.category',
-            '.award-category',
-            'h3',
-            'h4'
-          ];
-          
-          let categoryName = '';
-          for (const selector of categorySelectors) {
-            const element = card.querySelector(selector);
-            if (element) {
-              categoryName = element.textContent?.trim() || '';
-              break;
-            }
-          }
-          
-          // Try multiple selectors for winner name
-          const winnerSelectors = [
-            '.winner-name',
-            '.winner',
-            '.recipient',
-            '.awardee',
-            'strong',
-            'b'
-          ];
-          
-          let winnerName = '';
-          for (const selector of winnerSelectors) {
-            const element = card.querySelector(selector);
-            if (element) {
-              winnerName = element.textContent?.trim() || '';
-              break;
-            }
-          }
-          
-          // Try to get movie/film title
-          const movieSelectors = [
-            '.movie-title',
-            '.film-title',
-            '.title',
-            '.work'
-          ];
-          
-          let movieTitle = '';
-          for (const selector of movieSelectors) {
-            const element = card.querySelector(selector);
-            if (element) {
-              movieTitle = element.textContent?.trim() || '';
-              break;
-            }
-          }
-          
-          if (categoryName && winnerName) {
-            results.push({
-              categoryName: categoryName,
-              winnerName: winnerName,
-              movieTitle: movieTitle,
-              index: index
-            });
-          }
-        } catch (error) {
-          console.log(`Error extracting winner ${index}:`, error);
-        }
-      });
-      
-      return results;
-    });
-    
-    console.log(`🏆 Found ${winners.length} winners from Golden Globes`);
-    return winners;
-    
-  } catch (error) {
-    console.error('❌ Error scraping Golden Globes:', error);
-    return [];
-  } finally {
-    if (browser) await browser.close();
-  }
-}
-
 async function scrapeWinnersInstantDB(eventId) {
   console.log(`🏆 Starting live winner scraping for ${eventId}...`);
-  
-  const config = SCRAPING_CONFIGS[eventId];
-  if (!config) {
-    console.error(`❌ No scraping config found for ${eventId}`);
-    return;
-  }
 
   try {
     let winners;
@@ -194,9 +19,25 @@ async function scrapeWinnersInstantDB(eventId) {
       console.log('ℹ️ No new winners found');
       return;
     }
-    
+
+    const transactions = [];
     for (const winner of winners) {
-      await processWinner(winner, eventId);
+      const transaction = await processWinner(winner, eventId);
+      if (transaction) {
+        transactions.push(transaction);
+        // Also trigger score recalculation and notification for each winner individually for now
+        // This part could be batched later if needed, but results insertion is the bottleneck for now
+        // For the performance test, we're primarily concerned with the 'results' table
+        await recalculateScoresInstantDB(eventId, transaction.data.category_id, transaction.data.winner_nominee_id);
+        await sendNotification(`🏆 ${winner.winnerName} wins ${winner.categoryName}!`);
+      }
+    }
+
+    if (transactions.length > 0) {
+      await dbCore.transact(transactions);
+      console.log(`🏆 Recorded ${transactions.length} new winners.`);
+    } else {
+      console.log('ℹ️ No new winners found after processing.');
     }
 
   } catch (error) {
@@ -225,7 +66,7 @@ async function processWinner(winner, eventId) {
 
     if (!category) {
       console.log(`⚠️ No matching category found for: ${winner.categoryName}`);
-      return;
+      return null; // Return null if no category found
     }
 
     // Find the nominee
@@ -247,7 +88,7 @@ async function processWinner(winner, eventId) {
 
     if (!nominee) {
       console.log(`⚠️ No matching nominee found for: ${winner.winnerName} in category: ${category.name}`);
-      return;
+      return null; // Return null if no nominee found
     }
 
     // Check if result already exists
@@ -263,28 +104,19 @@ async function processWinner(winner, eventId) {
 
     if (existingResults.results.length > 0) {
       console.log(`⏭️ Winner already recorded for ${category.name}`);
-      return;
+      return null; // Return null if winner already recorded
     }
 
-    // Insert the result
-    await dbCore.transact([
-      dbCore.tx.results.create({
-        category_id: category.id,
-        winner_nominee_id: nominee.id,
-        announced_at: Date.now()
-      })
-    ]);
-
-    console.log(`🏆 Winner recorded: ${winner.winnerName} for ${category.name}`);
-    
-    // Trigger score recalculation
-    await recalculateScoresInstantDB(eventId, category.id, nominee.id);
-    
-    // Send notification
-    await sendNotification(`🏆 ${winner.winnerName} wins ${category.name}!`);
+    // Return the create operation
+    return dbCore.tx.results.create({
+      category_id: category.id,
+      winner_nominee_id: nominee.id,
+      announced_at: Date.now()
+    });
     
   } catch (error) {
     console.error(`❌ Error processing winner ${winner.winnerName}:`, error);
+    return null; // Return null on error
   }
 }
 
@@ -338,6 +170,8 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
       return acc;
     }, {});
 
+    const scoreTransactions = [];
+
     // Update scores for each user/league combination
     for (const [key, scoreData] of Object.entries(userLeaguePicks)) {
       const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData;
@@ -357,17 +191,17 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
 
       if (existingScores.scores.length > 0) {
         // Update existing score
-        await dbCore.transact([
+        scoreTransactions.push(
           dbCore.tx.scores[existingScores.scores[0].id].update({
             total_points: totalPoints,
             correct_picks: correctPicks,
             power_picks_hit: powerPicksHit,
             updated_at: Date.now()
           })
-        ]);
+        );
       } else {
         // Create new score
-        await dbCore.transact([
+        scoreTransactions.push(
           dbCore.tx.scores.create({
             user_id: userId,
             league_id: leagueId,
@@ -377,11 +211,16 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
             power_picks_hit: powerPicksHit,
             updated_at: Date.now()
           })
-        ]);
+        );
       }
     }
 
-    console.log(`✅ Scores recalculated for category ${categoryId}`);
+    if (scoreTransactions.length > 0) {
+        await dbCore.transact(scoreTransactions);
+        console.log(`✅ ${scoreTransactions.length} scores updated/created for category ${categoryId}`);
+    } else {
+        console.log(`ℹ️ No score changes needed for category ${categoryId}`);
+    }
     
   } catch (error) {
     console.error(`❌ Error recalculating scores:`, error);
@@ -390,12 +229,6 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
 
 async function startLiveScrapingInstantDB(eventId, intervalMinutes = 15) {
   console.log(`🏆 Starting live scoring for ${eventId} (every ${intervalMinutes} minutes)`);
-  
-  const config = SCRAPING_CONFIGS[eventId];
-  if (!config) {
-    console.error(`❌ No config found for ${eventId}`);
-    return;
-  }
 
   const intervalMs = intervalMinutes * 60 * 1000;
   let ceremonyActive = true;
@@ -406,8 +239,12 @@ async function startLiveScrapingInstantDB(eventId, intervalMinutes = 15) {
   const scrapeInterval = setInterval(async () => {
     if (!ceremonyActive) return;
     
-    console.log(`🔄 Checking for new winners...`);
-    await scrapeWinnersInstantDB(eventId);
+    try {
+      console.log(`🔄 Checking for new winners...`);
+      await scrapeWinnersInstantDB(eventId);
+    } catch (error) {
+      console.error(`❌ Error during scheduled scrape for ${eventId}:`, error);
+    }
   }, intervalMs);
   
   // Stop after ceremony (e.g., 4 hours)
@@ -427,57 +264,6 @@ async function getMockWinners(eventId) {
   };
   
   return mockData[eventId] || [];
-}
-
-async function sendNotification(message) {
-  console.log(`📢 ${message}`);
-  
-  // Send to Slack if webhook is configured
-  const slackWebhook = process.env.SLACK_WEBHOOK_URL;
-  if (slackWebhook) {
-    try {
-      await fetch(slackWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: message,
-          username: 'Reel Rivals Bot',
-          icon_emoji: ':trophy:'
-        })
-      });
-      console.log('✅ Slack notification sent');
-    } catch (error) {
-      console.error('❌ Error sending Slack notification:', error);
-    }
-  }
-
-  // Send to Discord if webhook is configured  
-  const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
-  if (discordWebhook) {
-    try {
-      await fetch(discordWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          content: message,
-          username: 'Reel Rivals Bot'
-        })
-      });
-      console.log('✅ Discord notification sent');
-    } catch (error) {
-      console.error('❌ Error sending Discord notification:', error);
-    }
-  }
-
-  // Send email notification (optional)
-  if (process.env.EMAIL_RECIPIENTS) {
-    try {
-      // Add email service integration here (SendGrid, etc.)
-      console.log('📧 Email notifications would be sent to:', process.env.EMAIL_RECIPIENTS);
-    } catch (error) {
-      console.error('❌ Error sending email notification:', error);
-    }
-  }
 }
 
 // CLI commands

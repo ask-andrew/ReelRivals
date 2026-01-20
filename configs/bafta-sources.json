@@ -1,0 +1,48 @@
+[
+  {
+    "id": "bafta-official-2026",
+    "name": "BAFTA Official Site 2026",
+    "url": "https://www.bafta.org/film/awards/2026-winners",
+    "selectors": {
+      "winnerCard": ".winner-card, .award-item, .nominee-block",
+      "categoryName": ".category-name, h2, h3",
+      "winnerName": ".winner-name, .person-name, strong",
+      "movieTitle": ".movie-title, .film-title, em",
+      "personName": ".person-name"
+    },
+    "reliabilityScore": 95,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "bafta-2026"
+  },
+  {
+    "id": "wikipedia-bafta-2026",
+    "name": "Wikipedia BAFTA 2026",
+    "url": "https://en.wikipedia.org/wiki/79th_British_Academy_Film_Awards",
+    "selectors": {
+      "winnerCard": "table.wikitable tr, dl.awards dd",
+      "categoryName": "th, dt",
+      "winnerName": "b, a",
+      "movieTitle": "i"
+    },
+    "reliabilityScore": 85,
+    "updateFrequency": 60000,
+    "enabled": true,
+    "eventId": "bafta-2026"
+  },
+  {
+    "id": "guardian-bafta-2026",
+    "name": "The Guardian BAFTA 2026",
+    "url": "https://www.theguardian.com/film/baftas",
+    "selectors": {
+      "winnerCard": "div.article-body p, ul.winner-list li",
+      "categoryName": "strong, h3",
+      "winnerName": "em, a",
+      "movieTitle": "i"
+    },
+    "reliabilityScore": 80,
+    "updateFrequency": 60000,
+    "enabled": true,
+    "eventId": "bafta-2026"
+  }
+]

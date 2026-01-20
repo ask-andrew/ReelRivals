@@ -1,3 +1,10 @@
+# Untracked components (to be addressed later)
+components/ProfessionalComparison.tsx
+components/ProfessionalManagement.tsx
+src/professionalService.ts
+
+.gemini/
+
 # Logs
 logs
 *.log
