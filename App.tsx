@@ -9,9 +9,10 @@ import ActivityFeed from './components/ActivityFeed';
 import ShareModal from './components/ShareModal';
 import Analytics from './components/Analytics';
 import MobileAnalytics from './components/MobileAnalytics';
+import AwardShowSelector from './components/AwardShowSelector';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check, BarChart3, Users } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
-import { CATEGORIES, SEASON_CIRCUIT } from './constants';
+import { CATEGORIES, SEASON_CIRCUIT, AWARD_SHOW_CATEGORIES } from './constants';
 import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser } from './src/instantService';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [standingsRefresh, setStandingsRefresh] = useState(0);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [selectedAwardShow, setSelectedAwardShow] = useState('oscars-2026'); // Default to Oscars since they're open
   
   // Golden Globes is completed - allow full viewing but no new picks
   const isGoldenGlobesCompleted = true;
@@ -145,7 +147,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         
         if (currentUser) {
           const [{ categories: cats, error: catsError }, { league, error }] = await Promise.all([
-            getCategories('golden-globes-2026'),
+            getCategories(selectedAwardShow),
             getOrCreateDefaultLeague(currentUser.id)
           ]);
           
@@ -157,7 +159,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           }
           
           // Check if user has an existing ballot to set completion status
-          const existingBallot = await getBallot(currentUser.id, 'golden-globes-2026');
+          const existingBallot = await getBallot(currentUser.id, selectedAwardShow);
           if (existingBallot && existingBallot.picks) {
             const completedCount = existingBallot.picks.length;
             setIsBallotComplete(completedCount === (cats?.length || 0));
@@ -173,7 +175,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
             
             setBallot({
               userId: currentUser.id,
-              eventId: 'golden-globes-2026',
+              eventId: selectedAwardShow,
               picks: picksMap
             });
           }
@@ -187,6 +189,55 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
 
     initSession();
   }, []);
+
+  // Reload data when award show changes
+  useEffect(() => {
+    if (user) {
+      const loadAwardShowData = async () => {
+        try {
+          setLoading(true);
+          const { categories: cats, error: catsError } = await getCategories(selectedAwardShow);
+          
+          if (catsError) throw catsError;
+          setDbCategories(cats || []);
+          
+          // Load ballot for new award show
+          const ballotData = await getBallot(user.id, selectedAwardShow);
+          if (ballotData && ballotData.picks) {
+            const completedCount = ballotData.picks.length;
+            setIsBallotComplete(completedCount === (cats || []).length);
+            
+            const picksMap: Record<string, Pick> = {};
+            ballotData.picks.forEach((pick: any) => {
+              picksMap[pick.category_id] = {
+                nomineeId: pick.nominee_id,
+                isPowerPick: pick.is_power_pick
+              };
+            });
+            setBallot({
+              userId: user.id,
+              eventId: selectedAwardShow,
+              picks: picksMap
+            });
+          } else {
+            setBallot({
+              userId: user.id,
+              eventId: selectedAwardShow,
+              picks: {}
+            });
+            setIsBallotComplete(false);
+          }
+        } catch (err) {
+          console.error('Error loading award show data:', err);
+          setError('Failed to load award show data');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadAwardShowData();
+    }
+  }, [selectedAwardShow, user]);
 
   const handleOnboardingComplete = (newUser: InstantUser) => {
     setUser(newUser);
@@ -230,7 +281,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
     // Refresh the ballot from database to ensure consistency
     try {
       if (user) {
-        const refreshedBallot = await getBallot(user.id, 'golden-globes-2026');
+        const refreshedBallot = await getBallot(user.id, selectedAwardShow);
         if (refreshedBallot && refreshedBallot.picks) {
           const completedCount = refreshedBallot.picks.length;
           setIsBallotComplete(completedCount === dbCategories.length);
@@ -554,22 +605,30 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
     <Layout activeTab={activeTab} onTabChange={setActiveTab} onSignOut={handleSignOut}>
       {activeTab === 'home' && renderHome()}
       {activeTab === 'ballot' && (
-        <BallotSwiperDB 
-          onComplete={handleBallotComplete} 
-          userId={user?.id || ''} 
-          leagueId={userLeagueId || 'default'} 
-        />
+        <div className="space-y-6">
+          <AwardShowSelector
+            awardShows={SEASON_CIRCUIT}
+            selectedAwardShow={selectedAwardShow}
+            onAwardShowChange={setSelectedAwardShow}
+          />
+          <BallotSwiperDB 
+            onComplete={handleBallotComplete} 
+            userId={user?.id || ''} 
+            leagueId={userLeagueId || 'default'} 
+            eventId={selectedAwardShow}
+          />
+        </div>
       )}
       {activeTab === 'live' && (
         isMobile ? (
           <EnhancedLiveScoring 
-            eventId="golden-globes-2026" 
+            eventId={selectedAwardShow} 
             leagueId={userLeagueId || 'default'} 
             isLive={true} 
           />
         ) : (
           <LiveScoring 
-            eventId="golden-globes-2026" 
+            eventId={selectedAwardShow} 
             leagueId={userLeagueId || 'default'} 
             isLive={true} 
           />

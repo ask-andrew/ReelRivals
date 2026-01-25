@@ -1,5 +1,6 @@
 import { dbCore, InstantUser } from "./instant";
 import { id } from "@instantdb/core";
+import { AWARD_SHOW_CATEGORIES } from "../constants";
 
 export type { InstantUser };
 
@@ -650,21 +651,20 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
     let eventCategories;
     switch (eventId) {
       case 'golden-globes-2026':
-        eventCategories = goldenGlobesCategories;
+        eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026'];
         break;
       case 'baftas-2026':
-        eventCategories = baftaCategories;
+        eventCategories = AWARD_SHOW_CATEGORIES['baftas-2026'];
         break;
       case 'sag-2026':
         // TODO: Add SAG categories when available
-        eventCategories = goldenGlobesCategories; // Fallback for now
+        eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026']; // Fallback for now
         break;
       case 'oscars-2026':
-        // TODO: Add Oscars categories when available
-        eventCategories = goldenGlobesCategories; // Fallback for now
+        eventCategories = AWARD_SHOW_CATEGORIES['oscars-2026'];
         break;
       default:
-        eventCategories = goldenGlobesCategories; // Fallback
+        eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026']; // Fallback
     }
     
     // Force re-seed if category count doesn't match our new official list (10 categories)

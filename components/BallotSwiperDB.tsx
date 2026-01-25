@@ -6,13 +6,14 @@ import { getCategories, saveBallotPick, getBallot, getNomineePercentages, getRes
 import PowerPickReminder from './PowerPickReminder';
 import PowerPickSelector from './PowerPickSelector';
 
-interface BallotSwiperProps {
+interface BallotSwiperDBProps {
   onComplete: (picks: Record<string, Pick>) => void;
   userId: string;
   leagueId: string;
+  eventId: string;
 }
 
-const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagueId }) => {
+const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, leagueId, eventId }) => {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [selectedNomineeId, setSelectedNomineeId] = useState<string | null>(null);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
@@ -116,7 +117,6 @@ const BallotSwiperDB: React.FC<BallotSwiperProps> = ({ onComplete, userId, leagu
 
   const loadData = async () => {
     try {
-      const eventId = 'golden-globes-2026';
       const [{ categories: cats, error: catsError }, ballot] = await Promise.all([
         getCategories(eventId),
         getBallot(userId, eventId)
