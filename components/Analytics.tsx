@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp, Trophy, Target, Flame, Crown, AlertTriangle, Share2, MessageCircle, Twitter, Link } from 'lucide-react';
 import { getAnalyticsData } from '../src/instantService';
 import type { Ballot, Category } from '../src/ballots';
+import { SEASON_CIRCUIT } from '../constants';
 import PowerScale from './PowerScale';
 import VoterOverlap from './VoterOverlap';
 import AwardsFunnel from './AwardsFunnel';
@@ -63,6 +64,17 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get award show name for share messages
+  const getAwardShowName = (eventId: string) => {
+    const show = SEASON_CIRCUIT.find(s => s.id === eventId);
+    return show ? show.name : 'Awards Show';
+  };
+
+  const getAwardShowYear = (eventId: string) => {
+    const show = SEASON_CIRCUIT.find(s => s.id === eventId);
+    return show ? show.name.split(' ').pop() : '2026';
+  };
   const [excludeTestUsers, setExcludeTestUsers] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -209,7 +221,9 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => {
-                  const text = `🏆 My Golden Globes 2026 Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join for BAFTAs 2026! 🎭`;
+                  const awardShowName = getAwardShowName(eventId);
+                  const awardShowYear = getAwardShowYear(eventId);
+                  const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
                   const url = window.location.href;
                   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
                 }}
@@ -221,7 +235,9 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
               
               <button 
                 onClick={() => {
-                  const text = `🏆 My Golden Globes 2026 Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join for BAFTAs 2026! 🎭`;
+                  const awardShowName = getAwardShowName(eventId);
+                  const awardShowYear = getAwardShowYear(eventId);
+                  const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
                   navigator.clipboard.writeText(text);
                 }}
                 className="bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
@@ -232,7 +248,9 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
               
               <button 
                 onClick={() => {
-                  const text = `🏆 My Golden Globes 2026 Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join for BAFTAs 2026! 🎭`;
+                  const awardShowName = getAwardShowName(eventId);
+                  const awardShowYear = getAwardShowYear(eventId);
+                  const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
                   const url = window.location.href;
                   window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
                 }}

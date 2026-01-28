@@ -577,7 +577,7 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           </button>
         </div>
 
-        <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} refreshTrigger={standingsRefresh} />
+        <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} refreshTrigger={standingsRefresh} eventId={selectedAwardShow} />
 
         <ActivityFeed activities={activities} />
         
@@ -639,12 +639,12 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         isMobile ? (
           <MobileAnalytics 
             leagueId={userLeagueId || 'default'} 
-            eventId="golden-globes-2026" 
+            eventId={selectedAwardShow} 
           />
         ) : (
           <Analytics 
             leagueId={userLeagueId || 'default'} 
-            eventId="golden-globes-2026" 
+            eventId={selectedAwardShow} 
           />
         )
       )}

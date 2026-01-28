@@ -8,12 +8,13 @@ export interface AwardEvent {
 
 export const SEASON_CIRCUIT: AwardEvent[] = [
   { id: 'golden-globes-2026', name: 'Golden Globes', date: 'Jan 11, 2026', status: 'completed', icon: '🏆' },
-  { id: 'baftas-2026', name: 'BAFTA Awards', date: 'Feb 15, 2026', status: 'upcoming', icon: '🎭' },
+  { id: 'baftas-2026', name: 'BAFTA Awards', date: 'Feb 22, 2026', status: 'open', icon: '🎭' },
   { id: 'sag-2026', name: 'SAG Awards', date: 'Feb 22, 2026', status: 'upcoming', icon: '👥' },
   { id: 'oscars-2026', name: 'The Oscars', date: 'Mar 15, 2026', status: 'open', icon: '✨' }
 ];
 
 export const GOLDEN_GLOBES_2026_DEADLINE = new Date('2026-01-11T14:59:00-08:00'); // Jan 11, 2026 2:59 PM PT
+export const BAFTAS_2026_DEADLINE = new Date('2026-02-22T17:00:00-00:00'); // Feb 22, 2026 5:00 PM GMT (BAFTAs are in London)
 export const OSCARS_2026_DEADLINE = new Date('2026-03-15T17:00:00-08:00'); // Mar 15, 2026 5:00 PM PT
 
 export const CATEGORIES = [
@@ -437,11 +438,331 @@ export const OSCAR_CATEGORIES_2026 = [
   }
 ];
 
+export const BAFTA_CATEGORIES_2026 = [
+  {
+    id: 'best-film',
+    name: 'Best Film',
+    basePoints: 50,
+    nominees: [
+      { id: 'hamnet', name: 'Hamnet' },
+      { id: 'marty-supreme', name: 'Marty Supreme' },
+      { id: 'one-battle', name: 'One Battle After Another' },
+      { id: 'sentimental-value', name: 'Sentimental Value' },
+      { id: 'sinners', name: 'Sinners' }
+    ]
+  },
+  {
+    id: 'outstanding-british-film',
+    name: 'Outstanding British Film',
+    basePoints: 40,
+    nominees: [
+      { id: '28-years-later', name: '28 Years Later' },
+      { id: 'ballad-of-wallis-island', name: 'The Ballad of Wallis Island' },
+      { id: 'bridget-jones', name: 'Bridget Jones: Mad about the Boy' },
+      { id: 'die-my-love', name: 'Die My Love' },
+      { id: 'h-is-for-hawk', name: 'H Is For Hawk' },
+      { id: 'hamnet-british', name: 'Hamnet' },
+      { id: 'i-swear', name: 'I Swear' },
+      { id: 'mr-burton', name: 'Mr Burton' },
+      { id: 'pillion', name: 'Pillion' },
+      { id: 'steve', name: 'Steve' }
+    ]
+  },
+  {
+    id: 'leading-actress',
+    name: 'Leading Actress',
+    basePoints: 40,
+    nominees: [
+      { id: 'jessie-buckley-bafta', name: 'Jessie Buckley - Hamnet' },
+      { id: 'rose-byrne-bafta', name: 'Rose Byrne - If I Had Legs I\'d Kick You' },
+      { id: 'kate-hudson-bafta', name: 'Kate Hudson - Song Sung Blue' },
+      { id: 'chase-infiniti-bafta', name: 'Chase Infiniti - One Battle After Another' },
+      { id: 'renate-reinsve-bafta', name: 'Renate Reinsve - Sentimental Value' },
+      { id: 'emma-stone-bafta', name: 'Emma Stone - Bugonia' }
+    ]
+  },
+  {
+    id: 'leading-actor',
+    name: 'Leading Actor',
+    basePoints: 40,
+    nominees: [
+      { id: 'robert-aramayo', name: 'Robert Aramayo - I Swear' },
+      { id: 'timothee-chalamet-bafta', name: 'Timothée Chalamet - Marty Supreme' },
+      { id: 'leonardo-dicaprio-bafta', name: 'Leonardo DiCaprio - One Battle After Another' },
+      { id: 'ethan-hawke-bafta', name: 'Ethan Hawke - Blue Moon' },
+      { id: 'michael-b-jordan-bafta', name: 'Michael B Jordan - Sinners' },
+      { id: 'jesse-plemons-bafta', name: 'Jesse Plemons - Bugonia' }
+    ]
+  },
+  {
+    id: 'supporting-actress',
+    name: 'Supporting Actress',
+    basePoints: 30,
+    nominees: [
+      { id: 'odessa-azion', name: 'Odessa A\'zion - Marty Supreme' },
+      { id: 'inga-ibsdotter-lilleaas-bafta', name: 'Inga Ibsdotter Lilleaas - Sentimental Value' },
+      { id: 'wunmi-mosaku-bafta', name: 'Wunmi Mosaku - Sinners' },
+      { id: 'carey-mulligan', name: 'Carey Mulligan - The Ballad of Wallis Island' },
+      { id: 'teyana-taylor-bafta', name: 'Teyana Taylor - One Battle After Another' },
+      { id: 'emily-watson', name: 'Emily Watson - Hamnet' }
+    ]
+  },
+  {
+    id: 'supporting-actor',
+    name: 'Supporting Actor',
+    basePoints: 30,
+    nominees: [
+      { id: 'benicio-del-toro-bafta', name: 'Benicio del Toro - One Battle After Another' },
+      { id: 'jacob-elordi-bafta', name: 'Jacob Elordi - Frankenstein' },
+      { id: 'paul-mescal', name: 'Paul Mescal - Hamnet' },
+      { id: 'peter-mullan', name: 'Peter Mullan - I Swear' },
+      { id: 'sean-penn-bafta', name: 'Sean Penn - One Battle After Another' },
+      { id: 'stellan-skarsgard-bafta', name: 'Stellan Skarsgård - Sentimental Value' }
+    ]
+  },
+  {
+    id: 'director-bafta',
+    name: 'Director',
+    basePoints: 40,
+    nominees: [
+      { id: 'yorgos-lanthimos', name: 'Bugonia - Yorgos Lanthimos' },
+      { id: 'chloe-zhao-bafta', name: 'Hamnet - Chloé Zhao' },
+      { id: 'josh-safdie-bafta', name: 'Marty Supreme - Josh Safdie' },
+      { id: 'paul-thomas-anderson-bafta', name: 'One Battle After Another - Paul Thomas Anderson' },
+      { id: 'joachim-trier-bafta', name: 'Sentimental Value - Joachim Trier' },
+      { id: 'ryan-coogler-bafta', name: 'Sinners - Ryan Coogler' }
+    ]
+  },
+  {
+    id: 'outstanding-debut',
+    name: 'Outstanding Debut by a British Writer, Director or Producer',
+    basePoints: 20,
+    nominees: [
+      { id: 'ceremony', name: 'The Ceremony' },
+      { id: 'my-fathers-shadow', name: 'My Father\'s Shadow' },
+      { id: 'pillion-debut', name: 'Pillion' },
+      { id: 'a-want-in-her', name: 'A Want In Her' },
+      { id: 'wasteman', name: 'Wasteman' }
+    ]
+  },
+  {
+    id: 'film-not-english',
+    name: 'Film Not in the English Language',
+    basePoints: 20,
+    nominees: [
+      { id: 'it-was-just-an-accident-bafta', name: 'It Was Just An Accident' },
+      { id: 'the-secret-agent-bafta', name: 'The Secret Agent' },
+      { id: 'sentimental-value-bafta', name: 'Sentimental Value' },
+      { id: 'sirat', name: 'Sirât' },
+      { id: 'the-voice-of-hind-rajab', name: 'The Voice of Hind Rajab' }
+    ]
+  },
+  {
+    id: 'documentary-bafta',
+    name: 'Documentary',
+    basePoints: 20,
+    nominees: [
+      { id: '2000-meters-to-andriivka', name: '2000 Meters to Andriivka' },
+      { id: 'apocalypse-in-the-tropics', name: 'Apocalypse in the Tropics' },
+      { id: 'cover-up', name: 'Cover-Up' },
+      { id: 'mr-nobody-against-putin', name: 'Mr Nobody Against Putin' },
+      { id: 'the-perfect-neighbor-bafta', name: 'The Perfect Neighbor' }
+    ]
+  },
+  {
+    id: 'animated-film',
+    name: 'Animated Film',
+    basePoints: 20,
+    nominees: [
+      { id: 'elio-bafta', name: 'Elio' },
+      { id: 'little-amelie-bafta', name: 'Little Amélie' },
+      { id: 'zootropolis-2', name: 'Zootropolis 2' }
+    ]
+  },
+  {
+    id: 'childrens-family-film',
+    name: 'Children\'s & Family Film',
+    basePoints: 15,
+    nominees: [
+      { id: 'arco-bafta', name: 'Arco' },
+      { id: 'boong', name: 'Boong' },
+      { id: 'lilo-stitch', name: 'Lilo & Stitch' },
+      { id: 'zootropolis-2-family', name: 'Zootropolis 2' }
+    ]
+  },
+  {
+    id: 'original-screenplay-bafta',
+    name: 'Original Screenplay',
+    basePoints: 30,
+    nominees: [
+      { id: 'i-swear-screenplay', name: 'I Swear' },
+      { id: 'marty-supreme-screenplay', name: 'Marty Supreme' },
+      { id: 'the-secret-agent-screenplay', name: 'The Secret Agent' },
+      { id: 'sentimental-value-screenplay', name: 'Sentimental Value' },
+      { id: 'sinners-screenplay', name: 'Sinners' }
+    ]
+  },
+  {
+    id: 'adapted-screenplay-bafta',
+    name: 'Adapted Screenplay',
+    basePoints: 30,
+    nominees: [
+      { id: 'ballad-of-wallis-island-screenplay', name: 'The Ballad of Wallis Island' },
+      { id: 'bugonia-screenplay', name: 'Bugonia' },
+      { id: 'hamnet-screenplay', name: 'Hamnet' },
+      { id: 'one-battle-screenplay', name: 'One Battle After Another' },
+      { id: 'pillion-screenplay', name: 'Pillion' }
+    ]
+  },
+  {
+    id: 'ee-rising-star',
+    name: 'EE BAFTA Rising Star Award (Voted for by the Public)',
+    basePoints: 15,
+    nominees: [
+      { id: 'robert-aramayo-star', name: 'Robert Aramayo' },
+      { id: 'miles-caton', name: 'Miles Caton' },
+      { id: 'chase-infiniti-star', name: 'Chase Infiniti' },
+      { id: 'archie-madekwe', name: 'Archie Madekwe' },
+      { id: 'posy-sterling', name: 'Posy Sterling' }
+    ]
+  },
+  {
+    id: 'original-score-bafta',
+    name: 'Original Score',
+    basePoints: 20,
+    nominees: [
+      { id: 'bugonia-score', name: 'Bugonia - Jerskin Fendrix' },
+      { id: 'frankenstein-score', name: 'Frankenstein - Alexandre Desplat' },
+      { id: 'hamnet-score', name: 'Hamnet - Max Richter' },
+      { id: 'one-battle-score', name: 'One Battle After Another - Jonny Greenwood' },
+      { id: 'sinners-score', name: 'Sinners - Ludwig Göransson' }
+    ]
+  },
+  {
+    id: 'casting-bafta',
+    name: 'Casting',
+    basePoints: 15,
+    nominees: [
+      { id: 'i-swear-casting', name: 'I Swear' },
+      { id: 'marty-supreme-casting', name: 'Marty Supreme' },
+      { id: 'one-battle-casting', name: 'One Battle After Another' },
+      { id: 'sentimental-value-casting', name: 'Sentimental Value' },
+      { id: 'sinners-casting', name: 'Sinners' }
+    ]
+  },
+  {
+    id: 'cinematography-bafta',
+    name: 'Cinematography',
+    basePoints: 25,
+    nominees: [
+      { id: 'frankenstein-cinematography', name: 'Frankenstein' },
+      { id: 'marty-supreme-cinematography', name: 'Marty Supreme' },
+      { id: 'one-battle-cinematography', name: 'One Battle After Another' },
+      { id: 'sinners-cinematography', name: 'Sinners' },
+      { id: 'train-dreams-cinematography', name: 'Train Dreams' }
+    ]
+  },
+  {
+    id: 'costume-design-bafta',
+    name: 'Costume Design',
+    basePoints: 20,
+    nominees: [
+      { id: 'frankenstein-costume', name: 'Frankenstein' },
+      { id: 'hamnet-costume', name: 'Hamnet' },
+      { id: 'marty-supreme-costume', name: 'Marty Supreme' },
+      { id: 'sinners-costume', name: 'Sinners' },
+      { id: 'wicked-costume', name: 'Wicked: For Good' }
+    ]
+  },
+  {
+    id: 'editing-bafta',
+    name: 'Editing',
+    basePoints: 25,
+    nominees: [
+      { id: 'f1-editing', name: 'F1' },
+      { id: 'house-of-dynamite', name: 'A House of Dynamite' },
+      { id: 'marty-supreme-editing', name: 'Marty Supreme' },
+      { id: 'one-battle-editing', name: 'One Battle After Another' },
+      { id: 'sinners-editing', name: 'Sinners' }
+    ]
+  },
+  {
+    id: 'production-design-bafta',
+    name: 'Production Design',
+    basePoints: 20,
+    nominees: [
+      { id: 'frankenstein-production', name: 'Frankenstein' },
+      { id: 'hamnet-production', name: 'Hamnet' },
+      { id: 'marty-supreme-production', name: 'Marty Supreme' },
+      { id: 'one-battle-production', name: 'One Battle After Another' },
+      { id: 'sinners-production', name: 'Sinners' }
+    ]
+  },
+  {
+    id: 'makeup-hair-bafta',
+    name: 'Make Up & Hair',
+    basePoints: 15,
+    nominees: [
+      { id: 'frankenstein-makeup', name: 'Frankenstein' },
+      { id: 'hamnet-makeup', name: 'Hamnet' },
+      { id: 'marty-supreme-makeup', name: 'Marty Supreme' },
+      { id: 'sinners-makeup', name: 'Sinners' },
+      { id: 'wicked-makeup', name: 'Wicked: For Good' }
+    ]
+  },
+  {
+    id: 'sound-bafta',
+    name: 'Sound',
+    basePoints: 20,
+    nominees: [
+      { id: 'f1-sound', name: 'F1' },
+      { id: 'frankenstein-sound', name: 'Frankenstein' },
+      { id: 'one-battle-sound', name: 'One Battle After Another' },
+      { id: 'sinners-sound', name: 'Sinners' },
+      { id: 'warfare', name: 'Warfare' }
+    ]
+  },
+  {
+    id: 'special-visual-effects-bafta',
+    name: 'Special Visual Effects',
+    basePoints: 25,
+    nominees: [
+      { id: 'avatar-fire-ash-bafta', name: 'Avatar: Fire and Ash' },
+      { id: 'f1-effects', name: 'F1' },
+      { id: 'frankenstein-effects', name: 'Frankenstein' },
+      { id: 'how-to-train-dragon', name: 'How to Train Your Dragon' },
+      { id: 'lost-bus', name: 'The Lost Bus' }
+    ]
+  },
+  {
+    id: 'british-short-film',
+    name: 'British Short Film',
+    basePoints: 10,
+    nominees: [
+      { id: 'magid-zafar', name: 'Magid / Zafar' },
+      { id: 'nostalgie', name: 'Nostalgie' },
+      { id: 'terence', name: 'Terence' },
+      { id: 'this-is-endometriosis', name: 'This Is Endometriosis' },
+      { id: 'welcome-home-freckles', name: 'Welcome Home Freckles' }
+    ]
+  },
+  {
+    id: 'british-short-animation',
+    name: 'British Short Animation',
+    basePoints: 10,
+    nominees: [
+      { id: 'cardboard', name: 'Cardboard' },
+      { id: 'solstice', name: 'Solstice' },
+      { id: 'two-black-boys', name: 'Two Black Boys in Paradise' }
+    ]
+  }
+];
+
 // Map award show IDs to their categories
 export const AWARD_SHOW_CATEGORIES: Record<string, any[]> = {
   'golden-globes-2026': CATEGORIES,
   'oscars-2026': OSCAR_CATEGORIES_2026,
-  'baftas-2026': [], // To be added when nominations are announced
+  'baftas-2026': BAFTA_CATEGORIES_2026,
   'sag-2026': [] // To be added when nominations are announced
 };
 

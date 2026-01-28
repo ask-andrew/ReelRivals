@@ -13,9 +13,10 @@ interface Player {
 interface StandingsSnippetProps {
   onViewLeague: () => void;
   refreshTrigger?: number; // Add this to force refresh
+  eventId: string; // Add eventId prop
 }
 
-const StandingsSnippet: React.FC<StandingsSnippetProps> = ({ onViewLeague, refreshTrigger }) => {
+const StandingsSnippet: React.FC<StandingsSnippetProps> = ({ onViewLeague, refreshTrigger, eventId }) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +24,7 @@ const StandingsSnippet: React.FC<StandingsSnippetProps> = ({ onViewLeague, refre
     const loadPlayers = async () => {
       try {
         setLoading(true);
-        const result = await getAllPlayersWithScores('golden-globes-2026');
+        const result = await getAllPlayersWithScores(eventId);
         // Show top 3 players who have submitted ballots
         const submittedPlayers = result.players
           .filter(p => p.hasSubmitted)

@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Check, Loader2, Save } from 'lucide-react';
-import { getCategories, type Category } from '../src/ballots';
-import { supabase } from '../src/supabase';
+import { getCategories } from '../src/instantService';
+import { SEASON_CIRCUIT } from '../constants';
 
 const AdminPanel: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedAwardShow, setSelectedAwardShow] = useState('baftas-2026'); // Default to BAFTAs
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
   const [selectedWinner, setSelectedWinner] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [selectedAwardShow]);
 
   const loadCategories = async () => {
     try {
-      const { categories: data, error } = await getCategories('golden-globes-2026');
+      const { categories: data, error } = await getCategories(selectedAwardShow);
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
@@ -30,26 +31,16 @@ const AdminPanel: React.FC = () => {
     setSaving(true);
     try {
       // Find the winner nominee ID
-      const winnerNominee = selectedCategory.nominees.find(n => n.id === selectedWinner);
+      const winnerNominee = selectedCategory.nominees.find((n: any) => n.id === selectedWinner);
       if (!winnerNominee) return;
 
-      // Insert result
-      const { error } = await supabase
-        .from('results')
-        .insert({
-          category_id: selectedCategory.id,
-          winner_nominee_id: winnerNominee.id
-        });
+      // TODO: Implement winner saving with InstantDB instead of Supabase
+      console.log('Would save winner:', {
+        category: selectedCategory.name,
+        winner: winnerNominee.name
+      });
 
-      if (error) throw error;
-
-      // Update category to mark as having a winner
-      await supabase
-        .from('categories')
-        .update({ has_winner: true })
-        .eq('id', selectedCategory.id);
-
-      alert('Winner saved successfully!');
+      alert('Winner saving not yet implemented with InstantDB');
       setSelectedWinner('');
     } catch (error) {
       console.error('Error saving winner:', error);
@@ -73,7 +64,23 @@ const AdminPanel: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-cinzel font-bold text-yellow-500 mb-2">Admin Panel</h1>
-          <p className="text-gray-400">Enter Golden Globes 2026 winners as they're announced</p>
+          <p className="text-gray-400">Enter award show winners as they're announced</p>
+          
+          {/* Award Show Selector */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-300 mb-2">Select Award Show:</label>
+            <select
+              value={selectedAwardShow}
+              onChange={(e) => setSelectedAwardShow(e.target.value)}
+              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+            >
+              {SEASON_CIRCUIT.map(show => (
+                <option key={show.id} value={show.id}>
+                  {show.name} ({show.date})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

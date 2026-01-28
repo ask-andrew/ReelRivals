@@ -69,7 +69,6 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
     
     setLoadingPercentages(true);
     try {
-      const eventId = 'golden-globes-2026';
       const { percentages, totalUsers: users, error } = await getNomineePercentages(
         category.id, 
         eventId, 
@@ -91,7 +90,6 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
 
   const loadResults = async () => {
     try {
-      const eventId = 'golden-globes-2026';
       const { results } = await getResults(eventId);
       
       if (results && results.length > 0) {
@@ -193,7 +191,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
         // Save to DB
         const result = await saveBallotPick(
             userId, 
-            'golden-globes-2026', 
+            eventId, 
             leagueId, 
             category.id, 
             selectedNomineeId, 
@@ -650,11 +648,11 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
                     // Save the pick with toggled power pick status
                     const result = await saveBallotPick(
                       userId,
-                      'golden-globes-2026',
+                      eventId,
                       leagueId,
                       category.id,
                       currentPick.nomineeId,
-                      newIsPower
+                      !currentPick.isPowerPick
                     );
                     
                     if (result.error) {
