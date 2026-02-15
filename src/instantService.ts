@@ -404,6 +404,46 @@ function getBAFTAEmoji(categoryId: string): string {
   return emojiMap[categoryId] || '🏆';
 }
 
+async function fetchCategoriesWithNominees(eventId: string, expectedCount?: number) {
+  const cats = await dbCore.queryOnce({
+    categories: {
+      $: { where: { event_id: eventId } },
+      nominees: {}
+    }
+  });
+
+  const categories = cats.data.categories || [];
+  if (!categories.length) return [];
+
+  const noms = await dbCore.queryOnce({
+    nominees: {
+      $: {
+        where: {
+          category_id: { $in: categories.map((c: any) => c.id) }
+        }
+      }
+    }
+  });
+
+  const nominees = noms.data.nominees || [];
+  const nomineesByCategory: { [key: string]: any[] } = {};
+  nominees.forEach((nominee: any) => {
+    if (!nomineesByCategory[nominee.category_id]) {
+      nomineesByCategory[nominee.category_id] = [];
+    }
+    nomineesByCategory[nominee.category_id].push(nominee);
+  });
+
+  const categoriesWithNominees = categories.map(cat => ({
+    ...cat,
+    nominees: nomineesByCategory[cat.id] || []
+  }));
+
+  return typeof expectedCount === 'number'
+    ? categoriesWithNominees.slice(0, expectedCount)
+    : categoriesWithNominees;
+}
+
 export async function ensureCategoriesSeeded(eventId: string = "golden-globes-2026") {
   console.log('[ensureCategoriesSeeded] Starting check for event:', eventId);
 
@@ -415,10 +455,7 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
   const lastFailure = seedFailures.get(eventId);
   if (lastFailure && Date.now() - lastFailure < 60_000) {
     console.warn('[ensureCategoriesSeeded] Skipping reseed due to recent failure for', eventId);
-    const cats = await dbCore.queryOnce({
-      categories: { $: { where: { event_id: eventId } }, nominees: {} }
-    });
-    return cats.data.categories || [];
+    return await fetchCategoriesWithNominees(eventId);
   }
 
   const seedPromise = (async () => {
@@ -496,13 +533,13 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
       
       if (isDataComplete) {
         console.log('[ensureCategoriesSeeded] Data is good, no seeding needed');
-        return existingCategories; // Return existing data
+        return await fetchCategoriesWithNominees(eventId, eventCategories.length);
       }
 
       const attempts = seedAttempts.get(eventId) || 0;
       if (attempts >= 1) {
         console.warn('[ensureCategoriesSeeded] Skipping repeat reseed attempt for', eventId);
-        return existingCategories;
+        return await fetchCategoriesWithNominees(eventId, eventCategories.length);
       }
       seedAttempts.set(eventId, attempts + 1);
 
@@ -587,61 +624,19 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
 
       console.log("✅ [ensureCategoriesSeeded] Re-seeding complete for", eventId, "!");
         
-        // 3. Verify the data is in the database
-        const freshCats = await dbCore.queryOnce({
-          categories: {
-            $: { where: { event_id: eventId } },
-            nominees: {}
-          }
-        });
-        
-        console.log('[ensureCategoriesSeeded] Fresh query for event_id:', eventId);
-        console.log('[ensureCategoriesSeeded] Fresh query result count:', freshCats.data.categories.length);
-        console.log('[ensureCategoriesSeeded] Fresh query event_ids:', freshCats.data.categories.map((c: any) => c.event_id));
-        
-        // Manual nominee linking (due to InstantDB limitations)
-        const freshNoms = await dbCore.queryOnce({
-          nominees: {
-            $: {
-              where: {
-                category_id: { $in: freshCats.data.categories.map((c: any) => c.id) }
-              }
-            }
-          }
-        });
-        
-        // Manually link nominees to categories
-        const categories = freshCats.data.categories;
-        const nominees = freshNoms.data.nominees;
-        
-        // Group nominees by category_id
-        const nomineesByCategory: { [key: string]: any[] } = {};
-        nominees.forEach((nominee: any) => {
-          if (!nomineesByCategory[nominee.category_id]) {
-            nomineesByCategory[nominee.category_id] = [];
-          }
-          nomineesByCategory[nominee.category_id].push(nominee);
-        });
-        
-        // Attach nominees to their categories
-        const categoriesWithNominees = categories.map(cat => ({
-          ...cat,
-          nominees: nomineesByCategory[cat.id] || []
-        }));
-        
-        // Filter to only return the expected number of categories
-        // This handles cases where cleanup didn't work properly
-        const filteredCategories = categoriesWithNominees.slice(0, eventCategories.length);
-        
-        console.log('[ensureCategoriesSeeded] Fresh categories query result:', categories);
-        console.log('[ensureCategoriesSeeded] Categories after nominee linking:', categoriesWithNominees.length);
-        console.log('[ensureCategoriesSeeded] Categories after filtering:', filteredCategories.length);
+        const filteredCategories = await fetchCategoriesWithNominees(eventId, eventCategories.length);
+        console.log('[ensureCategoriesSeeded] Fresh categories after nominee linking:', filteredCategories.length);
         console.log('[ensureCategoriesSeeded] First fresh category nominees:', filteredCategories[0]?.nominees?.length || 0);
         return filteredCategories;
     } catch (error) {
       console.error("❌ [ensureCategoriesSeeded] ERROR:", error);
       seedFailures.set(eventId, Date.now());
-      throw error;
+      try {
+        return await fetchCategoriesWithNominees(eventId);
+      } catch (fallbackError) {
+        console.error("❌ [ensureCategoriesSeeded] Fallback failed:", fallbackError);
+        throw error;
+      }
     }
   })();
 
