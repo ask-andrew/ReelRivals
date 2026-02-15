@@ -6,16 +6,16 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 50,
     emoji: '🏆',
     nominees: [
-      { id: 'anora', name: 'Anora', tmdb_id: "" },
-      { id: 'the-brutalist', name: 'The Brutalist', tmdb_id: "" },
-      { id: 'a-complete-unknown', name: 'A Complete Unknown', tmdb_id: "" },
-      { id: 'conclave', name: 'Conclave', tmdb_id: "" },
-      { id: 'dune-part-two', name: 'Dune: Part Two', tmdb_id: "" },
-      { id: 'emilia-perez', name: 'Emilia Pérez', tmdb_id: "" },
-      { id: 'im-still-here', name: 'I\'m Still Here', tmdb_id: "" },
-      { id: 'nickel-boys', name: 'Nickel Boys', tmdb_id: "" },
-      { id: 'the-substance', name: 'The Substance', tmdb_id: "" },
-      { id: 'wicked', name: 'Wicked', tmdb_id: "" }
+      { id: 'bugonia', name: 'Bugonia', tmdb_id: "" },
+      { id: 'f1', name: 'F1', tmdb_id: "" },
+      { id: 'frankenstein', name: 'Frankenstein', tmdb_id: "" },
+      { id: 'hamnet', name: 'Hamnet', tmdb_id: "" },
+      { id: 'marty-supreme', name: 'Marty Supreme', tmdb_id: "" },
+      { id: 'one-battle-after-another', name: 'One Battle After Another', tmdb_id: "" },
+      { id: 'the-secret-agent', name: 'The Secret Agent', tmdb_id: "" },
+      { id: 'sentimental-value', name: 'Sentimental Value', tmdb_id: "" },
+      { id: 'sinners', name: 'Sinners', tmdb_id: "" },
+      { id: 'train-dreams', name: 'Train Dreams', tmdb_id: "" }
     ]
   },
   {
@@ -24,11 +24,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 40,
     emoji: '🎬',
     nominees: [
-      { id: 'sean-baker-anora', name: 'Sean Baker — Anora', tmdb_id: "" },
-      { id: 'brady-corbet-brutalist', name: 'Brady Corbet — The Brutalist', tmdb_id: "" },
-      { id: 'james-mangold-complete-unknown', name: 'James Mangold — A Complete Unknown', tmdb_id: "" },
-      { id: 'jacques-audiard-emilia-perez', name: 'Jacques Audiard — Emilia Pérez', tmdb_id: "" },
-      { id: 'coralie-fargeat-substance', name: 'Coralie Fargeat — The Substance', tmdb_id: "" }
+      { id: 'chloe-zhao-hamnet', name: 'Chloé Zhao — Hamnet', tmdb_id: "" },
+      { id: 'josh-safdie-marty-supreme', name: 'Josh Safdie — Marty Supreme', tmdb_id: "" },
+      { id: 'pta-one-battle-after-another', name: 'Paul Thomas Anderson — One Battle After Another', tmdb_id: "" },
+      { id: 'joachim-trier-sentimental-value', name: 'Joachim Trier — Sentimental Value', tmdb_id: "" },
+      { id: 'ryan-coogler-sinners', name: 'Ryan Coogler — Sinners', tmdb_id: "" }
     ]
   },
   {
@@ -37,11 +37,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 30,
     emoji: '👨',
     nominees: [
-      { id: 'adrien-brody-brutalist', name: 'Adrien Brody — The Brutalist', tmdb_id: "" },
-      { id: 'timothee-chalamet-complete-unknown', name: 'Timothée Chalamet — A Complete Unknown', tmdb_id: "" },
-      { id: 'colman-domingo-sing-sing', name: 'Colman Domingo — Sing Sing', tmdb_id: "" },
-      { id: 'ralph-fiennes-conclave', name: 'Ralph Fiennes — Conclave', tmdb_id: "" },
-      { id: 'sebastian-stan-apprentice', name: 'Sebastian Stan — The Apprentice', tmdb_id: "" }
+      { id: 'timothee-chalamet-marty-supreme', name: 'Timothée Chalamet — Marty Supreme', tmdb_id: "" },
+      { id: 'leonardo-dicaprio-one-battle-after-another', name: 'Leonardo DiCaprio — One Battle After Another', tmdb_id: "" },
+      { id: 'ethan-hawke-blue-moon', name: 'Ethan Hawke — Blue Moon', tmdb_id: "" },
+      { id: 'michael-b-jordan-sinners', name: 'Michael B. Jordan — Sinners', tmdb_id: "" },
+      { id: 'wagner-moura-secret-agent', name: 'Wagner Moura — The Secret Agent', tmdb_id: "" }
     ]
   },
   {
@@ -50,11 +50,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 30,
     emoji: '👩',
     nominees: [
-      { id: 'cynthia-erivo-wicked', name: 'Cynthia Erivo — Wicked', tmdb_id: "" },
-      { id: 'karla-sofia-gascon-emilia-perez', name: 'Karla Sofía Gascón — Emilia Pérez', tmdb_id: "" },
-      { id: 'mikey-madison-anora', name: 'Mikey Madison — Anora', tmdb_id: "" },
-      { id: 'demi-moore-substance', name: 'Demi Moore — The Substance', tmdb_id: "" },
-      { id: 'fernanda-torres-im-still-here', name: 'Fernanda Torres — I\'m Still Here', tmdb_id: "" }
+      { id: 'jessie-buckley-hamnet', name: 'Jessie Buckley — Hamnet', tmdb_id: "" },
+      { id: 'rose-byrne-legs-kick-you', name: 'Rose Byrne — If I Had Legs I\'d Kick You', tmdb_id: "" },
+      { id: 'kate-hudson-song-sung-blue', name: 'Kate Hudson — Song Sung Blue', tmdb_id: "" },
+      { id: 'renate-reinsve-sentimental-value', name: 'Renate Reinsve — Sentimental Value', tmdb_id: "" },
+      { id: 'emma-stone-bugonia', name: 'Emma Stone — Bugonia', tmdb_id: "" }
     ]
   },
   {
@@ -63,11 +63,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 20,
     emoji: '👨‍🎭',
     nominees: [
-      { id: 'yura-borisov-anora', name: 'Yura Borisov — Anora', tmdb_id: "" },
-      { id: 'kieran-culkin-a-real-pain', name: 'Kieran Culkin — A Real Pain', tmdb_id: "" },
-      { id: 'edward-norton-complete-unknown', name: 'Edward Norton — A Complete Unknown', tmdb_id: "" },
-      { id: 'guy-pearce-brutalist', name: 'Guy Pearce — The Brutalist', tmdb_id: "" },
-      { id: 'jeremy-strong-apprentice', name: 'Jeremy Strong — The Apprentice', tmdb_id: "" }
+      { id: 'benicio-del-toro-one-battle-after-another', name: 'Benicio Del Toro — One Battle After Another', tmdb_id: "" },
+      { id: 'jacob-elordi-frankenstein', name: 'Jacob Elordi — Frankenstein', tmdb_id: "" },
+      { id: 'delroy-lindo-sinners', name: 'Delroy Lindo — Sinners', tmdb_id: "" },
+      { id: 'sean-penn-one-battle-after-another', name: 'Sean Penn — One Battle After Another', tmdb_id: "" },
+      { id: 'stellan-skarsgard-sentimental-value', name: 'Stellan Skarsgård — Sentimental Value', tmdb_id: "" }
     ]
   },
   {
@@ -76,11 +76,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 20,
     emoji: '👩‍🎭',
     nominees: [
-      { id: 'monica-barbaro-complete-unknown', name: 'Monica Barbaro — A Complete Unknown', tmdb_id: "" },
-      { id: 'ariana-grande-wicked', name: 'Ariana Grande — Wicked', tmdb_id: "" },
-      { id: 'felicity-jones-brutalist', name: 'Felicity Jones — The Brutalist', tmdb_id: "" },
-      { id: 'isabella-rossellini-conclave', name: 'Isabella Rossellini — Conclave', tmdb_id: "" },
-      { id: 'zoe-saldana-emilia-perez', name: 'Zoe Saldaña — Emilia Pérez', tmdb_id: "" }
+      { id: 'elle-fanning-sentimental-value', name: 'Elle Fanning — Sentimental Value', tmdb_id: "" },
+      { id: 'inga-lilleaas-sentimental-value', name: 'Inga Ibsdotter Lilleaas — Sentimental Value', tmdb_id: "" },
+      { id: 'amy-madigan-weapons', name: 'Amy Madigan — Weapons', tmdb_id: "" },
+      { id: 'wunmi-mosaku-sinners', name: 'Wunmi Mosaku — Sinners', tmdb_id: "" },
+      { id: 'teyana-taylor-one-battle-after-another', name: 'Teyana Taylor — One Battle After Another', tmdb_id: "" }
     ]
   },
   {
@@ -89,11 +89,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 25,
     emoji: '✍️',
     nominees: [
-      { id: 'anora-screenplay', name: 'Anora — Sean Baker', tmdb_id: "" },
-      { id: 'brutalist-screenplay', name: 'The Brutalist — Brady Corbet, Mona Fastvold', tmdb_id: "" },
-      { id: 'a-real-pain-screenplay', name: 'A Real Pain — Jesse Eisenberg', tmdb_id: "" },
-      { id: 'september-5-screenplay', name: 'September 5 — Moritz Binder, Tim Fehlbaum, Alex David', tmdb_id: "" },
-      { id: 'substance-screenplay', name: 'The Substance — Coralie Fargeat', tmdb_id: "" }
+      { id: 'blue-moon-screenplay', name: 'Blue Moon — Robert Kaplow', tmdb_id: "" },
+      { id: 'it-was-just-an-accident-screenplay', name: 'It Was Just an Accident — Jafar Panahi', tmdb_id: "" },
+      { id: 'marty-supreme-screenplay', name: 'Marty Supreme — Ronald Bronstein & Josh Safdie', tmdb_id: "" },
+      { id: 'sentimental-value-screenplay', name: 'Sentimental Value — Eskil Vogt, Joachim Trier', tmdb_id: "" },
+      { id: 'sinners-screenplay', name: 'Sinners — Ryan Coogler', tmdb_id: "" }
     ]
   },
   {
@@ -102,11 +102,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 25,
     emoji: '📝',
     nominees: [
-      { id: 'complete-unknown-screenplay', name: 'A Complete Unknown — Jay Cocks, James Mangold', tmdb_id: "" },
-      { id: 'conclave-screenplay', name: 'Conclave — Peter Straughan', tmdb_id: "" },
-      { id: 'emilia-perez-screenplay', name: 'Emilia Pérez — Jacques Audiard', tmdb_id: "" },
-      { id: 'nickel-boys-screenplay', name: 'Nickel Boys — RaMell Ross, Joslyn Barnes', tmdb_id: "" },
-      { id: 'sing-sing-screenplay', name: 'Sing Sing — Clint Bentley, Greg Kwedar', tmdb_id: "" }
+      { id: 'bugonia-screenplay', name: 'Bugonia — Will Tracy', tmdb_id: "" },
+      { id: 'frankenstein-screenplay', name: 'Frankenstein — Guillermo del Toro', tmdb_id: "" },
+      { id: 'hamnet-screenplay', name: 'Hamnet — Chloé Zhao & Maggie O\'Farrell', tmdb_id: "" },
+      { id: 'one-battle-after-another-screenplay', name: 'One Battle After Another — Paul Thomas Anderson', tmdb_id: "" },
+      { id: 'train-dreams-screenplay', name: 'Train Dreams — Clint Bentley & Greg Kwedar', tmdb_id: "" }
     ]
   },
   {
@@ -115,11 +115,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 20,
     emoji: '🌍',
     nominees: [
-      { id: 'im-still-here-brazil', name: 'I\'m Still Here (Brazil)', tmdb_id: "" },
-      { id: 'girl-with-the-needle-denmark', name: 'The Girl with the Needle (Denmark)', tmdb_id: "" },
-      { id: 'emilia-perez-france', name: 'Emilia Pérez (France)', tmdb_id: "" },
-      { id: 'seed-sacred-fig-germany', name: 'The Seed of the Sacred Fig (Germany)', tmdb_id: "" },
-      { id: 'flow-latvia', name: 'Flow (Latvia)', tmdb_id: "" }
+      { id: 'secret-agent-brazil', name: 'The Secret Agent (Brazil)', tmdb_id: "" },
+      { id: 'it-was-just-an-accident-france', name: 'It Was Just an Accident (France)', tmdb_id: "" },
+      { id: 'sentimental-value-norway', name: 'Sentimental Value (Norway)', tmdb_id: "" },
+      { id: 'sirat-spain', name: 'Sirāt (Spain)', tmdb_id: "" },
+      { id: 'voice-of-hind-rajab-tunisia', name: 'The Voice of Hind Rajab (Tunisia)', tmdb_id: "" }
     ]
   },
   {
@@ -128,11 +128,11 @@ export const MAIN_OSCAR_CATEGORIES = [
     basePoints: 15,
     emoji: '🎨',
     nominees: [
-      { id: 'flow-animated', name: 'Flow', tmdb_id: "" },
-      { id: 'inside-out-2', name: 'Inside Out 2', tmdb_id: "" },
-      { id: 'memoir-of-a-snail', name: 'Memoir of a Snail', tmdb_id: "" },
-      { id: 'wallace-gromit-vengeance', name: 'Wallace & Gromit: Vengeance Most Fowl', tmdb_id: "" },
-      { id: 'the-wild-robot', name: 'The Wild Robot', tmdb_id: "" }
+      { id: 'arco-animated', name: 'Arco', tmdb_id: "" },
+      { id: 'elio-animated', name: 'Elio', tmdb_id: "" },
+      { id: 'kpop-demon-hunters', name: 'KPop Demon Hunters', tmdb_id: "" },
+      { id: 'little-amelie', name: 'Little Amélie or the Character of Rain', tmdb_id: "" },
+      { id: 'zootopia-2', name: 'Zootopia 2', tmdb_id: "" }
     ]
   }
 ];
@@ -144,11 +144,11 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 50,
     emoji: '🏆',
     nominees: [
-      { id: 'anora', name: 'Anora', tmdb_id: "" },
-      { id: 'the-brutalist', name: 'The Brutalist', tmdb_id: "" },
-      { id: 'a-complete-unknown', name: 'A Complete Unknown', tmdb_id: "" },
-      { id: 'conclave', name: 'Conclave', tmdb_id: "" },
-      { id: 'emilia-perez', name: 'Emilia Pérez', tmdb_id: "" }
+      { id: 'hamnet', name: 'Hamnet', tmdb_id: "" },
+      { id: 'marty-supreme', name: 'Marty Supreme', tmdb_id: "" },
+      { id: 'one-battle-after-another', name: 'One Battle After Another', tmdb_id: "" },
+      { id: 'sentimental-value', name: 'Sentimental Value', tmdb_id: "" },
+      { id: 'sinners', name: 'Sinners', tmdb_id: "" }
     ]
   },
   {
@@ -157,11 +157,12 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 40,
     emoji: '🎬',
     nominees: [
-      { id: 'brady-corbet-brutalist', name: 'Brady Corbet — The Brutalist', tmdb_id: "" },
-      { id: 'james-mangold-complete-unknown', name: 'James Mangold — A Complete Unknown', tmdb_id: "" },
-      { id: 'jacques-audiard-emilia-perez', name: 'Jacques Audiard — Emilia Pérez', tmdb_id: "" },
-      { id: 'coralie-fargeat-substance', name: 'Coralie Fargeat — The Substance', tmdb_id: "" },
-      { id: 'sean-baker-anora', name: 'Sean Baker — Anora', tmdb_id: "" }
+      { id: 'ryan-coogler-sinners', name: 'Ryan Coogler — Sinners', tmdb_id: "" },
+      { id: 'yorgos-lanthimos-bugonia', name: 'Yorgos Lanthimos — Bugonia', tmdb_id: "" },
+      { id: 'josh-safdie-marty-supreme', name: 'Josh Safdie — Marty Supreme', tmdb_id: "" },
+      { id: 'pta-one-battle-after-another', name: 'Paul Thomas Anderson — One Battle After Another', tmdb_id: "" },
+      { id: 'joachim-trier-sentimental-value', name: 'Joachim Trier — Sentimental Value', tmdb_id: "" },
+      { id: 'chloe-zhao-hamnet', name: 'Chloé Zhao — Hamnet', tmdb_id: "" }
     ]
   },
   {
@@ -170,12 +171,12 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 30,
     emoji: '👨',
     nominees: [
-      { id: 'adrien-brody-brutalist', name: 'Adrien Brody — The Brutalist', tmdb_id: "" },
-      { id: 'timothee-chalamet-complete-unknown', name: 'Timothée Chalamet — A Complete Unknown', tmdb_id: "" },
-      { id: 'colman-domingo-sing-sing', name: 'Colman Domingo — Sing Sing', tmdb_id: "" },
-      { id: 'ralph-fiennes-conclave', name: 'Ralph Fiennes — Conclave', tmdb_id: "" },
-      { id: 'hugh-grant-heretic', name: 'Hugh Grant — Heretic', tmdb_id: "" },
-      { id: 'sebastian-stan-apprentice', name: 'Sebastian Stan — The Apprentice', tmdb_id: "" }
+      { id: 'robert-aramayo-i-swear', name: 'Robert Aramayo — I Swear', tmdb_id: "" },
+      { id: 'timothee-chalamet-marty-supreme', name: 'Timothée Chalamet — Marty Supreme', tmdb_id: "" },
+      { id: 'leonardo-dicaprio-one-battle-after-another', name: 'Leonardo DiCaprio — One Battle After Another', tmdb_id: "" },
+      { id: 'ethan-hawke-blue-moon', name: 'Ethan Hawke — Blue Moon', tmdb_id: "" },
+      { id: 'michael-b-jordan-sinners', name: 'Michael B. Jordan — Sinners', tmdb_id: "" },
+      { id: 'jesse-plemons-bugonia', name: 'Jesse Plemons — Bugonia', tmdb_id: "" }
     ]
   },
   {
@@ -184,12 +185,12 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 30,
     emoji: '👩',
     nominees: [
-      { id: 'cynthia-erivo-wicked', name: 'Cynthia Erivo — Wicked', tmdb_id: "" },
-      { id: 'karla-sofia-gascon-emilia-perez', name: 'Karla Sofía Gascón — Emilia Pérez', tmdb_id: "" },
-      { id: 'marianne-jean-baptiste-hard-truths', name: 'Marianne Jean-Baptiste — Hard Truths', tmdb_id: "" },
-      { id: 'mikey-madison-anora', name: 'Mikey Madison — Anora', tmdb_id: "" },
-      { id: 'demi-moore-substance', name: 'Demi Moore — The Substance', tmdb_id: "" },
-      { id: 'saoirse-ronan-outrun', name: 'Saoirse Ronan — The Outrun', tmdb_id: "" }
+      { id: 'jessie-buckley-hamnet', name: 'Jessie Buckley — Hamnet', tmdb_id: "" },
+      { id: 'rose-byrne-legs-kick-you', name: 'Rose Byrne — If I Had Legs I\'d Kick You', tmdb_id: "" },
+      { id: 'kate-hudson-song-sung-blue', name: 'Kate Hudson — Song Sung Blue', tmdb_id: "" },
+      { id: 'chase-infiniti-one-battle-after-another', name: 'Chase Infiniti — One Battle After Another', tmdb_id: "" },
+      { id: 'renate-reinsve-sentimental-value', name: 'Renate Reinsve — Sentimental Value', tmdb_id: "" },
+      { id: 'emma-stone-bugonia', name: 'Emma Stone — Bugonia', tmdb_id: "" }
     ]
   },
   {
@@ -198,12 +199,12 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 20,
     emoji: '👨‍🎭',
     nominees: [
-      { id: 'yura-borisov-anora', name: 'Yura Borisov — Anora', tmdb_id: "" },
-      { id: 'kieran-culkin-a-real-pain', name: 'Kieran Culkin — A Real Pain', tmdb_id: "" },
-      { id: 'clarence-maclin-sing-sing', name: 'Clarence Maclin — Sing Sing', tmdb_id: "" },
-      { id: 'edward-norton-complete-unknown', name: 'Edward Norton — A Complete Unknown', tmdb_id: "" },
-      { id: 'guy-pearce-brutalist', name: 'Guy Pearce — The Brutalist', tmdb_id: "" },
-      { id: 'jeremy-strong-apprentice', name: 'Jeremy Strong — The Apprentice', tmdb_id: "" }
+      { id: 'benicio-del-toro-one-battle-after-another', name: 'Benicio Del Toro — One Battle After Another', tmdb_id: "" },
+      { id: 'jacob-elordi-frankenstein', name: 'Jacob Elordi — Frankenstein', tmdb_id: "" },
+      { id: 'paul-mescal-hamnet', name: 'Paul Mescal — Hamnet', tmdb_id: "" },
+      { id: 'peter-mullan-i-swear', name: 'Peter Mullan — I Swear', tmdb_id: "" },
+      { id: 'sean-penn-one-battle-after-another', name: 'Sean Penn — One Battle After Another', tmdb_id: "" },
+      { id: 'stellan-skarsgard-sentimental-value', name: 'Stellan Skarsgård — Sentimental Value', tmdb_id: "" }
     ]
   },
   {
@@ -212,12 +213,12 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 20,
     emoji: '👩‍🎭',
     nominees: [
-      { id: 'selena-gomez-emilia-perez', name: 'Selena Gomez — Emilia Pérez', tmdb_id: "" },
-      { id: 'ariana-grande-wicked', name: 'Ariana Grande — Wicked', tmdb_id: "" },
-      { id: 'felicity-jones-brutalist', name: 'Felicity Jones — The Brutalist', tmdb_id: "" },
-      { id: 'jamie-lee-curtis-last-showgirl', name: 'Jamie Lee Curtis — The Last Showgirl', tmdb_id: "" },
-      { id: 'isabella-rossellini-conclave', name: 'Isabella Rossellini — Conclave', tmdb_id: "" },
-      { id: 'zoe-saldana-emilia-perez', name: 'Zoe Saldaña — Emilia Pérez', tmdb_id: "" }
+      { id: 'odessa-azion-marty-supreme', name: 'Odessa A’zion — Marty Supreme', tmdb_id: "" },
+      { id: 'inga-lilleaas-sentimental-value', name: 'Inga Ibsdotter Lilleaas — Sentimental Value', tmdb_id: "" },
+      { id: 'wunmi-mosaku-sinners', name: 'Wunmi Mosaku — Sinners', tmdb_id: "" },
+      { id: 'carey-mulligan-wallis-island', name: 'Carey Mulligan — The Ballad of Wallis Island', tmdb_id: "" },
+      { id: 'teyana-taylor-one-battle-after-another', name: 'Teyana Taylor — One Battle After Another', tmdb_id: "" },
+      { id: 'emily-watson-hamnet', name: 'Emily Watson — Hamnet', tmdb_id: "" }
     ]
   },
   {
@@ -226,11 +227,11 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 25,
     emoji: '✍️',
     nominees: [
-      { id: 'anora-screenplay', name: 'Anora — Sean Baker', tmdb_id: "" },
-      { id: 'brutalist-screenplay', name: 'The Brutalist — Brady Corbet, Mona Fastvold', tmdb_id: "" },
-      { id: 'kneecap-screenplay', name: 'Kneecap — Rich Peppiatt', tmdb_id: "" },
-      { id: 'a-real-pain-screenplay', name: 'A Real Pain — Jesse Eisenberg', tmdb_id: "" },
-      { id: 'substance-screenplay', name: 'The Substance — Coralie Fargeat', tmdb_id: "" }
+      { id: 'i-swear-screenplay', name: 'I Swear — Daniel Ferguson, Tracey Tynan', tmdb_id: "" },
+      { id: 'marty-supreme-screenplay', name: 'Marty Supreme — Josh Safdie, Ronald Bronstein', tmdb_id: "" },
+      { id: 'secret-agent-screenplay', name: 'The Secret Agent — Kleber Mendonça Filho', tmdb_id: "" },
+      { id: 'sentimental-value-screenplay', name: 'Sentimental Value — Joachim Trier, Eskil Vogt', tmdb_id: "" },
+      { id: 'sinners-screenplay', name: 'Sinners — Ryan Coogler', tmdb_id: "" }
     ]
   },
   {
@@ -239,11 +240,11 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 25,
     emoji: '📝',
     nominees: [
-      { id: 'complete-unknown-screenplay', name: 'A Complete Unknown — James Mangold, Jay Cocks', tmdb_id: "" },
-      { id: 'conclave-screenplay', name: 'Conclave — Peter Straughan', tmdb_id: "" },
-      { id: 'emilia-perez-screenplay', name: 'Emilia Pérez — Jacques Audiard', tmdb_id: "" },
-      { id: 'nickel-boys-screenplay', name: 'Nickel Boys — RaMell Ross, Joslyn Barnes', tmdb_id: "" },
-      { id: 'sing-sing-screenplay', name: 'Sing Sing — Clint Bentley, Greg Kwedar', tmdb_id: "" }
+      { id: 'ballad-wallis-island-screenplay', name: 'The Ballad of Wallis Island — Tom Basden, Tim Key', tmdb_id: "" },
+      { id: 'bugonia-screenplay', name: 'Bugonia — Will Tracy', tmdb_id: "" },
+      { id: 'hamnet-screenplay', name: 'Hamnet — Chloé Zhao, Maggie O\'Farrell', tmdb_id: "" },
+      { id: 'one-battle-after-another-screenplay', name: 'One Battle After Another — Paul Thomas Anderson', tmdb_id: "" },
+      { id: 'pillion-screenplay', name: 'Pillion — Harry Lighton, Adam Mars-Jones', tmdb_id: "" }
     ]
   },
   {
@@ -252,16 +253,16 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 20,
     emoji: '🇬🇧',
     nominees: [
-      { id: 'all-we-imagine-as-light', name: 'All We Imagine As Light', tmdb_id: "" },
-      { id: 'the-apprentice', name: 'The Apprentice', tmdb_id: "" },
-      { id: 'bird', name: 'Bird', tmdb_id: "" },
-      { id: 'blitz', name: 'Blitz', tmdb_id: "" },
-      { id: 'conclave-british', name: 'Conclave', tmdb_id: "" },
-      { id: 'gladiator-ii', name: 'Gladiator II', tmdb_id: "" },
-      { id: 'hard-truths', name: 'Hard Truths', tmdb_id: "" },
-      { id: 'kneecap', name: 'Kneecap', tmdb_id: "" },
-      { id: 'lee', name: 'Lee', tmdb_id: "" },
-      { id: 'love-lies-bleeding', name: 'Love Lies Bleeding', tmdb_id: "" }
+      { id: '28-years-later', name: '28 Years Later', tmdb_id: "" },
+      { id: 'ballad-wallis-island', name: 'The Ballad of Wallis Island', tmdb_id: "" },
+      { id: 'bridget-jones-mad-about-the-boy', name: 'Bridget Jones: Mad About the Boy', tmdb_id: "" },
+      { id: 'die-my-love', name: 'Die My Love', tmdb_id: "" },
+      { id: 'h-is-for-hawk', name: 'H is for Hawk', tmdb_id: "" },
+      { id: 'hamnet-british', name: 'Hamnet', tmdb_id: "" },
+      { id: 'i-swear-british', name: 'I Swear', tmdb_id: "" },
+      { id: 'mr-burton', name: 'Mr. Burton', tmdb_id: "" },
+      { id: 'pillion-british', name: 'Pillion', tmdb_id: "" },
+      { id: 'steve', name: 'Steve', tmdb_id: "" }
     ]
   },
   {
@@ -270,9 +271,9 @@ export const MAIN_BAFTA_CATEGORIES = [
     basePoints: 15,
     emoji: '🎨',
     nominees: [
-      { id: 'flow-animated', name: 'Flow', tmdb_id: "" },
-      { id: 'the-wild-robot', name: 'The Wild Robot', tmdb_id: "" },
-      { id: 'wallace-gromit-vengeance', name: 'Wallace & Gromit: Vengeance Most Fowl', tmdb_id: "" }
+      { id: 'elio-animated', name: 'Elio', tmdb_id: "" },
+      { id: 'little-amelie', name: 'Little Amélie', tmdb_id: "" },
+      { id: 'zootropolis-2', name: 'Zootropolis 2', tmdb_id: "" }
     ]
   }
 ];
@@ -284,11 +285,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 40,
     emoji: '🎭',
     nominees: [
-      { id: 'adrien-brody-brutalist', name: 'Adrien Brody — The Brutalist', tmdb_id: "" },
-      { id: 'timothee-chalamet-complete-unknown', name: 'Timothée Chalamet — A Complete Unknown', tmdb_id: "" },
-      { id: 'daniel-craig-queer', name: 'Daniel Craig — Queer', tmdb_id: "" },
-      { id: 'colman-domingo-sing-sing', name: 'Colman Domingo — Sing Sing', tmdb_id: "" },
-      { id: 'ralph-fiennes-conclave', name: 'Ralph Fiennes — Conclave', tmdb_id: "" }
+      { id: 'timothee-chalamet-marty-supreme', name: 'Timothée Chalamet — Marty Supreme', tmdb_id: "" },
+      { id: 'leonardo-dicaprio-one-battle-after-another', name: 'Leonardo DiCaprio — One Battle After Another', tmdb_id: "" },
+      { id: 'ethan-hawke-blue-moon', name: 'Ethan Hawke — Blue Moon', tmdb_id: "" },
+      { id: 'michael-b-jordan-sinners', name: 'Michael B. Jordan — Sinners', tmdb_id: "" },
+      { id: 'jesse-plemons-bugonia', name: 'Jesse Plemons — Bugonia', tmdb_id: "" }
     ]
   },
   {
@@ -297,11 +298,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 40,
     emoji: '🎭',
     nominees: [
-      { id: 'pamela-anderson-last-showgirl', name: 'Pamela Anderson — The Last Showgirl', tmdb_id: "" },
-      { id: 'cynthia-erivo-wicked', name: 'Cynthia Erivo — Wicked', tmdb_id: "" },
-      { id: 'karla-sofia-gascon-emilia-perez', name: 'Karla Sofía Gascón — Emilia Pérez', tmdb_id: "" },
-      { id: 'mikey-madison-anora', name: 'Mikey Madison — Anora', tmdb_id: "" },
-      { id: 'demi-moore-substance', name: 'Demi Moore — The Substance', tmdb_id: "" }
+      { id: 'jessie-buckley-hamnet', name: 'Jessie Buckley — Hamnet', tmdb_id: "" },
+      { id: 'rose-byrne-legs-kick-you', name: 'Rose Byrne — If I Had Legs I\'d Kick You', tmdb_id: "" },
+      { id: 'kate-hudson-song-sung-blue', name: 'Kate Hudson — Song Sung Blue', tmdb_id: "" },
+      { id: 'chase-infiniti-one-battle-after-another', name: 'Chase Infiniti — One Battle After Another', tmdb_id: "" },
+      { id: 'emma-stone-bugonia', name: 'Emma Stone — Bugonia', tmdb_id: "" }
     ]
   },
   {
@@ -310,11 +311,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 30,
     emoji: '🎭',
     nominees: [
-      { id: 'jonathan-bailey-wicked', name: 'Jonathan Bailey — Wicked', tmdb_id: "" },
-      { id: 'yura-borisov-anora', name: 'Yura Borisov — Anora', tmdb_id: "" },
-      { id: 'kieran-culkin-a-real-pain', name: 'Kieran Culkin — A Real Pain', tmdb_id: "" },
-      { id: 'edward-norton-complete-unknown', name: 'Edward Norton — A Complete Unknown', tmdb_id: "" },
-      { id: 'jeremy-strong-apprentice', name: 'Jeremy Strong — The Apprentice', tmdb_id: "" }
+      { id: 'miles-caton-sinners', name: 'Miles Caton — Sinners', tmdb_id: "" },
+      { id: 'benicio-del-toro-one-battle-after-another', name: 'Benicio Del Toro — One Battle After Another', tmdb_id: "" },
+      { id: 'jacob-elordi-frankenstein', name: 'Jacob Elordi — Frankenstein', tmdb_id: "" },
+      { id: 'paul-mescal-hamnet', name: 'Paul Mescal — Hamnet', tmdb_id: "" },
+      { id: 'sean-penn-one-battle-after-another', name: 'Sean Penn — One Battle After Another', tmdb_id: "" }
     ]
   },
   {
@@ -323,11 +324,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 30,
     emoji: '🎭',
     nominees: [
-      { id: 'monica-barbaro-complete-unknown', name: 'Monica Barbaro — A Complete Unknown', tmdb_id: "" },
-      { id: 'jamie-lee-curtis-last-showgirl', name: 'Jamie Lee Curtis — The Last Showgirl', tmdb_id: "" },
-      { id: 'danielle-deadwyler-piano-lesson', name: 'Danielle Deadwyler — The Piano Lesson', tmdb_id: "" },
-      { id: 'ariana-grande-wicked', name: 'Ariana Grande — Wicked', tmdb_id: "" },
-      { id: 'zoe-saldana-emilia-perez', name: 'Zoe Saldaña — Emilia Pérez', tmdb_id: "" }
+      { id: 'odessa-azion-marty-supreme', name: 'Odessa A’zion — Marty Supreme', tmdb_id: "" },
+      { id: 'ariana-grande-wicked-for-good', name: 'Ariana Grande — Wicked: For Good', tmdb_id: "" },
+      { id: 'amy-madigan-weapons', name: 'Amy Madigan — Weapons', tmdb_id: "" },
+      { id: 'wunmi-mosaku-sinners', name: 'Wunmi Mosaku — Sinners', tmdb_id: "" },
+      { id: 'teyana-taylor-one-battle-after-another', name: 'Teyana Taylor — One Battle After Another', tmdb_id: "" }
     ]
   },
   {
@@ -336,11 +337,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 50,
     emoji: '🎬',
     nominees: [
-      { id: 'a-complete-unknown-cast', name: 'A Complete Unknown', tmdb_id: "" },
-      { id: 'anora-cast', name: 'Anora', tmdb_id: "" },
-      { id: 'conclave-cast', name: 'Conclave', tmdb_id: "" },
-      { id: 'emilia-perez-cast', name: 'Emilia Pérez', tmdb_id: "" },
-      { id: 'wicked-cast', name: 'Wicked', tmdb_id: "" }
+      { id: 'frankenstein-cast', name: 'Frankenstein', tmdb_id: "" },
+      { id: 'hamnet-cast', name: 'Hamnet', tmdb_id: "" },
+      { id: 'marty-supreme-cast', name: 'Marty Supreme', tmdb_id: "" },
+      { id: 'one-battle-after-another-cast', name: 'One Battle After Another', tmdb_id: "" },
+      { id: 'sinners-cast', name: 'Sinners', tmdb_id: "" }
     ]
   },
   {
@@ -349,11 +350,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 30,
     emoji: '📺',
     nominees: [
-      { id: 'tadanobu-asano-shogun', name: 'Tadanobu Asano — Shōgun', tmdb_id: "" },
-      { id: 'jeff-bridges-the-old-man', name: 'Jeff Bridges — The Old Man', tmdb_id: "" },
+      { id: 'sterling-k-brown-paradise', name: 'Sterling K. Brown — Paradise', tmdb_id: "" },
+      { id: 'billy-crudup-morning-show', name: 'Billy Crudup — The Morning Show', tmdb_id: "" },
+      { id: 'walton-goggins-white-lotus', name: 'Walton Goggins — The White Lotus', tmdb_id: "" },
       { id: 'gary-oldman-slow-horses', name: 'Gary Oldman — Slow Horses', tmdb_id: "" },
-      { id: 'eddie-redmayne-day-of-jackal', name: 'Eddie Redmayne — The Day of the Jackal', tmdb_id: "" },
-      { id: 'hiroyuki-sanada-shogun', name: 'Hiroyuki Sanada — Shōgun', tmdb_id: "" }
+      { id: 'noah-wyle-the-pitt', name: 'Noah Wyle — The Pitt', tmdb_id: "" }
     ]
   },
   {
@@ -362,11 +363,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 30,
     emoji: '📺',
     nominees: [
-      { id: 'kathy-bates-matlock', name: 'Kathy Bates — Matlock', tmdb_id: "" },
-      { id: 'nicola-coughlan-bridgerton', name: 'Nicola Coughlan — Bridgerton', tmdb_id: "" },
-      { id: 'allison-janney-diplomat', name: 'Allison Janney — The Diplomat', tmdb_id: "" },
+      { id: 'britt-lower-severance', name: 'Britt Lower — Severance', tmdb_id: "" },
+      { id: 'parker-posey-white-lotus', name: 'Parker Posey — The White Lotus', tmdb_id: "" },
       { id: 'keri-russell-diplomat', name: 'Keri Russell — The Diplomat', tmdb_id: "" },
-      { id: 'anna-sawai-shogun', name: 'Anna Sawai — Shōgun', tmdb_id: "" }
+      { id: 'rhea-seehorn-pluribus', name: 'Rhea Seehorn — Pluribus', tmdb_id: "" },
+      { id: 'aimee-lou-wood-white-lotus', name: 'Aimee Lou Wood — The White Lotus', tmdb_id: "" }
     ]
   },
   {
@@ -375,11 +376,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 30,
     emoji: '📺',
     nominees: [
+      { id: 'ike-barinholtz-the-studio', name: 'Ike Barinholtz — The Studio', tmdb_id: "" },
       { id: 'adam-brody-nobody-wants', name: 'Adam Brody — Nobody Wants This', tmdb_id: "" },
       { id: 'ted-danson-man-on-inside', name: 'Ted Danson — A Man on the Inside', tmdb_id: "" },
-      { id: 'harrison-ford-shrinking', name: 'Harrison Ford — Shrinking', tmdb_id: "" },
-      { id: 'martin-short-only-murders', name: 'Martin Short — Only Murders in the Building', tmdb_id: "" },
-      { id: 'jeremy-allen-white-bear', name: 'Jeremy Allen White — The Bear', tmdb_id: "" }
+      { id: 'seth-rogen-the-studio', name: 'Seth Rogen — The Studio', tmdb_id: "" },
+      { id: 'martin-short-only-murders', name: 'Martin Short — Only Murders in the Building', tmdb_id: "" }
     ]
   },
   {
@@ -388,11 +389,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 30,
     emoji: '📺',
     nominees: [
-      { id: 'kristen-bell-nobody-wants', name: 'Kristen Bell — Nobody Wants This', tmdb_id: "" },
-      { id: 'quinta-brunson-abbott', name: 'Quinta Brunson — Abbott Elementary', tmdb_id: "" },
-      { id: 'liza-colon-zayas-bear', name: 'Liza Colón-Zayas — The Bear', tmdb_id: "" },
-      { id: 'ayo-edebiri-bear', name: 'Ayo Edebiri — The Bear', tmdb_id: "" },
-      { id: 'jean-smart-hacks', name: 'Jean Smart — Hacks', tmdb_id: "" }
+      { id: 'kathryn-hahn-the-studio', name: 'Kathryn Hahn — The Studio', tmdb_id: "" },
+      { id: 'catherine-ohara-the-studio', name: 'Catherine O\'Hara — The Studio', tmdb_id: "" },
+      { id: 'jenna-ortega-wednesday', name: 'Jenna Ortega — Wednesday', tmdb_id: "" },
+      { id: 'jean-smart-hacks', name: 'Jean Smart — Hacks', tmdb_id: "" },
+      { id: 'kristen-wiig-palm-royale', name: 'Kristen Wiig — Palm Royale', tmdb_id: "" }
     ]
   },
   {
@@ -401,11 +402,11 @@ export const MAIN_SAG_CATEGORIES = [
     basePoints: 40,
     emoji: '📺',
     nominees: [
-      { id: 'bridgerton-ensemble', name: 'Bridgerton', tmdb_id: "" },
-      { id: 'day-of-jackal-ensemble', name: 'The Day of the Jackal', tmdb_id: "" },
       { id: 'diplomat-ensemble', name: 'The Diplomat', tmdb_id: "" },
-      { id: 'shogun-ensemble', name: 'Shōgun', tmdb_id: "" },
-      { id: 'slow-horses-ensemble', name: 'Slow Horses', tmdb_id: "" }
+      { id: 'landman-ensemble', name: 'Landman', tmdb_id: "" },
+      { id: 'the-pitt-ensemble', name: 'The Pitt', tmdb_id: "" },
+      { id: 'severance-ensemble', name: 'Severance', tmdb_id: "" },
+      { id: 'white-lotus-ensemble', name: 'The White Lotus', tmdb_id: "" }
     ]
   }
 ];
