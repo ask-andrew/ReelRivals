@@ -54,41 +54,41 @@ const AwardsFunnel: React.FC = () => {
     {
       id: 'bafta',
       name: 'BAFTA Awards',
-      date: 'February 15, 2026',
+      date: 'February 22, 2026',
       phase: 'The Final Exam',
       description: 'International industry experts weigh in with their perspective',
       icon: <Award className="w-5 h-5" />,
       color: 'from-purple-500 to-purple-600',
       status: 'upcoming',
       votingOpens: 'Jan 20, 2026',
-      votingCloses: 'Feb 10, 2026',
-      ceremonyDate: 'Feb 15, 2026'
+      votingCloses: 'Feb 22, 2026',
+      ceremonyDate: 'Feb 22, 2026'
     },
     {
       id: 'sag',
       name: 'SAG Awards',
-      date: 'February 24, 2026',
+      date: 'March 1, 2026',
       phase: 'The Final Exam',
       description: 'The largest voting body reveals their choices',
       icon: <Users className="w-5 h-5" />,
       color: 'from-blue-500 to-blue-600',
       status: 'upcoming',
       votingOpens: 'Jan 25, 2026',
-      votingCloses: 'Feb 15, 2026',
-      ceremonyDate: 'Feb 24, 2026'
+      votingCloses: 'Mar 1, 2026',
+      ceremonyDate: 'Mar 1, 2026'
     },
     {
       id: 'oscars',
       name: 'Academy Awards',
-      date: 'March 10, 2026',
+      date: 'March 15, 2026',
       phase: 'The Coronation',
       description: 'The gold standard crowns the year\'s best',
       icon: <Trophy className="w-5 h-5" />,
       color: 'from-yellow-500 to-yellow-600',
       status: 'upcoming',
       votingOpens: 'Mar 1, 2026',
-      votingCloses: 'Mar 8, 2026',
-      ceremonyDate: 'Mar 10, 2026'
+      votingCloses: 'Mar 15, 2026',
+      ceremonyDate: 'Mar 15, 2026'
     }
   ];
 
@@ -109,9 +109,9 @@ const AwardsFunnel: React.FC = () => {
     const now = currentTime;
     const currentDate = now.toISOString().split('T')[0];
     
-    if (currentDate >= '2026-03-10') return { event: 'oscars', status: 'completed', message: 'Oscars completed!' };
-    if (currentDate >= '2026-02-24') return { event: 'sag', status: 'completed', message: 'SAG completed!' };
-    if (currentDate >= '2026-02-15') return { event: 'bafta', status: 'completed', message: 'BAFTA completed!' };
+    if (currentDate >= '2026-03-15') return { event: 'oscars', status: 'completed', message: 'Oscars completed!' };
+    if (currentDate >= '2026-03-01') return { event: 'sag', status: 'completed', message: 'SAG completed!' };
+    if (currentDate >= '2026-02-22') return { event: 'bafta', status: 'completed', message: 'BAFTA completed!' };
     if (currentDate >= '2026-01-05') return { event: 'globes', status: 'completed', message: 'Globes completed!' };
     
     if (currentDate >= '2026-03-01') return { event: 'oscars', status: 'active', message: 'Oscars voting open!' };

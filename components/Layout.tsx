@@ -11,16 +11,30 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onSignOut }) => {
   const tabs = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'ballot', icon: Award, label: 'Ballot' },
-    { id: 'live', icon: Trophy, label: 'Live' },
-    { id: 'leagues', icon: Users, label: 'The Critics' },
-    { id: 'analytics', icon: BarChart3, label: 'Analytics' },
+    { id: 'home', icon: Home, label: 'Season' },
+    { id: 'ballot', icon: Award, label: 'Vote' },
+    { id: 'live', icon: Trophy, label: 'Results' },
+    { id: 'leagues', icon: Users, label: 'Critics' },
+    { id: 'analytics', icon: BarChart3, label: 'Stats' },
     { id: 'profile', icon: UserIcon, label: 'Profile' },
   ];
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
+      {/* Floating Make Picks Button */}
+      {activeTab !== 'ballot' && (
+        <button
+          onClick={() => onTabChange('ballot')}
+          className="fixed top-24 right-6 bg-yellow-500 hover:bg-yellow-400 text-black font-black rounded-full p-4 shadow-2xl shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all duration-300 z-40 group animate-bounce"
+          title="Make Your Picks"
+        >
+          <Award size={20} strokeWidth={2.5} />
+          <span className="absolute right-full mr-3 top-1/2 transform -translate-y-1/2 bg-black/90 text-yellow-400 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-yellow-500/30">
+            Make Picks Now
+          </span>
+        </button>
+      )}
+      
       <main className="flex-1 overflow-y-auto pb-24">
         {children}
       </main>

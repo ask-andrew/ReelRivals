@@ -9,8 +9,8 @@ echo "================================"
 # Award show schedules (adjust dates/times as needed)
 declare -A SHOWS=(
     ["golden-globes-2026"]="2026-01-11 19:00:00"
-    ["oscars-2026"]="2026-03-02 20:00:00"
-    ["baftas-2026"]="2026-02-15 19:00:00"
+    ["oscars-2026"]="2026-03-15 20:00:00"
+    ["baftas-2026"]="2026-02-22 19:00:00"
 )
 
 # Function to schedule a show

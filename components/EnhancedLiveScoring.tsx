@@ -252,9 +252,9 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
           </div>
           <h3 className="text-xl font-bold text-white mb-2">BAFTA Live Scoring</h3>
           <p className="text-gray-400 mb-4">The ceremony hasn't started yet</p>
-          <p className="text-sm text-gray-500">Check back on Feb 15, 2026 for real-time updates!</p>
+          <p className="text-sm text-gray-500">Check back on Feb 22, 2026 for real-time updates!</p>
           <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p className="text-xs text-yellow-400 font-medium">🎭 BAFTA Awards • Feb 15, 2026</p>
+            <p className="text-xs text-yellow-400 font-medium">🎭 BAFTA Awards • Feb 22, 2026</p>
           </div>
         </div>
       </div>

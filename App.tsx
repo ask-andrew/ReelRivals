@@ -10,6 +10,8 @@ import ShareModal from './components/ShareModal';
 import Analytics from './components/Analytics';
 import MobileAnalytics from './components/MobileAnalytics';
 import AwardShowSelector from './components/AwardShowSelector';
+import BaftaAnnouncementBanner from './components/BaftaAnnouncementBanner';
+import SocialShare from './components/SocialShare';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check, BarChart3, Users } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT, AWARD_SHOW_CATEGORIES } from './constants';
@@ -42,6 +44,8 @@ const App: React.FC = () => {
   const [isBallotComplete, setIsBallotComplete] = useState(false);
   const [userLeagueId, setUserLeagueId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [baftaBannerVisible, setBaftaBannerVisible] = useState(false);
+  const [socialShareOpen, setSocialShareOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [standingsRefresh, setStandingsRefresh] = useState(0);
@@ -139,6 +143,17 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
   );
 };
 
+  const sharePicks = ballot?.picks
+    ? Object.entries(ballot.picks).map(([categoryId, pick]) => {
+        const category = dbCategories.find((cat) => cat.id === categoryId);
+        const nominee = category?.nominees?.find((nom: any) => nom.id === pick.nomineeId);
+        return {
+          nomineeName: nominee?.name || pick.nomineeId,
+          nominee
+        };
+      })
+    : [];
+
   useEffect(() => {
     const initSession = async () => {
       try {
@@ -188,6 +203,16 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
     };
 
     initSession();
+  }, []);
+
+  // Check BAFTA event status and show banner if open
+  useEffect(() => {
+    const baftaEvent = SEASON_CIRCUIT.find(event => event.id === 'baftas-2026');
+    if (baftaEvent && baftaEvent.status === 'open') {
+      setBaftaBannerVisible(true);
+    } else {
+      setBaftaBannerVisible(false);
+    }
   }, []);
 
   // Reload data when award show changes
@@ -349,10 +374,62 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
     
     return (
       <div className="space-y-8 py-8 px-6">
+        {/* Quick Actions - Above Everything Else */}
+        <div className="bg-linear-to-r from-yellow-900/60 via-yellow-800/40 to-yellow-900/60 border border-yellow-500/50 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-8 -right-8 w-24 h-24 bg-yellow-500/20 rounded-full blur-2xl" />
+          
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-yellow-400">Make Your Picks</h2>
+            <div className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest animate-pulse">
+              Live Now
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-300 mb-6">Choose your winners for the biggest awards of the season!</p>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              onClick={() => {
+                setSelectedAwardShow('oscars-2026');
+                setActiveTab('ballot');
+              }}
+              className="bg-yellow-500 hover:bg-yellow-400 text-black font-black rounded-xl py-3 px-4 transition-all shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:shadow-[0_0_25px_rgba(234,179,8,0.6)] active:scale-95"
+            >
+              <div className="text-2xl mb-1">🏆</div>
+              <div className="text-xs font-bold">Oscars</div>
+              <div className="text-[8px] opacity-80">10 Categories</div>
+            </button>
+            
+            <button 
+              onClick={() => {
+                setSelectedAwardShow('baftas-2026');
+                setActiveTab('ballot');
+              }}
+              className="bg-blue-500 hover:bg-blue-400 text-white font-black rounded-xl py-3 px-4 transition-all shadow-[0_0_15px_rgba(59,130,246,0.4)] hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] active:scale-95"
+            >
+              <div className="text-2xl mb-1">🎬</div>
+              <div className="text-xs font-bold">BAFTAs</div>
+              <div className="text-[8px] opacity-80">10 Categories</div>
+            </button>
+
+            <button 
+              onClick={() => {
+                setSelectedAwardShow('sag-2026');
+                setActiveTab('ballot');
+              }}
+              className="col-span-2 bg-emerald-500 hover:bg-emerald-400 text-white font-black rounded-xl py-3 px-4 transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:shadow-[0_0_25px_rgba(16,185,129,0.6)] active:scale-95"
+            >
+              <div className="text-2xl mb-1">👥</div>
+              <div className="text-xs font-bold">SAG Awards</div>
+              <div className="text-[8px] opacity-80">10 Categories</div>
+            </button>
+          </div>
+        </div>
+
         {/* Profile Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-cinzel font-bold">Welcome, {user.username}</h1>
+            <h1 className="text-2xl font-cinzel font-bold">Welcome, {user.username}</h1>
             <p className="text-gray-500 text-sm mt-1 uppercase tracking-widest font-medium">Reel Rivals Circuit 2026</p>
           </div>
           <div className="w-12 h-12 bg-yellow-500 text-black text-2xl flex items-center justify-center rounded-2xl shadow-lg shadow-yellow-900/20">
@@ -360,36 +437,39 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           </div>
         </div>
 
-        {/* Season Circuit Roadmap */}
+        {/* Season Circuit Roadmap - Reorganized for Current Focus */}
         <div className="space-y-4">
           <div className="flex justify-between items-end">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">The 2026 Circuit</h3>
-            <span className="text-[10px] text-yellow-500 font-bold uppercase">{completedEvents + activeEvents} / {SEASON_CIRCUIT.length} Events</span>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">2026 Awards Season</h3>
+            <span className="text-[10px] text-green-500 font-bold uppercase">{activeEvents} Events Open</span>
           </div>
           <div className="flex space-x-3 overflow-x-auto pb-4 scrollbar-hide snap-x">
             {SEASON_CIRCUIT.map((event) => {
               const isActive = event.status === 'open';
+              const isCompleted = event.status === 'completed';
               return (
                 <div 
                   key={event.id}
                   className={`snap-center shrink-0 w-40 rounded-2xl p-4 border transition-all duration-300 ${
                     isActive 
                       ? 'bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.1)]' 
-                      : 'bg-linear-to-br from-green-600/30 to-green-700/50 border-green-400/70 shadow-lg'
+                      : isCompleted
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-white/5 border-white/20'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xl">{event.icon}</span>
                     {isActive && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,1)]" />}
-                    {!isActive && event.status === 'completed' && <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />}
+                    {isCompleted && <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />}
                   </div>
                   <h4 className="text-xs font-bold truncate mb-1">{event.name}</h4>
                   <p className="text-[10px] text-gray-400 font-medium">{event.date}</p>
                   <div className="mt-3">
                     <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${
-                      isActive ? 'bg-yellow-500 text-black' : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      isActive ? 'bg-yellow-500 text-black' : isCompleted ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-500/20 text-gray-400'
                     }`}>
-                      {event.status === 'open' ? 'Live Now' : event.status === 'completed' ? '✅ Completed' : event.status}
+                      {isActive ? 'Open Now' : isCompleted ? '✅ Completed' : 'Upcoming'}
                     </span>
                   </div>
                 </div>
@@ -398,183 +478,102 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           </div>
         </div>
 
-        {/* BAFTAs 2026 Promotion */}
-        <div className="bg-linear-to-r from-blue-900/30 via-purple-900/20 to-blue-900/30 border border-blue-500/30 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-blue-400">🎬 BAFTAs 2026</h3>
-            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full font-bold">Feb 15, 2026</span>
-          </div>
-          <p className="text-sm text-gray-300 mb-4">While you wait for BAFTAs predictions to open, review your Golden Globes performance and invite friends to join your league!</p>
-          
-          <div className="grid grid-cols-1 gap-3 mb-4">
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-              <div className="flex items-center space-x-2 mb-1">
-                <BarChart3 size={14} className="text-blue-400" />
-                <span className="text-xs font-bold text-blue-400">Analyze Your Performance</span>
-              </div>
-              <p className="text-[10px] text-gray-400">See how your picks compared to other critics and identify patterns for BAFTAs</p>
-              <button 
-                onClick={() => setActiveTab('analytics')}
-                className="mt-2 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1 rounded-lg font-medium transition-colors w-full"
-              >
-                View Analytics
-              </button>
-            </div>
-            
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-              <div className="flex items-center space-x-2 mb-1">
-                <Users size={14} className="text-green-400" />
-                <span className="text-xs font-bold text-green-400">Invite Friends</span>
-              </div>
-              <p className="text-[10px] text-gray-400">More friends = bigger competition and bragging rights!</p>
-              <button 
-                onClick={() => setShareModalOpen(true)}
-                className="mt-2 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-1 rounded-lg font-medium transition-colors w-full"
-              >
-                Invite to League
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">Get notified when BAFTAs predictions open</p>
-            <button 
-              onClick={async () => {
-                if (!user) return;
-                
-                try {
-                  const result = await signupForEventNotifications(user.id, 'baftas-2026');
-                  if (result.success) {
-                    alert('🎬 You\'ll be notified when BAFTAs 2026 predictions open!');
-                  } else {
-                    alert('🎬 Something went wrong. Please try again.');
-                  }
-                } catch (error) {
-                  console.error('Notification signup error:', error);
-                  alert('🎬 Something went wrong. Please try again.');
-                }
-              }}
-              className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1 rounded-lg text-sm font-medium transition-colors"
-            >
-              Notify Me
-            </button>
-          </div>
-        </div>
-
-        {/* Main Focus Card (Next Event) */}
-        <div className="bg-linear-to-br from-yellow-900/40 via-black to-black border border-yellow-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+        {/* Current Season Focus */}
+        <div className="bg-linear-to-r from-yellow-900/40 via-black to-blue-900/40 border border-yellow-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-all duration-700" />
-          
-          {/* Beta Badge */}
-          <div className="absolute bottom-4 right-4 bg-yellow-500/80 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-            Beta
-          </div>
           
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-2 bg-yellow-500/20 border border-yellow-500/30 px-2.5 py-1 rounded-full">
-              <Calendar size={12} className="text-yellow-500" />
-              <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">Jan 5, 2026 • 5:00pm PT</span>
+              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">Season In Progress</span>
             </div>
-            <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Event 01</div>
+            <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold">1 Down, 3 To Go</div>
           </div>
 
-          <h2 className="text-3xl font-cinzel font-bold mb-2">Golden Globes</h2>
-          <p className="text-sm text-gray-400 mb-6 leading-relaxed">The ceremony has concluded! Review your performance and prepare for BAFTAs.</p>
+          <h2 className="text-2xl font-cinzel font-bold mb-2">The Circuit Continues</h2>
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed">Golden Globes are complete! Now focus on BAFTAs, SAG, and Oscars to climb the standings.</p>
           
-          {/* Event Status */}
-          <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-3 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-xs font-bold text-green-400 uppercase tracking-wide">
-                  Event Completed
-                </span>
+          {/* Current Events Status */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg">🎭</span>
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
               </div>
-              <span className="text-sm font-bold text-white">Golden Globes 2026</span>
+              <h4 className="text-sm font-bold text-yellow-400">BAFTAs</h4>
+              <p className="text-[10px] text-gray-400">Feb 22, 2026</p>
+              <p className="text-[8px] text-yellow-300 mt-1">Open for Picks</p>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1 ml-4">
-              The ceremony has concluded! Review your picks and see how you ranked against other critics.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Ballot</p>
-              <p className={`text-sm font-bold ${isBallotComplete ? 'text-green-500' : 'text-yellow-500'}`}>
-                {isBallotComplete ? 'Locked In' : `${ballot ? Object.keys(ballot.picks).length : 0} of ${dbCategories.length || CATEGORIES.length} Picks`}
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-              <div className="flex justify-between items-start mb-1">
-                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Power Picks</p>
-                <div className="group relative">
-                  <Zap size={14} className="text-yellow-500 cursor-help" />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-black/95 border border-yellow-500/30 rounded-lg p-3 shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 backdrop-blur-sm">
-                    <p className="text-[10px] text-gray-300 leading-relaxed">
-                      <strong className="text-yellow-500 block mb-1">High Stakes Strategy</strong>
-                      Select your 3 most confident categories. Correct picks earn <span className="text-white font-bold">2x points</span>. Choose wisely!
-                    </p>
-                  </div>
-                </div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg">👥</span>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               </div>
-              <p className="text-sm font-bold text-white mb-2">
-                {ballot ? (Object.values(ballot.picks) as Pick[]).filter(p => p.isPowerPick).length : 0} / 3 Used
-              </p>
-              <p className="text-[10px] text-gray-400 leading-tight">
-                Select 3 categories to earn <span className="text-yellow-500 font-bold">2x points</span>.
-              </p>
+              <h4 className="text-sm font-bold text-emerald-400">SAG Awards</h4>
+              <p className="text-[10px] text-gray-400">Mar 1, 2026</p>
+              <p className="text-[8px] text-emerald-300 mt-1">Open for Picks</p>
+            </div>
+            
+            <div className="col-span-2 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg">✨</span>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+              </div>
+              <h4 className="text-sm font-bold text-blue-400">Oscars</h4>
+              <p className="text-[10px] text-gray-400">Mar 15, 2026</p>
+              <p className="text-[8px] text-blue-300 mt-1">Open for Picks</p>
             </div>
           </div>
 
-          <button 
-            onClick={() => setActiveTab('ballot')}
-            className="w-full bg-green-500 hover:bg-green-400 text-white font-black rounded-2xl py-4 flex items-center justify-center space-x-2 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] active:scale-95"
-          >
-            <Check size={18} strokeWidth={2.5} />
-            <span className="uppercase tracking-[0.15em] text-xs">View Your Ballot</span>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-
-        {/* Analytics Preview */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <BarChart3 size={20} className="text-yellow-500" />
-              <h3 className="text-lg font-bold text-white">Golden Globes Analytics</h3>
+          <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-green-400">Golden Globes Complete</span>
+              <span className="text-[8px] text-green-400">✅ Results Available</span>
             </div>
-            <button 
-              onClick={() => setActiveTab('analytics')}
-              className="text-xs text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
-            >
-              View Full Report
-            </button>
+            <p className="text-[10px] text-gray-400">Review your performance and use insights to dominate the rest of the season!</p>
           </div>
-          
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-2xl font-cinzel font-bold text-yellow-500 mb-1">📊</p>
-              <p className="text-xs text-gray-400">Performance Insights</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-2xl font-cinzel font-bold text-blue-500 mb-1">👥</p>
-              <p className="text-xs text-gray-400">Community Trends</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-2xl font-cinzel font-bold text-green-500 mb-1">⚡</p>
-              <p className="text-xs text-gray-400">Power Pick Analysis</p>
-            </div>
-          </div>
-          
-          <p className="text-sm text-gray-300 mb-3">Discover patterns in your predictions and see how you compare to other critics. Use these insights to dominate BAFTAs!</p>
           
           <button 
-            onClick={() => setActiveTab('analytics')}
+            onClick={() => {
+              setSelectedAwardShow('golden-globes-2026');
+              setActiveTab('analytics');
+            }}
             className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2"
           >
             <BarChart3 size={16} />
-            <span>Analyze Your Performance</span>
+            <span>Review Golden Globes Analytics</span>
           </button>
+        </div>
+
+        {/* Your Progress Summary */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white">Your Progress</h3>
+            <button 
+              onClick={() => setActiveTab('ballot')}
+              className="text-xs text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
+            >
+              View Ballot
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                {SEASON_CIRCUIT.find(event => event.id === selectedAwardShow)?.name || 'Awards'}
+              </p>
+              <p className={`text-sm font-bold ${isBallotComplete ? 'text-green-500' : 'text-yellow-500'}`}>
+                {ballot ? Object.keys(ballot.picks).length : 0} / {dbCategories.length || 10} Picks
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Power Picks</p>
+              <p className="text-sm font-bold text-white">
+                {ballot ? (Object.values(ballot.picks) as Pick[]).filter(p => p.isPowerPick).length : 0} / 3 Used
+              </p>
+            </div>
+          </div>
         </div>
 
         <StandingsSnippet onViewLeague={() => setActiveTab('leagues')} refreshTrigger={standingsRefresh} eventId={selectedAwardShow} />
@@ -603,14 +602,82 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
 
   return (
     <Layout activeTab={activeTab} onTabChange={setActiveTab} onSignOut={handleSignOut}>
+      {/* BAFTA Announcement Banner */}
+      {baftaBannerVisible && (
+        <BaftaAnnouncementBanner
+          onClose={() => setBaftaBannerVisible(false)}
+          onSubmitPicks={() => {
+            setSelectedAwardShow('baftas-2026');
+            setActiveTab('ballot');
+            setBaftaBannerVisible(false);
+          }}
+          onShare={() => setSocialShareOpen(true)}
+          userId={user?.id}
+        />
+      )}
+      
+      {/* Social Share Modal */}
+      <SocialShare
+        isOpen={socialShareOpen}
+        onClose={() => setSocialShareOpen(false)}
+        userPicks={sharePicks}
+        userName={user?.username}
+      />
+
       {activeTab === 'home' && renderHome()}
       {activeTab === 'ballot' && (
-        <div className="space-y-6">
-          <AwardShowSelector
-            awardShows={SEASON_CIRCUIT}
-            selectedAwardShow={selectedAwardShow}
-            onAwardShowChange={setSelectedAwardShow}
-          />
+        <div className="space-y-4">
+          {/* Award Show Selector - More Prominent */}
+          <div className="bg-linear-to-r from-yellow-900/40 via-black to-yellow-900/40 border border-yellow-500/30 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-yellow-400">Choose Your Award Show</h2>
+              <div className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                Make Picks
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setSelectedAwardShow('oscars-2026')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  selectedAwardShow === 'oscars-2026' 
+                    ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' 
+                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                }`}
+              >
+                <div className="text-2xl mb-2">🏆</div>
+                <div className="text-sm font-bold">Oscars</div>
+                <div className="text-[8px] opacity-70">Mar 15, 2026</div>
+              </button>
+              
+              <button 
+                onClick={() => setSelectedAwardShow('baftas-2026')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  selectedAwardShow === 'baftas-2026' 
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400' 
+                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                }`}
+              >
+                <div className="text-2xl mb-2">🎬</div>
+                <div className="text-sm font-bold">BAFTAs</div>
+                <div className="text-[8px] opacity-70">Feb 22, 2026</div>
+              </button>
+
+              <button 
+                onClick={() => setSelectedAwardShow('sag-2026')}
+                className={`col-span-2 p-4 rounded-xl border-2 transition-all ${
+                  selectedAwardShow === 'sag-2026' 
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                }`}
+              >
+                <div className="text-2xl mb-2">👥</div>
+                <div className="text-sm font-bold">SAG Awards</div>
+                <div className="text-[8px] opacity-70">Mar 1, 2026</div>
+              </button>
+            </div>
+          </div>
+          
           <BallotSwiperDB 
             onComplete={handleBallotComplete} 
             userId={user?.id || ''} 

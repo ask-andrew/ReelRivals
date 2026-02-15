@@ -14,8 +14,9 @@
     "live-scoring": "node scripts/live-scraping-instant.mjs live-scrape",
     "schedule-live": "node scripts/simple-scheduler.mjs",
     "schedule-globes": "node scripts/simple-scheduler.mjs schedule golden-globes-2026 '2026-01-11T19:00:00-06:00'",
-    "schedule-oscars": "node scripts/simple-scheduler.mjs schedule oscars-2026 '2026-03-02T20:00:00-06:00'",
+    "schedule-oscars": "node scripts/simple-scheduler.mjs schedule oscars-2026 '2026-03-15T20:00:00-06:00'",
     "schedule-all": "node scripts/simple-scheduler.mjs all",
+    "reseed-top10": "node scripts/reseed-top10-categories.mjs",
     "test-live": "./test-live-scoring.sh"
   },
   "dependencies": {

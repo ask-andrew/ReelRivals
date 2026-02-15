@@ -9,7 +9,7 @@ export interface AwardEvent {
 export const SEASON_CIRCUIT: AwardEvent[] = [
   { id: 'golden-globes-2026', name: 'Golden Globes', date: 'Jan 11, 2026', status: 'completed', icon: '🏆' },
   { id: 'baftas-2026', name: 'BAFTA Awards', date: 'Feb 22, 2026', status: 'open', icon: '🎭' },
-  { id: 'sag-2026', name: 'SAG Awards', date: 'Feb 22, 2026', status: 'upcoming', icon: '👥' },
+  { id: 'sag-2026', name: 'SAG Awards', date: 'Mar 1, 2026', status: 'open', icon: '👥' },
   { id: 'oscars-2026', name: 'The Oscars', date: 'Mar 15, 2026', status: 'open', icon: '✨' }
 ];
 
@@ -758,12 +758,135 @@ export const BAFTA_CATEGORIES_2026 = [
   }
 ];
 
+export const SAG_CATEGORIES_2026 = [
+  {
+    id: 'lead-actor-film',
+    name: 'Outstanding Performance by a Male Actor in a Leading Role',
+    basePoints: 40,
+    nominees: [
+      { id: 'adrien-brody-brutalist', name: 'Adrien Brody — The Brutalist' },
+      { id: 'timothee-chalamet-complete-unknown', name: 'Timothée Chalamet — A Complete Unknown' },
+      { id: 'daniel-craig-queer', name: 'Daniel Craig — Queer' },
+      { id: 'colman-domingo-sing-sing', name: 'Colman Domingo — Sing Sing' },
+      { id: 'ralph-fiennes-conclave', name: 'Ralph Fiennes — Conclave' }
+    ]
+  },
+  {
+    id: 'lead-actress-film',
+    name: 'Outstanding Performance by a Female Actor in a Leading Role',
+    basePoints: 40,
+    nominees: [
+      { id: 'pamela-anderson-last-showgirl', name: 'Pamela Anderson — The Last Showgirl' },
+      { id: 'cynthia-erivo-wicked', name: 'Cynthia Erivo — Wicked' },
+      { id: 'karla-sofia-gascon-emilia-perez', name: 'Karla Sofía Gascón — Emilia Pérez' },
+      { id: 'mikey-madison-anora', name: 'Mikey Madison — Anora' },
+      { id: 'demi-moore-substance', name: 'Demi Moore — The Substance' }
+    ]
+  },
+  {
+    id: 'supporting-actor-film',
+    name: 'Outstanding Performance by a Male Actor in a Supporting Role',
+    basePoints: 30,
+    nominees: [
+      { id: 'jonathan-bailey-wicked', name: 'Jonathan Bailey — Wicked' },
+      { id: 'yura-borisov-anora', name: 'Yura Borisov — Anora' },
+      { id: 'kieran-culkin-a-real-pain', name: 'Kieran Culkin — A Real Pain' },
+      { id: 'edward-norton-complete-unknown', name: 'Edward Norton — A Complete Unknown' },
+      { id: 'jeremy-strong-apprentice', name: 'Jeremy Strong — The Apprentice' }
+    ]
+  },
+  {
+    id: 'supporting-actress-film',
+    name: 'Outstanding Performance by a Female Actor in a Supporting Role',
+    basePoints: 30,
+    nominees: [
+      { id: 'monica-barbaro-complete-unknown', name: 'Monica Barbaro — A Complete Unknown' },
+      { id: 'jamie-lee-curtis-last-showgirl', name: 'Jamie Lee Curtis — The Last Showgirl' },
+      { id: 'danielle-deadwyler-piano-lesson', name: 'Danielle Deadwyler — The Piano Lesson' },
+      { id: 'ariana-grande-wicked', name: 'Ariana Grande — Wicked' },
+      { id: 'zoe-saldana-emilia-perez', name: 'Zoe Saldaña — Emilia Pérez' }
+    ]
+  },
+  {
+    id: 'cast-film',
+    name: 'Outstanding Performance by a Cast in a Motion Picture',
+    basePoints: 50,
+    nominees: [
+      { id: 'a-complete-unknown-cast', name: 'A Complete Unknown' },
+      { id: 'anora-cast', name: 'Anora' },
+      { id: 'conclave-cast', name: 'Conclave' },
+      { id: 'emilia-perez-cast', name: 'Emilia Pérez' },
+      { id: 'wicked-cast', name: 'Wicked' }
+    ]
+  },
+  {
+    id: 'male-actor-drama-series',
+    name: 'Outstanding Performance by a Male Actor in a Drama Series',
+    basePoints: 30,
+    nominees: [
+      { id: 'tadanobu-asano-shogun', name: 'Tadanobu Asano — Shōgun' },
+      { id: 'jeff-bridges-the-old-man', name: 'Jeff Bridges — The Old Man' },
+      { id: 'gary-oldman-slow-horses', name: 'Gary Oldman — Slow Horses' },
+      { id: 'eddie-redmayne-day-of-jackal', name: 'Eddie Redmayne — The Day of the Jackal' },
+      { id: 'hiroyuki-sanada-shogun', name: 'Hiroyuki Sanada — Shōgun' }
+    ]
+  },
+  {
+    id: 'female-actor-drama-series',
+    name: 'Outstanding Performance by a Female Actor in a Drama Series',
+    basePoints: 30,
+    nominees: [
+      { id: 'kathy-bates-matlock', name: 'Kathy Bates — Matlock' },
+      { id: 'nicola-coughlan-bridgerton', name: 'Nicola Coughlan — Bridgerton' },
+      { id: 'allison-janney-diplomat', name: 'Allison Janney — The Diplomat' },
+      { id: 'keri-russell-diplomat', name: 'Keri Russell — The Diplomat' },
+      { id: 'anna-sawai-shogun', name: 'Anna Sawai — Shōgun' }
+    ]
+  },
+  {
+    id: 'male-actor-comedy-series',
+    name: 'Outstanding Performance by a Male Actor in a Comedy Series',
+    basePoints: 30,
+    nominees: [
+      { id: 'adam-brody-nobody-wants', name: 'Adam Brody — Nobody Wants This' },
+      { id: 'ted-danson-man-on-inside', name: 'Ted Danson — A Man on the Inside' },
+      { id: 'harrison-ford-shrinking', name: 'Harrison Ford — Shrinking' },
+      { id: 'martin-short-only-murders', name: 'Martin Short — Only Murders in the Building' },
+      { id: 'jeremy-allen-white-bear', name: 'Jeremy Allen White — The Bear' }
+    ]
+  },
+  {
+    id: 'female-actor-comedy-series',
+    name: 'Outstanding Performance by a Female Actor in a Comedy Series',
+    basePoints: 30,
+    nominees: [
+      { id: 'kristen-bell-nobody-wants', name: 'Kristen Bell — Nobody Wants This' },
+      { id: 'quinta-brunson-abbott', name: 'Quinta Brunson — Abbott Elementary' },
+      { id: 'liza-colon-zayas-bear', name: 'Liza Colón-Zayas — The Bear' },
+      { id: 'ayo-edebiri-bear', name: 'Ayo Edebiri — The Bear' },
+      { id: 'jean-smart-hacks', name: 'Jean Smart — Hacks' }
+    ]
+  },
+  {
+    id: 'ensemble-drama-series',
+    name: 'Outstanding Performance by an Ensemble in a Drama Series',
+    basePoints: 40,
+    nominees: [
+      { id: 'bridgerton-ensemble', name: 'Bridgerton' },
+      { id: 'day-of-jackal-ensemble', name: 'The Day of the Jackal' },
+      { id: 'diplomat-ensemble', name: 'The Diplomat' },
+      { id: 'shogun-ensemble', name: 'Shōgun' },
+      { id: 'slow-horses-ensemble', name: 'Slow Horses' }
+    ]
+  }
+];
+
 // Map award show IDs to their categories
 export const AWARD_SHOW_CATEGORIES: Record<string, any[]> = {
   'golden-globes-2026': CATEGORIES,
   'oscars-2026': OSCAR_CATEGORIES_2026,
   'baftas-2026': BAFTA_CATEGORIES_2026,
-  'sag-2026': [] // To be added when nominations are announced
+  'sag-2026': SAG_CATEGORIES_2026
 };
 
 export const MOCK_LEAGUE_MEMBERS = [

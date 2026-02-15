@@ -15,13 +15,13 @@ const AWARD_SCHEDULES = [
   {
     id: 'oscars-2026', 
     name: 'Oscars 2026',
-    datetime: '2026-03-02T20:00:00-06:00',
+    datetime: '2026-03-15T20:00:00-06:00',
     timezone: 'America/Chicago'
   },
   {
     id: 'baftas-2026',
     name: 'BAFTAs 2026', 
-    datetime: '2026-02-15T19:00:00-06:00',
+    datetime: '2026-02-22T19:00:00-06:00',
     timezone: 'America/Chicago'
   }
 ];

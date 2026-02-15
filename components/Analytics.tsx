@@ -64,6 +64,11 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState(eventId);
+
+  useEffect(() => {
+    setSelectedEventId(eventId);
+  }, [eventId]);
 
   // Get award show name for share messages
   const getAwardShowName = (eventId: string) => {
@@ -97,7 +102,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       setLoading(true);
       setError(null);
 
-      const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, eventId);
+      const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, selectedEventId);
 
       if (analyticsError) throw analyticsError;
 
@@ -113,7 +118,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
 
   useEffect(() => {
     fetchAnalytics();
-  }, [leagueId, eventId, excludeTestUsers, refreshKey]);
+  }, [leagueId, selectedEventId, excludeTestUsers, refreshKey]);
 
   if (loading) {
     return (
@@ -166,19 +171,87 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-900 via-black to-gray-900">
+      {/* Award Show Selector - Moved to Top */}
+      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-lg border-b border-white/10">
+        <div className="px-4 py-4">
+          <div className="max-w-lg mx-auto">
+            <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-white">Award Show</h2>
+                <button 
+                  onClick={() => setRefreshKey(prev => prev + 1)}
+                  className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                  title="Refresh Data"
+                >
+                  <RefreshCw size={14} className="text-white" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {SEASON_CIRCUIT.map((event) => (
+                  <button
+                    key={event.id}
+                    onClick={() => setSelectedEventId(event.id)}
+                    className={`p-2 rounded-lg border transition-all text-center ${
+                      selectedEventId === event.id
+                        ? event.status === 'completed'
+                          ? 'bg-green-500/20 border-green-500 text-green-400'
+                          : 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
+                        : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex justify-center mb-1">
+                      <span className="text-sm">{event.icon}</span>
+                      {event.status === 'completed' && (
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full ml-1" />
+                      )}
+                      {event.status === 'open' && (
+                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse ml-1" />
+                      )}
+                    </div>
+                    <div className="text-[10px] font-bold leading-tight">{event.name.split(' ')[0]}</div>
+                    <div className="text-[8px] opacity-70">
+                      {event.status === 'completed' ? '✅' : event.status === 'open' ? '📊' : '📅'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-gray-400">
+                  {selectedEventId === eventId ? 'Current Event' : 'Historical Data'}
+                </p>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="excludeTestUsers"
+                    checked={excludeTestUsers}
+                    onChange={(e) => setExcludeTestUsers(e.target.checked)}
+                    className="w-3 h-3 rounded border-gray-300 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
+                  />
+                  <label htmlFor="excludeTestUsers" className="text-[10px] text-gray-400">
+                    Exclude test users
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-linear-to-r from-yellow-600/20 via-yellow-500/10 to-yellow-600/20 border-b border-yellow-500/20">
         <div className="absolute inset-0 bg-black/40"></div>
-        <div className="relative px-4 py-12">
+        <div className="relative px-4 py-8">
           <div className="max-w-lg mx-auto text-center">
             <div className="flex justify-center mb-4">
               <Trophy className="w-12 h-12 text-yellow-500" />
             </div>
             <h1 className="text-3xl font-cinzel font-bold text-white mb-3">
-              The Results Are In!
+              {selectedEventId === 'golden-globes-2026' ? 'The Results Are In!' : 'Analytics Dashboard'}
             </h1>
             <p className="text-lg text-gray-300 mb-6">
-              Golden Globes 2026 - Complete Analytics
+              {getAwardShowName(selectedEventId)} - {selectedEventId === eventId ? 'Live Analytics' : 'Historical Results'}
             </p>
             
             {/* Key Stats */}
@@ -208,6 +281,18 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
         </div>
       </div>
 
+      {/* Update Header Title */}
+      <div className="px-4 pb-6">
+        <div className="max-w-lg mx-auto text-center">
+          <h2 className="text-2xl font-cinzel font-bold text-white mb-2">
+            {getAwardShowName(selectedEventId)} Analytics
+          </h2>
+          <p className="text-sm text-gray-400">
+            {selectedEventId === eventId ? 'Current Event Performance' : 'Historical Results'}
+          </p>
+        </div>
+      </div>
+
       <div className="px-4 py-8 max-w-lg mx-auto space-y-8">
         
         {/* Share Results */}
@@ -221,8 +306,8 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => {
-                  const awardShowName = getAwardShowName(eventId);
-                  const awardShowYear = getAwardShowYear(eventId);
+                  const awardShowName = getAwardShowName(selectedEventId);
+                  const awardShowYear = getAwardShowYear(selectedEventId);
                   const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
                   const url = window.location.href;
                   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
@@ -235,8 +320,8 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
               
               <button 
                 onClick={() => {
-                  const awardShowName = getAwardShowName(eventId);
-                  const awardShowYear = getAwardShowYear(eventId);
+                  const awardShowName = getAwardShowName(selectedEventId);
+                  const awardShowYear = getAwardShowYear(selectedEventId);
                   const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
                   navigator.clipboard.writeText(text);
                 }}
@@ -248,8 +333,8 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
               
               <button 
                 onClick={() => {
-                  const awardShowName = getAwardShowName(eventId);
-                  const awardShowYear = getAwardShowYear(eventId);
+                  const awardShowName = getAwardShowName(selectedEventId);
+                  const awardShowYear = getAwardShowYear(selectedEventId);
                   const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
                   const url = window.location.href;
                   window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
@@ -479,7 +564,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
         </div>
 
         {/* Educational Content Section */}
-        <div className="space-y-8">
+        <div className="space-y-6 py-8 px-6">
           <div className="bg-linear-to-br from-yellow-900/40 via-black to-yellow-900/40 rounded-2xl p-6 border border-yellow-500/30">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-cinzel font-bold text-yellow-500 flex items-center">
@@ -502,28 +587,6 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
           </div>
         </div>
 
-      </div>
-
-      {/* Controls */}
-      <div className="fixed bottom-4 right-4 flex flex-col items-end space-y-2">
-        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={excludeTestUsers}
-              onChange={(e) => setExcludeTestUsers(e.target.checked)}
-              className="rounded text-yellow-500 focus:ring-yellow-500"
-            />
-            <span className="text-xs text-white">Exclude Test Users</span>
-          </label>
-        </div>
-        <button
-          onClick={() => setRefreshKey(prev => prev + 1)}
-          className="bg-yellow-500 hover:bg-yellow-400 text-black px-3 py-2 rounded-lg font-bold transition-colors flex items-center space-x-1"
-        >
-          <RefreshCw size={14} />
-          <span className="text-sm">Refresh</span>
-        </button>
       </div>
     </div>
   );

@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { getAllPlayersWithScores, getPlayerStats } from './src/instantService';
-import { Users, Share2, Trophy, TrendingUp, Medal, Target, Zap } from 'lucide-react';
+import { getAllPlayersWithScoresAcrossSeason, getPlayerStats } from './src/instantService';
+import { Users, Share2, Trophy, TrendingUp, Medal, Target, Zap, ArrowUpDown } from 'lucide-react';
 
 interface Player {
   id: string;
   username: string;
   avatar_emoji?: string;
   totalPoints: number;
-  correctPicks: number;
-  powerPicksHit: number;
+  eventsParticipated: number;
+  goldenGlobesPoints: number;
+  baftasPoints: number;
+  oscarsPoints: number;
+  sagPoints: number;
   hasSubmitted: boolean;
   updatedAt: number;
 }
@@ -23,12 +26,15 @@ interface PlayerListProps {
   refreshTrigger?: number;
 }
 
+type SortColumn = 'totalPoints' | 'username' | 'goldenGlobesPoints' | 'baftasPoints' | 'oscarsPoints' | 'sagPoints' | 'eventsParticipated';
+
 export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'points' | 'name' | 'correct'>('points');
+  const [sortBy, setSortBy] = useState<SortColumn>('totalPoints');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filterBy, setFilterBy] = useState<'all' | 'submitted'>('all');
 
   useEffect(() => {
@@ -40,10 +46,9 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
       setLoading(true);
       setError(null);
       
-      const eventId = 'golden-globes-2026';
       const [playersResult, statsResult] = await Promise.all([
-        getAllPlayersWithScores(eventId),
-        getPlayerStats(eventId)
+        getAllPlayersWithScoresAcrossSeason(),
+        getPlayerStats('golden-globes-2026') // Use default for stats
       ]);
 
       if (playersResult.error) {
@@ -81,18 +86,64 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
     }
   };
 
+  const handleSort = (column: SortColumn) => {
+    if (sortBy === column) {
+      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(column);
+      setSortDirection('desc');
+    }
+  };
+
   // Filter and sort players
   const filteredPlayers = players.filter(player => 
     filterBy === 'all' ? true : player.hasSubmitted
   );
 
   const sortedPlayers = [...filteredPlayers].sort((a, b) => {
-    if (sortBy === 'points') {
-      return b.totalPoints - a.totalPoints;
-    } else if (sortBy === 'correct') {
-      return b.correctPicks - a.correctPicks;
+    let aValue: number | string;
+    let bValue: number | string;
+
+    switch (sortBy) {
+      case 'totalPoints':
+        aValue = a.totalPoints;
+        bValue = b.totalPoints;
+        break;
+      case 'goldenGlobesPoints':
+        aValue = a.goldenGlobesPoints;
+        bValue = b.goldenGlobesPoints;
+        break;
+      case 'baftasPoints':
+        aValue = a.baftasPoints;
+        bValue = b.baftasPoints;
+        break;
+      case 'oscarsPoints':
+        aValue = a.oscarsPoints;
+        bValue = b.oscarsPoints;
+        break;
+      case 'sagPoints':
+        aValue = a.sagPoints;
+        bValue = b.sagPoints;
+        break;
+      case 'eventsParticipated':
+        aValue = a.eventsParticipated;
+        bValue = b.eventsParticipated;
+        break;
+      case 'username':
+      default:
+        aValue = a.username;
+        bValue = b.username;
+        break;
+    }
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'desc' 
+        ? bValue.localeCompare(aValue)
+        : aValue.localeCompare(bValue);
     } else {
-      return a.username.localeCompare(b.username);
+      return sortDirection === 'desc' 
+        ? (bValue as number) - (aValue as number)
+        : (aValue as number) - (bValue as number);
     }
   });
 
@@ -177,18 +228,6 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
               {filterBy === 'all' ? 'All Players' : 'Submitted Only'}
             </button>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-1">
-            <button
-              onClick={() => setSortBy(sortBy === 'points' ? 'name' : 'points')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                sortBy === 'points' 
-                  ? 'bg-yellow-500 text-black' 
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              Sort: {sortBy === 'points' ? 'Points' : 'Name'}
-            </button>
-          </div>
         </div>
         
         {/* Share Button */}
@@ -201,86 +240,95 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
         </button>
       </div>
 
-      {/* Players List */}
+      {/* Players Table */}
       {sortedPlayers.length > 0 ? (
-        <div className="max-h-96 overflow-y-auto space-y-3 border border-gray-800 rounded-lg p-4 bg-gray-900/30">
-          {sortedPlayers.map((player, index) => (
-            <div 
-              key={player.id}
-              className={`bg-gray-900/80 border rounded-lg p-4 backdrop-blur-sm transition-all hover:border-yellow-900/50 ${
-                player.totalPoints > 0 ? 'border-yellow-500/30' : 'border-gray-800'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-800 text-sm font-bold text-gray-400">
-                    {index + 1}
+        <div className="bg-gray-900/30 border border-gray-800 rounded-lg overflow-hidden">
+          {/* Table Header */}
+          <div className="bg-gray-800/50 border-b border-gray-700">
+            <div className="grid grid-cols-7 gap-2 px-4 py-3 text-xs font-bold text-gray-400">
+              <div className="col-span-3">Player</div>
+              <button 
+                onClick={() => handleSort('goldenGlobesPoints')}
+                className="flex items-center space-x-1 hover:text-yellow-400 transition-colors"
+              >
+                <span>🏆 Globes</span>
+                {sortBy === 'goldenGlobesPoints' && <ArrowUpDown size={10} />}
+              </button>
+              <button 
+                onClick={() => handleSort('baftasPoints')}
+                className="flex items-center space-x-1 hover:text-yellow-400 transition-colors"
+              >
+                <span>🎭 BAFTAs</span>
+                {sortBy === 'baftasPoints' && <ArrowUpDown size={10} />}
+              </button>
+              <button 
+                onClick={() => handleSort('oscarsPoints')}
+                className="flex items-center space-x-1 hover:text-yellow-400 transition-colors"
+              >
+                <span>✨ Oscars</span>
+                {sortBy === 'oscarsPoints' && <ArrowUpDown size={10} />}
+              </button>
+              <button 
+                onClick={() => handleSort('totalPoints')}
+                className="flex items-center space-x-1 hover:text-yellow-400 transition-colors"
+              >
+                <span>Total</span>
+                {sortBy === 'totalPoints' && <ArrowUpDown size={10} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Table Body */}
+          <div className="max-h-96 overflow-y-auto">
+            {sortedPlayers.map((player, index) => (
+              <div 
+                key={player.id}
+                className={`grid grid-cols-7 gap-2 px-4 py-3 border-b border-gray-800 hover:bg-gray-800/30 transition-colors ${
+                  index === 0 ? 'bg-yellow-500/10 border-yellow-500/30' : ''
+                }`}
+              >
+                <div className="col-span-3 flex items-center space-x-3">
+                  <div className="shrink-0">
+                    {index === 0 && <div className="text-yellow-500 text-lg">🥇</div>}
+                    {index === 1 && <div className="text-gray-400 text-lg">🥈</div>}
+                    {index === 2 && <div className="text-orange-600 text-lg">🥉</div>}
+                    {index > 2 && <div className="text-gray-500 text-sm w-6 text-center">{index + 1}</div>}
                   </div>
-                  
-                  {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-linear-to-br from-yellow-700 to-yellow-900 flex items-center justify-center text-xl font-bold text-white">
-                    {player.avatar_emoji || '🎬'}
-                  </div>
-                  
-                  {/* Player Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-lg">{player.username}</span>
-                      {player.totalPoints > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Trophy className="w-4 h-4 text-yellow-500" />
-                          <span className="text-yellow-500 font-bold">{player.totalPoints} pts</span>
-                        </div>
-                      )}
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-sm shrink-0">
+                      {player.avatar_emoji || '👤'}
                     </div>
-                    
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-gray-400 mt-1">
-                      {player.hasSubmitted && (
-                        <>
-                          {player.totalPoints > 0 ? (
-                            <>
-                              <span>✓ {player.correctPicks} correct</span>
-                              {player.powerPicksHit > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Zap className="w-3 h-3 text-yellow-500" />
-                                  <span>{player.powerPicksHit} power hits</span>
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span>✓ Ballot submitted</span>
-                          )}
-                        </>
-                      )}
-                      {!player.hasSubmitted && (
-                        <span className="text-gray-500">No ballot submitted</span>
-                      )}
-                    </div>
+                    <span className="text-sm font-medium text-white truncate">{player.username}</span>
                   </div>
                 </div>
-                
-                {/* Points Display */}
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">{player.totalPoints}</div>
-                  <div className="text-xs text-gray-400">points</div>
+                <div className="text-center">
+                  <span className={`text-sm ${player.goldenGlobesPoints > 0 ? 'text-green-400 font-bold' : 'text-gray-500'}`}>
+                    {player.goldenGlobesPoints > 0 ? player.goldenGlobesPoints : '-'}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className={`text-sm ${player.baftasPoints > 0 ? 'text-blue-400 font-bold' : 'text-gray-500'}`}>
+                    {player.baftasPoints > 0 ? player.baftasPoints : '-'}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className={`text-sm ${player.oscarsPoints > 0 ? 'text-yellow-400 font-bold' : 'text-gray-500'}`}>
+                    {player.oscarsPoints > 0 ? player.oscarsPoints : '-'}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className={`text-sm font-bold ${index === 0 ? 'text-yellow-400' : 'text-white'}`}>
+                    {player.totalPoints}
+                  </span>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🎬</div>
-          <h3 className="text-xl font-bold text-white mb-2">No Players Yet</h3>
-          <p className="text-gray-400 mb-6">Be the first to submit your ballot and start the competition!</p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold transition-all transform hover:scale-105"
-          >
-            Submit Your Ballot
-          </button>
+        <div className="text-center py-12 border border-gray-800 rounded-lg bg-gray-900/30">
+          <Users className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+          <p className="text-gray-400">No players found</p>
         </div>
       )}
     </div>

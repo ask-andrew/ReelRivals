@@ -13,7 +13,7 @@ const AWARD_SHOWS_2026 = [
   {
     id: 'baftas-2026', 
     name: 'BAFTA Awards',
-    ceremonyDate: '2026-02-15',
+    ceremonyDate: '2026-02-22',
     nomineesAnnounced: '2026-01-15',
     scrapingEnabled: true
   },
@@ -27,7 +27,7 @@ const AWARD_SHOWS_2026 = [
   {
     id: 'oscars-2026',
     name: 'The Oscars',
-    ceremonyDate: '2026-03-02', 
+    ceremonyDate: '2026-03-15', 
     nomineesAnnounced: '2026-01-17',
     scrapingEnabled: true
   }

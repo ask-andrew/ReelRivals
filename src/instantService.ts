@@ -1,6 +1,7 @@
 import { dbCore, InstantUser } from "./instant";
 import { id } from "@instantdb/core";
-import { AWARD_SHOW_CATEGORIES } from "../constants";
+import { MAIN_OSCAR_CATEGORIES, MAIN_BAFTA_CATEGORIES, MAIN_SAG_CATEGORIES } from './constants-main';
+import { AWARD_SHOW_CATEGORIES } from '../constants';
 
 export type { InstantUser };
 
@@ -297,337 +298,107 @@ const goldenGlobesCategories = [
   }
 ];
 
-const baftaCategories = [
-  {
-    name: 'Best Film',
-    base_points: 50,
-    emoji: '🏆',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Outstanding British Film',
-    base_points: 50,
-    emoji: '🇬🇧',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Outstanding Debut by a British Writer, Director or Producer',
-    base_points: 50,
-    emoji: '🌟',
-    nominees: [
-      { name: 'The Ceremony', tmdb_id: "" },
-      { name: 'The Man in My Basement', tmdb_id: "" },
-      { name: 'Mother Vera', tmdb_id: "" },
-      { name: 'My Father\'s Shadow', tmdb_id: "" },
-      { name: 'Pillion', tmdb_id: "" },
-      { name: 'Ocean with David Attenborough', tmdb_id: "" },
-      { name: 'The Shadow Scholars', tmdb_id: "" },
-      { name: 'Urchin', tmdb_id: "" },
-      { name: 'A Want In Her', tmdb_id: "" },
-      { name: 'Wasteman', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Children\'s & Family Film',
-    base_points: 50,
-    emoji: '👨‍👩‍👧‍👦',
-    nominees: [
-      { name: 'Arco', tmdb_id: "" },
-      { name: 'Boong', tmdb_id: "" },
-      { name: 'Elio', tmdb_id: "" },
-      { name: 'Grow', tmdb_id: "" },
-      { name: 'How to Train Your Dragon', tmdb_id: "" },
-      { name: 'Lilo & Stitch', tmdb_id: "" },
-      { name: 'Little Amelie', tmdb_id: "" },
-      { name: 'Zootropolis 2', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Film Not in the English Language',
-    base_points: 50,
-    emoji: '🌍',
-    nominees: [
-      { name: 'It Was Just an Accident', tmdb_id: "" },
-      { name: 'La Grazia', tmdb_id: "" },
-      { name: 'Left-Handed Girl', tmdb_id: "" },
-      { name: 'No Other Choice', tmdb_id: "" },
-      { name: 'Nouvelle Vague', tmdb_id: "" },
-      { name: 'Rental Family', tmdb_id: "" },
-      { name: 'The Secret Agent', tmdb_id: "" },
-      { name: 'Sentimental Value', tmdb_id: "" },
-      { name: 'Sirāt', tmdb_id: "" },
-      { name: 'The Voice of Hind Rajab', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Documentary',
-    base_points: 50,
-    emoji: '📽️',
-    nominees: [
-      { name: '2000 Meters To Andriivka', tmdb_id: "" },
-      { name: 'Apocalypse In The Tropics', tmdb_id: "" },
-      { name: 'Becoming Led Zeppelin', tmdb_id: "" },
-      { name: 'Cover-Up', tmdb_id: "" },
-      { name: 'The Librarians', tmdb_id: "" },
-      { name: 'Mr Nobody Against Putin', tmdb_id: "" },
-      { name: 'Ocean with David Attenborough', tmdb_id: "" },
-      { name: 'One to One: John & Yoko', tmdb_id: "" },
-      { name: 'The Perfect Neighbour', tmdb_id: "" },
-      { name: 'Riefenstahl', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Animated Film',
-    base_points: 50,
-    emoji: '🎨',
-    nominees: [
-      { name: 'Arco', tmdb_id: "" },
-      { name: 'The Bad Guys 2', tmdb_id: "" },
-      { name: 'Demon Slayer: Kimetsu no Yaiba Infinity Castle', tmdb_id: "" },
-      { name: 'Elio', tmdb_id: "" },
-      { name: 'Little Amelie', tmdb_id: "" },
-      { name: 'Zootropolis 2', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Director',
-    base_points: 50,
-    emoji: '🎬',
-    nominees: [
-      { name: 'Bugonia (Yorgos Lanthimos)', tmdb_id: "" },
-      { name: 'Die My Love (Lynne Ramsay)', tmdb_id: "" },
-      { name: 'Hamnet (Chloé Zhao)', tmdb_id: "" },
-      { name: 'A House of Dynamite (Kathryn Bigelow)', tmdb_id: "" },
-      { name: 'Marty Supreme (Josh Safdie)', tmdb_id: "" },
-      { name: 'One Battle After Another (Paul Thomas Anderson)', tmdb_id: "" },
-      { name: 'Rental Family (Hikari)', tmdb_id: "" },
-      { name: 'Sentimental Value (Joachim Trier)', tmdb_id: "" },
-      { name: 'Sinners (Ryan Coogler)', tmdb_id: "" },
-      { name: 'The Voice of Hind Rajab (Kaouther Ben Hania)', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Original Screenplay',
-    base_points: 50,
-    emoji: '✍️',
-    nominees: [
-      { name: 'Blue Moon', tmdb_id: "" },
-      { name: 'A House of Dynamite', tmdb_id: "" },
-      { name: 'I Swear', tmdb_id: "" },
-      { name: 'Is This Thing On?', tmdb_id: "" },
-      { name: 'It Was Just an Accident', tmdb_id: "" },
-      { name: 'Marty Supreme', tmdb_id: "" },
-      { name: 'The Secret Agent', tmdb_id: "" },
-      { name: 'Sentimental Value', tmdb_id: "" },
-      { name: 'Sinners', tmdb_id: "" },
-      { name: 'Weapons', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Adapted Screenplay',
-    base_points: 50,
-    emoji: '📖',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Actress',
-    base_points: 50,
-    emoji: '👩',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Actor',
-    base_points: 50,
-    emoji: '👨',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Supporting Actress',
-    base_points: 50,
-    emoji: '👩‍🦰',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Supporting Actor',
-    base_points: 50,
-    emoji: '👨‍🦱',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Casting',
-    base_points: 50,
-    emoji: '🎭',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Cinematography',
-    base_points: 50,
-    emoji: '📷',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Costume Design',
-    base_points: 50,
-    emoji: '👗',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Editing',
-    base_points: 50,
-    emoji: '✂️',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Makeup & Hair',
-    base_points: 50,
-    emoji: '💄',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Original Score',
-    base_points: 50,
-    emoji: '🎵',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Production Design',
-    base_points: 50,
-    emoji: '🏛️',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Special Visual Effects',
-    base_points: 50,
-    emoji: '💫',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best Sound',
-    base_points: 50,
-    emoji: '🔊',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best British Short Animation',
-    base_points: 50,
-    emoji: '🎞️',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
-  },
-  {
-    name: 'Best British Short Film',
-    base_points: 50,
-    emoji: '🎬',
-    nominees: [
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" },
-      { name: 'TBA - Nominations Jan 27', tmdb_id: "" }
-    ]
+function getDefaultEmoji(categoryId: string, eventId: string): string {
+  // Default emoji mapping for common category patterns
+  if (categoryId.includes('picture') || categoryId.includes('film')) return '🏆';
+  if (categoryId.includes('actor') || categoryId.includes('actress')) return '🎭';
+  if (categoryId.includes('director')) return '🎬';
+  if (categoryId.includes('screenplay')) return '✍️';
+  if (categoryId.includes('animated')) return '🎨';
+  if (categoryId.includes('documentary')) return '📽️';
+  if (categoryId.includes('song') || categoryId.includes('score')) return '🎵';
+  if (categoryId.includes('short')) return '🎞️';
+  
+  // Event-specific defaults
+  if (eventId === 'baftas-2026') {
+    if (categoryId.includes('british')) return '🇬🇧';
+    if (categoryId.includes('debut')) return '🌟';
   }
-];
+  
+  return '🏆'; // Default fallback
+}
+
+const oscarCategories = MAIN_OSCAR_CATEGORIES.map(cat => ({
+  name: cat.name,
+  base_points: cat.basePoints,
+  emoji: getOSCAREmoji(cat.id),
+  nominees: cat.nominees.map(nominee => ({
+    name: nominee.name,
+    tmdb_id: ""
+  }))
+}));
+
+function getOSCAREmoji(categoryId: string): string {
+  const emojiMap: Record<string, string> = {
+    'best-picture': '🏆',
+    'actress-leading': '👩',
+    'actor-leading': '👨',
+    'actress-supporting': '👩‍🦰',
+    'actor-supporting': '👨‍🦱',
+    'directing': '🎬',
+    'original-screenplay': '✍️',
+    'adapted-screenplay': '📖',
+    'international-feature': '🌍',
+    'animated-feature': '🎨',
+    'documentary-feature': '📽️',
+    'original-score': '🎵',
+    'original-song': '🎤',
+    'casting': '🎭',
+    'cinematography': '📷',
+    'film-editing': '✂️',
+    'costume-design': '👗',
+    'production-design': '🏛️',
+    'makeup-hairstyling': '💄',
+    'sound': '🔊',
+    'visual-effects': '💫',
+    'live-action-short': '🎬',
+    'documentary-short': '📽️',
+    'animated-short': '🎨'
+  };
+  return emojiMap[categoryId] || '🏆';
+}
+
+const baftaCategories = MAIN_BAFTA_CATEGORIES.map(cat => ({
+  name: cat.name,
+  base_points: cat.basePoints,
+  emoji: getBAFTAEmoji(cat.id),
+  nominees: cat.nominees.map(nominee => ({
+    name: nominee.name,
+    tmdb_id: ""
+  }))
+}));
+
+function getBAFTAEmoji(categoryId: string): string {
+  const emojiMap: Record<string, string> = {
+    'best-film': '🏆',
+    'outstanding-british-film': '🇬🇧',
+    'leading-actress': '👩',
+    'leading-actor': '👨',
+    'supporting-actress': '👩‍🦰',
+    'supporting-actor': '👨‍🦱',
+    'director-bafta': '🎬',
+    'outstanding-debut': '🌟',
+    'film-not-english': '🌍',
+    'documentary-bafta': '📽️',
+    'animated-film': '🎨',
+    'childrens-family-film': '👨‍👩‍👧‍👦',
+    'original-screenplay-bafta': '✍️',
+    'adapted-screenplay-bafta': '📖',
+    'ee-rising-star': '⭐',
+    'original-score-bafta': '🎵',
+    'casting-bafta': '🎭',
+    'cinematography-bafta': '📷',
+    'costume-design-bafta': '👗',
+    'editing-bafta': '✂️',
+    'production-design-bafta': '🏛️',
+    'makeup-hair-bafta': '💄',
+    'sound-bafta': '🔊',
+    'special-visual-effects-bafta': '💫',
+    'british-short-film': '🎬',
+    'british-short-animation': '🎞️'
+  };
+  return emojiMap[categoryId] || '🏆';
+}
 
 export async function ensureCategoriesSeeded(eventId: string = "golden-globes-2026") {
   console.log('[ensureCategoriesSeeded] Starting check for event:', eventId);
@@ -654,26 +425,56 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
         eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026'];
         break;
       case 'baftas-2026':
-        eventCategories = AWARD_SHOW_CATEGORIES['baftas-2026'];
+        eventCategories = MAIN_BAFTA_CATEGORIES;
         break;
       case 'sag-2026':
-        // TODO: Add SAG categories when available
-        eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026']; // Fallback for now
+        eventCategories = MAIN_SAG_CATEGORIES;
         break;
       case 'oscars-2026':
-        eventCategories = AWARD_SHOW_CATEGORIES['oscars-2026'];
+        eventCategories = MAIN_OSCAR_CATEGORIES;
         break;
       default:
         eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026']; // Fallback
     }
     
-    // Force re-seed if category count doesn't match our new official list (10 categories)
-    const isDataComplete = existingCategories.length === eventCategories.length && 
-      existingCategories.every((c: any) => c.nominees && c.nominees.length > 0);
+    // Force re-seed if category count doesn't match our new official list,
+    // category names don't match, nominee counts differ, or nominees are missing.
+    const eventCategoryByName = new Map(
+      eventCategories.map((cat: any) => [cat.name, cat])
+    );
+    const hasMatchingCategorySet =
+      existingCategories.length === eventCategories.length &&
+      existingCategories.every((c: any) => eventCategoryByName.has(c.name));
+
+    const normalizeName = (value: string) => value.trim().toLowerCase();
+    const hasMatchingNomineeSets = hasMatchingCategorySet
+      ? existingCategories.every((c: any) => {
+          const expected = eventCategoryByName.get(c.name);
+          if (!expected || !Array.isArray(c.nominees)) return false;
+          const expectedNames = new Set(
+            (expected.nominees || []).map((n: any) => normalizeName(n.name))
+          );
+          const existingNames = new Set(
+            c.nominees.map((n: any) => normalizeName(n.name))
+          );
+          if (expectedNames.size !== existingNames.size) return false;
+          for (const name of expectedNames) {
+            if (!existingNames.has(name)) return false;
+          }
+          return true;
+        })
+      : false;
+
+    const isDataComplete =
+      existingCategories.length === eventCategories.length &&
+      existingCategories.every((c: any) => c.nominees && c.nominees.length > 0) &&
+      hasMatchingCategorySet &&
+      hasMatchingNomineeSets;
 
     console.log('[ensureCategoriesSeeded] Is data complete?', isDataComplete);
     console.log('[ensureCategoriesSeeded] Expected categories:', eventCategories.length);
-
+    console.log('[ensureCategoriesSeeded] Event ID:', eventId);
+    
     if (isDataComplete) {
       console.log('[ensureCategoriesSeeded] Data is good, no seeding needed');
       return existingCategories; // Return existing data
@@ -686,62 +487,133 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
     // 1. Cleanup bad data
     if (existingCategories.length > 0) {
       console.log('[ensureCategoriesSeeded] Cleaning up', existingCategories.length, 'old categories');
+      
+      // Delete nominees first, then categories
       for (const cat of existingCategories) {
-        txs.push(dbCore.tx.categories[cat.id].delete());
         if (cat.nominees && cat.nominees.length) {
           for (const nominee of cat.nominees) {
             txs.push(dbCore.tx.nominees[nominee.id].delete());
           }
         }
+        txs.push(dbCore.tx.categories[cat.id].delete());
       }
+      
+      // Execute cleanup in a separate batch first
+      console.log('[ensureCategoriesSeeded] Executing cleanup batch...');
+      await dbCore.transact(txs);
+      
+      // Wait a moment for cleanup to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Clear transactions array for new data creation
+      txs.length = 0;
     }
 
     // 2. Create fresh data
     console.log('[ensureCategoriesSeeded] Creating', eventCategories.length, 'new categories for', eventId);
+    console.log('[ensureCategoriesSeeded] Sample category data:', eventCategories[0]);
+    console.log('[ensureCategoriesSeeded] Sample category nominees:', eventCategories[0]?.nominees?.length || 0);
+      
     for (let i = 0; i < eventCategories.length; i++) {
       const cat = eventCategories[i];
       const catId = id();
       
+      console.log(`[ensureCategoriesSeeded] Processing category ${i+1}:`, cat.name, 'with', cat.nominees?.length || 0, 'nominees');
+      
       txs.push(dbCore.tx.categories[catId].update({
         event_id: eventId,
         name: cat.name,
-        base_points: cat.base_points,
-        emoji: cat.emoji,
-        display_order: i + 1,
-      }));
-      
-      // Create nominees for this category
-      if (cat.nominees && cat.nominees.length > 0) {
-        for (let j = 0; j < cat.nominees.length; j++) {
-          const nominee = cat.nominees[j];
-          const nomineeId = id();
-          
-          txs.push(dbCore.tx.nominees[nomineeId].update({
-            category_id: catId,
-            name: nominee.name,
-            display_order: j + 1,
-            tmdb_id: nominee.tmdb_id || "",
-          }));
+          base_points: cat.base_points || cat.basePoints, // Handle both naming conventions
+          emoji: cat.emoji || getDefaultEmoji(cat.id, eventId), // Add emoji fallback
+          display_order: i + 1,
+        }));
+        
+        // Create nominees for this category
+        if (cat.nominees && cat.nominees.length > 0) {
+          console.log(`[ensureCategoriesSeeded] Creating ${cat.nominees.length} nominees for ${cat.name}`);
+          for (let j = 0; j < cat.nominees.length; j++) {
+            const nominee = cat.nominees[j];
+            const nomineeId = id();
+            
+            console.log(`[ensureCategoriesSeeded] Creating nominee: ${nominee.name} with ID: ${nomineeId} for category: ${catId}`);
+            
+            txs.push(dbCore.tx.nominees[nomineeId].update({
+              category_id: catId,
+              name: nominee.name,
+              display_order: j + 1,
+              tmdb_id: nominee.tmdb_id || "",
+            }));
+          }
+        } else {
+          console.warn(`[ensureCategoriesSeeded] NO NOMINEES found for category: ${cat.name}`);
         }
       }
-    }
 
-    console.log('[ensureCategoriesSeeded] Executing', txs.length, 'transactions...');
-    await dbCore.transact(txs);
-    console.log("✅ [ensureCategoriesSeeded] Re-seeding complete for", eventId, "!");
-    
-    // Query again to get fresh data
-    const freshCats = await dbCore.queryOnce({
-      categories: {
-        $: {
-          where: { event_id: eventId },
+      console.log('[ensureCategoriesSeeded] Executing', txs.length, 'transactions...');
+      
+      // Break up large transactions into smaller batches to avoid timeout
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < txs.length; i += BATCH_SIZE) {
+        const batch = txs.slice(i, i + BATCH_SIZE);
+        console.log(`[ensureCategoriesSeeded] Executing batch ${Math.floor(i/BATCH_SIZE) + 1} of ${Math.ceil(txs.length/BATCH_SIZE)} (${batch.length} transactions)`);
+        await dbCore.transact(batch);
+      }
+      
+      console.log("✅ [ensureCategoriesSeeded] Re-seeding complete for", eventId, "!");
+      
+      // Query again to get fresh data - separate queries for categories and nominees
+      const freshCats = await dbCore.queryOnce({
+        categories: {
+          $: {
+            where: { event_id: eventId },
+          },
         },
-        nominees: {}
-      },
-    });
-    
-    console.log('[ensureCategoriesSeeded] Returning fresh categories:', freshCats.data.categories.length);
-    return freshCats.data.categories;
+      });
+      
+      console.log('[ensureCategoriesSeeded] Fresh query for event_id:', eventId);
+      console.log('[ensureCategoriesSeeded] Fresh query result count:', freshCats.data.categories.length);
+      console.log('[ensureCategoriesSeeded] Fresh query event_ids:', freshCats.data.categories.map((c: any) => c.event_id));
+      
+      const freshNoms = await dbCore.queryOnce({
+        nominees: {
+          $: {
+            where: { 
+              category_id: { 
+                $in: freshCats.data.categories.map((c: any) => c.id)
+              }
+            },
+          },
+        },
+      });
+      
+      // Manually link nominees to categories
+      const categories = freshCats.data.categories;
+      const nominees = freshNoms.data.nominees;
+      
+      // Group nominees by category_id
+      const nomineesByCategory: { [key: string]: any[] } = {};
+      nominees.forEach((nominee: any) => {
+        if (!nomineesByCategory[nominee.category_id]) {
+          nomineesByCategory[nominee.category_id] = [];
+        }
+        nomineesByCategory[nominee.category_id].push(nominee);
+      });
+      
+      // Attach nominees to their categories
+      const categoriesWithNominees = categories.map(cat => ({
+        ...cat,
+        nominees: nomineesByCategory[cat.id] || []
+      }));
+      
+      // Filter to only return the expected number of categories
+      // This handles cases where cleanup didn't work properly
+      const filteredCategories = categoriesWithNominees.slice(0, eventCategories.length);
+      
+      console.log('[ensureCategoriesSeeded] Fresh categories query result:', categories);
+      console.log('[ensureCategoriesSeeded] Categories after nominee linking:', categoriesWithNominees.length);
+      console.log('[ensureCategoriesSeeded] Categories after filtering:', filteredCategories.length);
+      console.log('[ensureCategoriesSeeded] First fresh category nominees:', filteredCategories[0]?.nominees?.length || 0);
+      return filteredCategories;
   } catch (error) {
     console.error("❌ [ensureCategoriesSeeded] ERROR:", error);
     throw error;
@@ -897,6 +769,120 @@ export async function getActivePlayers(eventId: string) {
   }
 }
 
+export async function getAllPlayersWithScoresAcrossSeason() {
+  try {
+    console.log('[getAllPlayersWithScoresAcrossSeason] Getting scores for all events');
+    
+    // Get all users first
+    const allUsersQuery = await dbCore.queryOnce({
+      users: {
+        $: {}
+      }
+    });
+
+    const allUsers = allUsersQuery.data.users || [];
+    
+    // Get scores for all events
+    const SEASON_EVENTS = ['golden-globes-2026', 'baftas-2026', 'oscars-2026', 'sag-2026'];
+    
+    const allEventScores = await Promise.all(
+      SEASON_EVENTS.map(async (eventId) => {
+        try {
+          const scoresQuery = await dbCore.queryOnce({
+            scores: {
+              $: {
+                where: { event_id: eventId }
+              }
+            }
+          });
+          return { eventId, scores: scoresQuery.data.scores || [] };
+        } catch (error) {
+          console.log(`No scores found for ${eventId}:`, error);
+          return { eventId, scores: [] };
+        }
+      })
+    );
+
+    // Get ballots for all events to determine submission status
+    const allEventBallots = await Promise.all(
+      SEASON_EVENTS.map(async (eventId) => {
+        try {
+          const ballotsQuery = await dbCore.queryOnce({
+            ballots: {
+              $: {
+                where: { event_id: eventId }
+              }
+            }
+          });
+          return { eventId, ballots: ballotsQuery.data.ballots || [] };
+        } catch (error) {
+          console.log(`No ballots found for ${eventId}:`, error);
+          return { eventId, ballots: [] };
+        }
+      })
+    );
+
+    // Create a map of user_id -> {eventId: score} for quick lookup
+    const userScoreMap = new Map();
+    
+    allEventScores.forEach(({ eventId, scores }) => {
+      scores.forEach((score: any) => {
+        if (!userScoreMap.has(score.user_id)) {
+          userScoreMap.set(score.user_id, {});
+        }
+        userScoreMap.get(score.user_id)[eventId] = score.total_points || 0;
+      });
+    });
+
+    // Create a map of user_id -> set of events with submitted ballots
+    const userBallotMap = new Map<string, Set<string>>();
+    allEventBallots.forEach(({ eventId, ballots }) => {
+      ballots.forEach((ballot: any) => {
+        if (!userBallotMap.has(ballot.user_id)) {
+          userBallotMap.set(ballot.user_id, new Set());
+        }
+        userBallotMap.get(ballot.user_id)?.add(eventId);
+      });
+    });
+
+    // Transform users into player objects with season-wide scores
+    const playersWithScores = allUsers.map((user: any) => {
+      const userScores = userScoreMap.get(user.id) || {};
+      const userEvents = userBallotMap.get(user.id) || new Set();
+      
+      // Calculate total points across all events
+      const totalPoints = Object.values(userScores).reduce((sum: number, points: any) => sum + (points as number), 0);
+      
+      // Count events participated in
+      const eventsParticipated = userEvents.size;
+      
+      return {
+        id: user.id,
+        username: user.username,
+        avatar_emoji: user.avatar_emoji,
+        totalPoints,
+        eventsParticipated,
+        goldenGlobesPoints: (userScores['golden-globes-2026'] as number) || 0,
+        baftasPoints: (userScores['baftas-2026'] as number) || 0,
+        oscarsPoints: (userScores['oscars-2026'] as number) || 0,
+        sagPoints: (userScores['sag-2026'] as number) || 0,
+        hasSubmitted: eventsParticipated > 0,
+        updatedAt: Date.now() // This would need to be tracked properly
+      };
+    });
+
+    // Sort by total points
+    playersWithScores.sort((a, b) => (b.totalPoints as number) - (a.totalPoints as number));
+
+    console.log('[getAllPlayersWithScoresAcrossSeason] Transformed players:', playersWithScores);
+
+    return { players: playersWithScores, error: null };
+  } catch (error) {
+    console.error('[getAllPlayersWithScoresAcrossSeason] Error:', error);
+    return { players: [], error };
+  }
+}
+
 export async function getAllPlayersWithScores(eventId: string) {
   try {
     console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
@@ -1037,7 +1023,6 @@ export async function getPlayerStats(eventId: string) {
 
 export async function getNomineePercentages(categoryId: string, eventId: string, leagueId: string): Promise<{ percentages: Record<string, number>, totalUsers: number, error: any }> {
   try {
-    console.log('🔍 Debug - Querying with params:', { categoryId, eventId, leagueId });
     
     // Get all ballots for this event (like the working query does)
     const ballotsQuery = await dbCore.queryOnce({
@@ -1054,9 +1039,6 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
       users: {}
     });
 
-    console.log('🔍 Debug - Raw ballots query result:', ballotsQuery);
-    console.log('🔍 Debug - Total ballots found:', ballotsQuery.data.ballots?.length || 0);
-    console.log('🔍 Debug - Total users found:', ballotsQuery.data.users?.length || 0);
 
     // Filter out test users (emails containing 'test' or 'demo', case-insensitive)
     const realUserBallots = ballotsQuery.data.ballots.filter((ballot: any) => {
@@ -1066,7 +1048,6 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
       const email = (user as any).email || '';
       const username = (user as any).username || '';
       
-      console.log('🔍 Debug - User:', { email, username, isTest: email.toLowerCase().includes('test') || username.toLowerCase().includes('test') });
       
       return !email.toLowerCase().includes('test') && 
              !email.toLowerCase().includes('demo') &&
@@ -1074,7 +1055,6 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
              !username.toLowerCase().includes('demo');
     });
 
-    console.log('🔍 Debug - Real user ballots after filtering:', realUserBallots.length);
 
     // Count picks for each nominee
     const nomineeCounts: Record<string, number> = {}
@@ -1087,7 +1067,6 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
       }
     });
 
-    console.log('🔍 Debug - Nominee counts:', nomineeCounts);
 
     // Calculate percentages
     const totalUsers = realUserBallots.length;
@@ -1099,7 +1078,6 @@ export async function getNomineePercentages(categoryId: string, eventId: string,
       });
     }
 
-    console.log('🔍 Debug - Final result:', { percentages, totalUsers });
 
     return { percentages, totalUsers, error: null };
   } catch (error) {
@@ -1532,15 +1510,10 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
     const winners = winnersResult.winners || [];
     const users = usersResult.data.users || [];
 
-    console.log('[getAnalyticsData] Found categories:', categories.length);
-    console.log('[getAnalyticsData] Found winners:', winners.length);
-    console.log('[getAnalyticsData] Found users:', users.length);
-
     // Debug: Print some ballot info
     if (ballots.length > 0) {
       console.log('[getAnalyticsData] Sample ballot IDs:', ballots.slice(0, 3).map((b: any) => b.id));
       console.log('[getAnalyticsData] Sample ballot user IDs:', ballots.slice(0, 3).map((b: any) => b.user_id));
-      console.log('[getAnalyticsData] Sample ballot pick counts:', ballots.slice(0, 3).map((b: any) => b.picks?.length || 0));
     }
 
     // Process analytics data

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Check, ChevronRight, ChevronLeft, Info, Loader2, Users } from 'lucide-react';
 import { Pick } from '../types';
 import { getCategories, saveBallotPick, getBallot, getNomineePercentages, getResults } from '../src/instantService';
+import { SEASON_CIRCUIT } from '../constants';
 import PowerPickReminder from './PowerPickReminder';
 import PowerPickSelector from './PowerPickSelector';
 
@@ -31,15 +32,17 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
   const [showPowerPickSelector, setShowPowerPickSelector] = useState(false);
   const [hasSeenPowerPickReminder, setHasSeenPowerPickReminder] = useState(false);
   
-  // Golden Globes is completed - no new picks allowed but full viewing enabled
-  const isGoldenGlobesCompleted = true;
+  // Check if the event is completed based on the season circuit
+  const event = SEASON_CIRCUIT.find(e => e.id === eventId);
+  const isEventCompleted = event?.status === 'completed';
 
   const category = categories[currentCategoryIndex];
+
 
   useEffect(() => {
     loadData();
     // Load results for completed event to show correctness
-    if (isGoldenGlobesCompleted) {
+    if (isEventCompleted) {
       loadResults();
     }
   }, []);
@@ -95,7 +98,6 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
       if (results && results.length > 0) {
         setResults(results);
         setResultsLoaded(true);
-        console.log('Loaded results for correctness checking:', results);
       }
     } catch (error) {
       console.error('Error loading results:', error);
@@ -146,7 +148,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
         }
         
         // Golden Globes is completed - force review mode to prevent new picks
-        if (isGoldenGlobesCompleted) {
+        if (isEventCompleted) {
           setViewMode('review');
         }
       }
@@ -159,7 +161,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
 
   const handleSelect = (nomineeId: string) => {
     // Golden Globes is completed - prevent new selections
-    if (isGoldenGlobesCompleted) {
+    if (isEventCompleted) {
       return;
     }
     setSelectedNomineeId(nomineeId);
@@ -169,9 +171,10 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
     if (!selectedNomineeId || !category) return;
     if (isPower && powerPicksLeft <= 0) return;
     
-    // Golden Globes is completed - prevent new picks
-    if (isGoldenGlobesCompleted) {
-      alert('The Golden Globes ceremony has concluded! You can view your selections but cannot make new picks for this event.');
+    // Event is completed - prevent new picks
+    if (isEventCompleted) {
+      const eventName = event?.name || 'This event';
+      alert(`${eventName} ceremony has concluded! You can view your selections but cannot make new picks for this event.`);
       return;
     }
 
@@ -229,7 +232,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
 
   // Jump to specific category for editing (Golden Globes completed - only viewing)
   const handleEditCategory = (categoryIndex: number) => {
-    if (isGoldenGlobesCompleted) {
+    if (isEventCompleted) {
       // Don't allow editing since event is completed, just show the category
       setCurrentCategoryIndex(categoryIndex);
       setViewMode('review');
@@ -247,7 +250,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
   // Power pick reminder logic
   useEffect(() => {
     // Show reminder when user completes all picks but hasn't used power picks
-    if (allComplete && powerPicksLeft > 0 && !hasSeenPowerPickReminder && !isGoldenGlobesCompleted) {
+    if (allComplete && powerPicksLeft > 0 && !hasSeenPowerPickReminder && !isEventCompleted) {
       setTimeout(() => {
         setShowPowerPickReminder(true);
       }, 1000);
@@ -256,7 +259,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
 
   // Show reminder when user has made some picks and has power picks available
   useEffect(() => {
-    if (completedCount >= 3 && powerPicksLeft > 0 && !hasSeenPowerPickReminder && !isGoldenGlobesCompleted) {
+    if (completedCount >= 3 && powerPicksLeft > 0 && !hasSeenPowerPickReminder && !isEventCompleted) {
       setTimeout(() => {
         setShowPowerPickReminder(true);
       }, 2000);
@@ -309,11 +312,11 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
               <h2 className="text-2xl font-bold text-yellow-500">Your Ballot</h2>
               <p className="text-sm text-gray-400 mt-1">
                 {completedCount} of {totalCategories} categories complete
-                {isGoldenGlobesCompleted && ' • Event Completed'}
+                {isEventCompleted && ' • Event Completed'}
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              {!isGoldenGlobesCompleted && powerPicksLeft > 0 && (
+              {!isEventCompleted && powerPicksLeft > 0 && (
                 <button
                   onClick={() => setShowPowerPickSelector(true)}
                   className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-lg text-sm font-bold transition-all flex items-center space-x-1"
@@ -322,7 +325,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
                   <span>{powerPicksLeft} Power Picks</span>
                 </button>
               )}
-              {isGoldenGlobesCompleted && (
+              {isEventCompleted && (
                 <div className="flex items-center space-x-1 text-green-400">
                   <Check size={16} />
                   <span className="text-sm font-bold">Completed</span>
@@ -360,7 +363,7 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
                     getCategoryCorrectness(cat.id) === 'incorrect' ? 'border-red-500/50 bg-red-500/10' :
                     'border-white/10 bg-white/5'
                   } hover:border-yellow-500/50 ${
-                    isGoldenGlobesCompleted ? 'cursor-not-allowed opacity-75' : ''
+                    isEventCompleted ? 'cursor-not-allowed opacity-75' : ''
                   }`}
                   onClick={() => handleEditCategory(index)}
                 >
@@ -403,14 +406,15 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
 
         {/* Submit Button */}
         <div className="p-6 border-t border-white/10">
-          {isGoldenGlobesCompleted ? (
+          {isEventCompleted ? (
             <div className="text-center">
               <div className="flex items-center justify-center space-x-2 mb-3 text-green-400">
                 <Check size={20} />
                 <span className="font-bold">Event Completed</span>
               </div>
               <p className="text-sm text-gray-400">
-                The Golden Globes ceremony has concluded. You can view your selections and check the final standings.
+                {event?.name ? `The ${event.name} ceremony has concluded. You can view your selections and check the final standings.` :
+                 'This event has concluded. You can view your selections and check the final standings.'}
               </p>
             </div>
           ) : allComplete ? (
@@ -525,25 +529,9 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
 
       {/* Nominee Cards */}
       <div className="flex-1 overflow-y-auto p-6">
-        {/* User Percentage Stats */}
-        {!loadingPercentages && (
-          <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-            <div className="flex items-center space-x-2 mb-2">
-              <Users size={16} className="text-blue-500" />
-              <span className="text-sm font-bold text-blue-500">What Real Users Picked</span>
-            </div>
-            <p className="text-xs text-gray-400">
-              {totalUsers > 0 
-                ? `Based on ${totalUsers} real user${totalUsers !== 1 ? 's' : ''} (test accounts excluded)`
-                : 'Be the first to pick! No real users have voted yet (test accounts excluded)'
-              }
-            </p>
-          </div>
-        )}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
-            {category.nominees.map((nominee: any) => {
+            {category.nominees && category.nominees.length > 0 && category.nominees.map((nominee: any) => {
               const percentage = nomineePercentages[nominee.id] || 0;
               
               return (
@@ -598,10 +586,18 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
               );
             })}
           </AnimatePresence>
+          
+          {/* Show message when no nominees */}
+          {!category.nominees || category.nominees.length === 0 ? (
+            <div className="col-span-2 p-8 text-center">
+              <p className="text-gray-400">No nominees available for this category</p>
+              <p className="text-sm text-gray-500 mt-2">Please check back later or try refreshing the page</p>
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions - Moved higher up */}
       <div className="p-6 border-t border-white/10">
         <div className="flex flex-col space-y-3">
           {/* Show power pick status if pick exists for this category */}
@@ -643,7 +639,6 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
                   
                   setSaving(true);
                   try {
-                    console.log('Toggling power pick:', { categoryId: category.id, nomineeId: currentPick.nomineeId, newIsPower });
                     
                     // Save the pick with toggled power pick status
                     const result = await saveBallotPick(
@@ -660,7 +655,6 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
                       throw result.error;
                     }
                     
-                    console.log('Toggle successful');
                     
                     // Update local state
                     setPicks({
