@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Zap, TrendingUp, Users, Award, AlertTriangle, Sparkles, Flame, Crown, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAllPlayersWithScores } from '../src/instantService';
-import { db } from '../src/instant';
+import { getAllPlayersWithScores, getRecentWins } from '../src/instantService';
 
 interface LiveScore {
   userId: string;
@@ -102,47 +101,17 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
 
   const fetchRecentWins = async () => {
     try {
-      const resultsQuery = await db.queryOnce({
-        results: {
-          $: {
-            limit: 15
-          }
-        }
-      } as any);
-
-      if (resultsQuery.data?.results) {
+      const result = await getRecentWins(eventId, 15);
+      if (!result.error) {
         const winsWithDetails = await Promise.all(
-          resultsQuery.data.results.map(async (result: any) => {
-            // Get category details
-            const categoryQuery = await db.queryOnce({
-              categories: {
-                $: {
-                  where: { id: result.category_id }
-                }
-              }
-            });
-
-            // Get nominee details  
-            const nomineeQuery = await db.queryOnce({
-              nominees: {
-                $: {
-                  where: { id: result.winner_nominee_id }
-                }
-              }
-            });
-
-            // Check if this was an upset (compare with popular picks)
-            const upsetCheck = await checkIfUpset(result.category_id, result.winner_nominee_id);
-
-            const category = (categoryQuery?.data?.categories?.[0] as any);
-            const nominee = (nomineeQuery?.data?.nominees?.[0] as any);
-
+          result.wins.map(async (win: any) => {
+            const upsetCheck = await checkIfUpset(win.categoryId, win.nomineeId);
             return {
-              categoryId: result.category_id,
-              nomineeId: result.winner_nominee_id,
-              categoryName: category?.name || 'Unknown Category',
-              winnerName: nominee?.name || 'Unknown Winner',
-              time: formatTimeAgo(result.announced_at),
+              categoryId: win.categoryId,
+              nomineeId: win.nomineeId,
+              categoryName: win.categoryName,
+              winnerName: win.winnerName,
+              time: formatTimeAgo(win.announcedAt),
               isUpset: upsetCheck.isUpset,
               powerPickHits: upsetCheck.powerPickHits
             };

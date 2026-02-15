@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Zap, TrendingUp, Users, Award } from 'lucide-react';
-import { getAllPlayersWithScores } from '../src/instantService';
-import { db } from '../src/instant';
+import { getAllPlayersWithScores, getRecentWins } from '../src/instantService';
 
 interface LiveScore {
   userId: string;
@@ -79,49 +78,12 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
 
   const fetchRecentWins = async () => {
     try {
-      const resultsQuery = await db.queryOnce({
-        results: {
-          $: {
-            limit: 15
-          }
-        }
-      } as any);
-
-      if (resultsQuery.data?.results) {
-        // Fetch detailed information for each result
-        const winsWithDetails = await Promise.all(
-          resultsQuery.data.results.map(async (result: any) => {
-            // Get category details
-            const categoryQuery = await db.queryOnce({
-              categories: {
-                $: {
-                  where: { id: result.category_id }
-                }
-              }
-            });
-
-            // Get nominee details  
-            const nomineeQuery = await db.queryOnce({
-              nominees: {
-                $: {
-                  where: { id: result.winner_nominee_id }
-                }
-              }
-            });
-
-            const category = (categoryQuery?.data?.categories?.[0] as any);
-            const nominee = (nomineeQuery?.data?.nominees?.[0] as any);
-
-            return {
-              categoryId: result.category_id,
-              nomineeId: result.winner_nominee_id,
-              categoryName: category?.name || 'Unknown Category',
-              winnerName: nominee?.name || 'Unknown Winner',
-              time: formatTimeAgo(result.announced_at)
-            };
-          })
-        );
-
+      const result = await getRecentWins(eventId, 15);
+      if (!result.error) {
+        const winsWithDetails = result.wins.map((win: any) => ({
+          ...win,
+          time: formatTimeAgo(win.announcedAt)
+        }));
         setRecentWins(winsWithDetails);
       }
     } catch (error) {

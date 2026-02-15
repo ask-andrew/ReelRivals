@@ -1,6 +1,18 @@
 import { sendNotification, scrapeGoldenGlobesWinners } from './scraping-utils.mjs';
-import puppeteer from 'puppeteer';
-import { init } from '@instantdb/core';
+import { init, id } from '@instantdb/admin';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: new URL('../.env.local', import.meta.url).pathname });
+
+const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const ADMIN_TOKEN = process.env.VITE_INSTANT_SECRET || process.env.INSTANT_APP_ADMIN_TOKEN;
+
+if (!ADMIN_TOKEN) {
+  console.error('❌ Missing admin token. Set VITE_INSTANT_SECRET or INSTANT_APP_ADMIN_TOKEN.');
+  process.exit(1);
+}
+
+const db = init({ appId: APP_ID, adminToken: ADMIN_TOKEN });
 
 async function scrapeWinnersInstantDB(eventId) {
   console.log(`🏆 Starting live winner scraping for ${eventId}...`);
@@ -21,21 +33,22 @@ async function scrapeWinnersInstantDB(eventId) {
     }
 
     const transactions = [];
+    const newWinners = [];
     for (const winner of winners) {
       const transaction = await processWinner(winner, eventId);
       if (transaction) {
         transactions.push(transaction);
-        // Also trigger score recalculation and notification for each winner individually for now
-        // This part could be batched later if needed, but results insertion is the bottleneck for now
-        // For the performance test, we're primarily concerned with the 'results' table
-        await recalculateScoresInstantDB(eventId, transaction.data.category_id, transaction.data.winner_nominee_id);
-        await sendNotification(`🏆 ${winner.winnerName} wins ${winner.categoryName}!`);
+        newWinners.push(winner);
       }
     }
 
     if (transactions.length > 0) {
-      await dbCore.transact(transactions);
+      await db.transact(transactions);
       console.log(`🏆 Recorded ${transactions.length} new winners.`);
+      await recalculateScoresInstantDB(eventId);
+      for (const winner of newWinners) {
+        await sendNotification(`🏆 ${winner.winnerName} wins ${winner.categoryName}!`);
+      }
     } else {
       console.log('ℹ️ No new winners found after processing.');
     }
@@ -48,7 +61,7 @@ async function scrapeWinnersInstantDB(eventId) {
 async function processWinner(winner, eventId) {
   try {
     // Find the category in Instant DB
-    const categories = await dbCore.query({
+    const categories = await db.query({
       categories: {
         $: {
           where: {
@@ -70,7 +83,7 @@ async function processWinner(winner, eventId) {
     }
 
     // Find the nominee
-    const nominees = await dbCore.query({
+    const nominees = await db.query({
       nominees: {
         $: {
           where: {
@@ -92,7 +105,7 @@ async function processWinner(winner, eventId) {
     }
 
     // Check if result already exists
-    const existingResults = await dbCore.query({
+    const existingResults = await db.query({
       results: {
         $: {
           where: {
@@ -108,7 +121,8 @@ async function processWinner(winner, eventId) {
     }
 
     // Return the create operation
-    return dbCore.tx.results.create({
+    const resultId = id();
+    return db.tx.results[resultId].create({
       category_id: category.id,
       winner_nominee_id: nominee.id,
       announced_at: Date.now()
@@ -120,30 +134,53 @@ async function processWinner(winner, eventId) {
   }
 }
 
-async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) {
+async function recalculateScoresInstantDB(eventId) {
   try {
-    // Get all picks for this category
-    const picksData = await dbCore.query({
-      picks: {
-        $: {
-          where: {
-            category_id: categoryId
-          }
-        },
-        ballot: {
-          user_id: true,
-          league_id: true
-        },
-        category: {
-          base_points: true
-        }
+    const categoriesQuery = await db.query({
+      categories: {
+        $: { where: { event_id: eventId } }
       }
     });
 
-    const picks = picksData.picks;
+    const categories = categoriesQuery.categories || [];
+    const categoryIds = categories.map((c) => c.id);
+    if (categoryIds.length === 0) {
+      console.log(`ℹ️ No categories found for event ${eventId}`);
+      return;
+    }
 
-    // Group picks by user and league
+    const [resultsData, picksData, scoresData] = await Promise.all([
+      db.query({
+        results: {
+          $: { where: { category_id: { in: categoryIds } } }
+        }
+      }),
+      db.query({
+        picks: {
+          $: { where: { category_id: { in: categoryIds } } },
+          ballot: { user_id: true, league_id: true },
+          category: { base_points: true }
+        }
+      }),
+      db.query({
+        scores: {
+          $: { where: { event_id: eventId } }
+        }
+      })
+    ]);
+
+    const results = resultsData.results || [];
+    const picks = picksData.picks || [];
+    const existingScores = scoresData.scores || [];
+
+    const winnerByCategory = new Map(
+      results.map((r) => [r.category_id, r.winner_nominee_id])
+    );
+
     const userLeaguePicks = picks.reduce((acc, pick) => {
+      const winnerId = winnerByCategory.get(pick.category_id);
+      if (!winnerId) return acc;
+
       const key = `${pick.ballot.user_id}-${pick.ballot.league_id}`;
       if (!acc[key]) {
         acc[key] = {
@@ -155,7 +192,7 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
         };
       }
 
-      const isCorrect = pick.nominee_id === winnerNomineeId;
+      const isCorrect = pick.nominee_id === winnerId;
       const isPowerPick = pick.is_power_pick;
       const basePoints = pick.category?.base_points || 50;
 
@@ -173,26 +210,20 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
     const scoreTransactions = [];
 
     // Update scores for each user/league combination
+    const seenKeys = new Set(Object.keys(userLeaguePicks));
+
     for (const [key, scoreData] of Object.entries(userLeaguePicks)) {
       const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData;
 
       // Check if score already exists
-      const existingScores = await dbCore.query({
-        scores: {
-          $: {
-            where: {
-              user_id: userId,
-              league_id: leagueId,
-              event_id: eventId
-            }
-          }
-        }
-      });
+      const existingScore = existingScores.find(
+        (s) => s.user_id === userId && s.league_id === leagueId
+      );
 
-      if (existingScores.scores.length > 0) {
+      if (existingScore) {
         // Update existing score
         scoreTransactions.push(
-          dbCore.tx.scores[existingScores.scores[0].id].update({
+          db.tx.scores[existingScore.id].update({
             total_points: totalPoints,
             correct_picks: correctPicks,
             power_picks_hit: powerPicksHit,
@@ -201,8 +232,9 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
         );
       } else {
         // Create new score
+        const scoreId = id();
         scoreTransactions.push(
-          dbCore.tx.scores.create({
+          db.tx.scores[scoreId].create({
             user_id: userId,
             league_id: leagueId,
             event_id: eventId,
@@ -215,11 +247,25 @@ async function recalculateScoresInstantDB(eventId, categoryId, winnerNomineeId) 
       }
     }
 
+    for (const existing of existingScores) {
+      const key = `${existing.user_id}-${existing.league_id}`;
+      if (!seenKeys.has(key)) {
+        scoreTransactions.push(
+          db.tx.scores[existing.id].update({
+            total_points: 0,
+            correct_picks: 0,
+            power_picks_hit: 0,
+            updated_at: Date.now()
+          })
+        );
+      }
+    }
+
     if (scoreTransactions.length > 0) {
-        await dbCore.transact(scoreTransactions);
-        console.log(`✅ ${scoreTransactions.length} scores updated/created for category ${categoryId}`);
+        await db.transact(scoreTransactions);
+        console.log(`✅ ${scoreTransactions.length} scores updated/created for event ${eventId}`);
     } else {
-        console.log(`ℹ️ No score changes needed for category ${categoryId}`);
+        console.log(`ℹ️ No score changes needed for event ${eventId}`);
     }
     
   } catch (error) {

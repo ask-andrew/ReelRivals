@@ -1185,39 +1185,138 @@ export async function saveBallotPicks(
 export async function calculateScoresForEvent(eventId: string): Promise<{ success: boolean, error: any }> {
   try {
     console.log('[calculateScoresForEvent] Starting score calculation for event:', eventId);
-    
-    // Get all results and all categories
-    const resultsQuery = await dbCore.queryOnce({
-      results: {
-        $: {}
-      }
-    });
 
     const categoriesQuery = await dbCore.queryOnce({
       categories: {
-        $: {
-          where: { event_id: eventId }
-        }
+        $: { where: { event_id: eventId } }
       }
     });
 
-    const allResults = resultsQuery.data.results || [];
     const eventCategories = categoriesQuery.data.categories || [];
-    const eventCategoryIds = new Set(eventCategories.map((c: any) => c.id));
-    
-    // Filter results to only include categories from this event
-    const eventResults = allResults.filter((r: any) => eventCategoryIds.has(r.category_id));
-    
-    console.log('[calculateScoresForEvent] Found results for event:', eventResults.length);
+    const categoryIds = eventCategories.map((c: any) => c.id);
 
-    // Process each result
-    for (const result of eventResults as any[]) {
-      await calculateScoresForCategory(eventId, result.category_id, result.winner_nominee_id);
+    if (categoryIds.length === 0) {
+      console.warn('[calculateScoresForEvent] No categories found for event:', eventId);
+      return { success: true, error: null };
+    }
+
+    const [resultsQuery, picksQuery, existingScoresQuery] = await Promise.all([
+      dbCore.queryOnce({
+        results: {
+          $: { where: { category_id: { in: categoryIds } } }
+        }
+      }),
+      dbCore.queryOnce({
+        picks: {
+          $: { where: { category_id: { in: categoryIds } } },
+          ballot: { user_id: true, league_id: true },
+          category: { base_points: true }
+        }
+      } as any),
+      dbCore.queryOnce({
+        scores: {
+          $: { where: { event_id: eventId } }
+        }
+      })
+    ]);
+
+    const results = resultsQuery.data.results || [];
+    const picks = picksQuery.data.picks || [];
+    const existingScores = existingScoresQuery.data.scores || [];
+
+    const winnerByCategory = new Map(
+      results.map((r: any) => [r.category_id, r.winner_nominee_id])
+    );
+
+    const userLeaguePicks = picks.reduce((acc: any, pick: any) => {
+      const winnerId = winnerByCategory.get(pick.category_id);
+      if (!winnerId) return acc; // Winner not announced yet
+
+      const ballot = pick.ballot;
+      if (!ballot) return acc;
+
+      const key = `${ballot.user_id}-${ballot.league_id}`;
+      if (!acc[key]) {
+        acc[key] = {
+          userId: ballot.user_id,
+          leagueId: ballot.league_id,
+          correctPicks: 0,
+          powerPicksHit: 0,
+          totalPoints: 0
+        };
+      }
+
+      const isCorrect = pick.nominee_id === winnerId;
+      const isPowerPick = pick.is_power_pick;
+      const basePoints = pick.category?.base_points || 50;
+
+      if (isCorrect) {
+        acc[key].correctPicks++;
+        acc[key].totalPoints += isPowerPick ? basePoints * 3 : basePoints;
+        if (isPowerPick) {
+          acc[key].powerPicksHit++;
+        }
+      }
+
+      return acc;
+    }, {});
+
+    const scoreTransactions = [];
+    const seenKeys = new Set(Object.keys(userLeaguePicks));
+
+    // Update or create scores for users with correct picks
+    for (const [key, scoreData] of Object.entries(userLeaguePicks as any)) {
+      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData as any;
+      const existingScore = existingScores.find(
+        (s: any) => s.user_id === userId && s.league_id === leagueId
+      );
+
+      if (existingScore) {
+        scoreTransactions.push(
+          dbCore.tx.scores[existingScore.id].update({
+            total_points: totalPoints,
+            correct_picks: correctPicks,
+            power_picks_hit: powerPicksHit,
+            updated_at: Date.now()
+          })
+        );
+      } else {
+        const scoreId = id();
+        scoreTransactions.push(
+          dbCore.tx.scores[scoreId].create({
+            user_id: userId,
+            league_id: leagueId,
+            event_id: eventId,
+            total_points: totalPoints,
+            correct_picks: correctPicks,
+            power_picks_hit: powerPicksHit,
+            updated_at: Date.now()
+          })
+        );
+      }
+    }
+
+    // Zero out stale scores (users who previously had correct picks but no longer do)
+    for (const existing of existingScores) {
+      const key = `${existing.user_id}-${existing.league_id}`;
+      if (!seenKeys.has(key)) {
+        scoreTransactions.push(
+          dbCore.tx.scores[existing.id].update({
+            total_points: 0,
+            correct_picks: 0,
+            power_picks_hit: 0,
+            updated_at: Date.now()
+          })
+        );
+      }
+    }
+
+    if (scoreTransactions.length > 0) {
+      await dbCore.transact(scoreTransactions);
     }
 
     console.log('[calculateScoresForEvent] Score calculation completed');
     return { success: true, error: null };
-    
   } catch (error) {
     console.error('[calculateScoresForEvent] Error calculating scores:', error);
     return { success: false, error };
@@ -1270,132 +1369,62 @@ export async function addWinnerAndCalculateScores(
   }
 }
 
-async function calculateScoresForCategory(eventId: string, categoryId: string, winnerNomineeId: string): Promise<void> {
+async function calculateScoresForCategory(eventId: string): Promise<void> {
+  await calculateScoresForEvent(eventId);
+}
+
+export async function getRecentWins(eventId: string, limit: number = 15) {
   try {
-    console.log('[calculateScoresForCategory] Processing category:', categoryId, 'winner:', winnerNomineeId);
-    
-    // Get all picks for this category
-    const picksQuery = await dbCore.queryOnce({
-      picks: {
-        $: {
-          where: {
-            category_id: categoryId
-          }
-        }
-      }
-    });
-
-    const picks = picksQuery.data.picks || [];
-    console.log('[calculateScoresForCategory] Found picks:', picks.length);
-
-    // Get category info for base points
     const categoriesQuery = await dbCore.queryOnce({
       categories: {
-        $: {
-          where: { id: categoryId }
-        }
+        $: { where: { event_id: eventId } }
       }
     });
 
-    const category = (categoriesQuery.data.categories?.[0] as any);
-    const basePoints = category?.base_points || 50;
-
-    // Get ballots for user/league info
-    const ballotIds = [...new Set((picks as any[]).map((p: any) => p.ballot_id))];
-    const ballotsQuery = await dbCore.queryOnce({
-      ballots: {
-        $: {
-          where: {
-            id: { in: ballotIds }
-          }
-        }
-      }
-    });
-
-    const ballots = (ballotsQuery.data.ballots || []) as any[];
-    const ballotMap = new Map(ballots.map((b: any) => [b.id, b]));
-
-    // Group picks by user and league
-    const userLeaguePicks = (picks as any[]).reduce((acc, pick) => {
-      const ballot = ballotMap.get(pick.ballot_id);
-      if (!ballot) return acc;
-      
-      const key = `${ballot.user_id}-${ballot.league_id}`;
-      if (!acc[key]) {
-        acc[key] = {
-          userId: ballot.user_id,
-          leagueId: ballot.league_id,
-          correctPicks: 0,
-          powerPicksHit: 0,
-          totalPoints: 0
-        };
-      }
-
-      const isCorrect = pick.nominee_id === winnerNomineeId;
-      const isPowerPick = pick.is_power_pick;
-
-      if (isCorrect) {
-        acc[key].correctPicks++;
-        acc[key].totalPoints += isPowerPick ? basePoints * 3 : basePoints; // Power picks are worth 3x
-        if (isPowerPick) {
-          acc[key].powerPicksHit++;
-        }
-      }
-
-      return acc;
-    }, {} as Record<string, any>);
-
-    // Update scores for each user/league combination
-    for (const [key, scoreData] of Object.entries(userLeaguePicks as any)) {
-      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData as any;
-
-      // Check if score already exists
-      const existingScoresQuery = await dbCore.queryOnce({
-        scores: {
-          $: {
-            where: {
-              user_id: userId,
-              league_id: leagueId,
-              event_id: eventId
-            }
-          }
-        }
-      });
-
-      const existingScores = existingScoresQuery.data.scores || [];
-
-      if (existingScores.length > 0) {
-        // Update existing score
-        await dbCore.transact([
-          dbCore.tx.scores[existingScores[0].id].update({
-            total_points: totalPoints,
-            correct_picks: correctPicks,
-            power_picks_hit: powerPicksHit,
-            updated_at: Date.now()
-          })
-        ]);
-        console.log('[calculateScoresForCategory] Updated score for user:', userId);
-      } else {
-        // Create new score
-        const scoreId = id();
-        await dbCore.transact([
-          dbCore.tx.scores[scoreId].create({
-            user_id: userId,
-            league_id: leagueId,
-            event_id: eventId,
-            total_points: totalPoints,
-            correct_picks: correctPicks,
-            power_picks_hit: powerPicksHit,
-            updated_at: Date.now()
-          })
-        ]);
-        console.log('[calculateScoresForCategory] Created new score for user:', userId);
-      }
+    const categories = categoriesQuery.data.categories || [];
+    const categoryIds = categories.map((c: any) => c.id);
+    if (categoryIds.length === 0) {
+      return { wins: [], error: null };
     }
-    
+
+    const resultsQuery = await dbCore.queryOnce({
+      results: {
+        $: { where: { category_id: { in: categoryIds } }, limit }
+      }
+    });
+
+    const results = (resultsQuery.data.results || []).slice();
+    results.sort((a: any, b: any) => (b.announced_at || 0) - (a.announced_at || 0));
+
+    const nomineeIds = [...new Set(results.map((r: any) => r.winner_nominee_id))];
+    const nomineesQuery = nomineeIds.length > 0
+      ? await dbCore.queryOnce({
+          nominees: {
+            $: { where: { id: { in: nomineeIds } } }
+          }
+        })
+      : { data: { nominees: [] } };
+
+    const nominees = nomineesQuery.data.nominees || [];
+    const nomineeById = new Map(nominees.map((n: any) => [n.id, n]));
+    const categoryById = new Map(categories.map((c: any) => [c.id, c]));
+
+    const wins = results.map((result: any) => {
+      const category = categoryById.get(result.category_id);
+      const nominee = nomineeById.get(result.winner_nominee_id);
+      return {
+        categoryId: result.category_id,
+        nomineeId: result.winner_nominee_id,
+        categoryName: category?.name || 'Unknown Category',
+        winnerName: nominee?.name || 'Unknown Winner',
+        announcedAt: result.announced_at
+      };
+    });
+
+    return { wins, error: null };
   } catch (error) {
-    console.error('[calculateScoresForCategory] Error:', error);
-    throw error;
+    console.error('Error fetching recent wins:', error);
+    return { wins: [], error };
   }
 }
 
