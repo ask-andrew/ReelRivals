@@ -3,6 +3,10 @@ import { id } from "@instantdb/core";
 import { MAIN_OSCAR_CATEGORIES, MAIN_BAFTA_CATEGORIES, MAIN_SAG_CATEGORIES } from './constants-main';
 import { AWARD_SHOW_CATEGORIES } from '../constants';
 
+const seedInFlight = new Map<string, Promise<any>>();
+const seedAttempts = new Map<string, number>();
+const seedFailures = new Map<string, number>();
+
 export type { InstantUser };
 
 export async function testInstantDB() {
@@ -402,224 +406,252 @@ function getBAFTAEmoji(categoryId: string): string {
 
 export async function ensureCategoriesSeeded(eventId: string = "golden-globes-2026") {
   console.log('[ensureCategoriesSeeded] Starting check for event:', eventId);
-  
-  try {
-    // Check if categories exist AND have nominees linked
+
+  if (seedInFlight.has(eventId)) {
+    console.log('[ensureCategoriesSeeded] Awaiting in-flight seed for', eventId);
+    return await seedInFlight.get(eventId);
+  }
+
+  const lastFailure = seedFailures.get(eventId);
+  if (lastFailure && Date.now() - lastFailure < 60_000) {
+    console.warn('[ensureCategoriesSeeded] Skipping reseed due to recent failure for', eventId);
     const cats = await dbCore.queryOnce({
-      categories: {
-        $: {
-          where: { event_id: eventId },
-        },
-        nominees: {}
-      },
+      categories: { $: { where: { event_id: eventId } }, nominees: {} }
     });
+    return cats.data.categories || [];
+  }
 
-    console.log('[ensureCategoriesSeeded] Query result:', cats);
-    const existingCategories = cats.data.categories;
-    console.log('[ensureCategoriesSeeded] Existing categories:', existingCategories.length);
-    
-    // Get the right category data for this event
-    let eventCategories;
-    switch (eventId) {
-      case 'golden-globes-2026':
-        eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026'];
-        break;
-      case 'baftas-2026':
-        eventCategories = MAIN_BAFTA_CATEGORIES;
-        break;
-      case 'sag-2026':
-        eventCategories = MAIN_SAG_CATEGORIES;
-        break;
-      case 'oscars-2026':
-        eventCategories = MAIN_OSCAR_CATEGORIES;
-        break;
-      default:
-        eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026']; // Fallback
-    }
-    
-    // Force re-seed if category count doesn't match our new official list,
-    // category names don't match, nominee counts differ, or nominees are missing.
-    const eventCategoryByName = new Map(
-      eventCategories.map((cat: any) => [cat.name, cat])
-    );
-    const hasMatchingCategorySet =
-      existingCategories.length === eventCategories.length &&
-      existingCategories.every((c: any) => eventCategoryByName.has(c.name));
+  const seedPromise = (async () => {
+    try {
+      // Check if categories exist AND have nominees linked
+      const cats = await dbCore.queryOnce({
+        categories: {
+          $: {
+            where: { event_id: eventId },
+          },
+          nominees: {}
+        },
+      });
 
-    const normalizeName = (value: string) => value.trim().toLowerCase();
-    const hasMatchingNomineeSets = hasMatchingCategorySet
-      ? existingCategories.every((c: any) => {
-          const expected = eventCategoryByName.get(c.name);
-          if (!expected || !Array.isArray(c.nominees)) return false;
-          const expectedNames = new Set(
-            (expected.nominees || []).map((n: any) => normalizeName(n.name))
-          );
-          const existingNames = new Set(
-            c.nominees.map((n: any) => normalizeName(n.name))
-          );
-          if (expectedNames.size !== existingNames.size) return false;
-          for (const name of expectedNames) {
-            if (!existingNames.has(name)) return false;
-          }
-          return true;
-        })
-      : false;
-
-    const isDataComplete =
-      existingCategories.length === eventCategories.length &&
-      existingCategories.every((c: any) => c.nominees && c.nominees.length > 0) &&
-      hasMatchingCategorySet &&
-      hasMatchingNomineeSets;
-
-    console.log('[ensureCategoriesSeeded] Is data complete?', isDataComplete);
-    console.log('[ensureCategoriesSeeded] Expected categories:', eventCategories.length);
-    console.log('[ensureCategoriesSeeded] Event ID:', eventId);
-    
-    if (isDataComplete) {
-      console.log('[ensureCategoriesSeeded] Data is good, no seeding needed');
-      return existingCategories; // Return existing data
-    }
-
-    console.log("⚠️ [ensureCategoriesSeeded] Detecting incomplete or old data. Re-seeding", eventId, "...");
-
-    const txs = [];
-
-    // 1. Cleanup bad data
-    if (existingCategories.length > 0) {
-      console.log('[ensureCategoriesSeeded] Cleaning up', existingCategories.length, 'old categories');
+      console.log('[ensureCategoriesSeeded] Query result:', cats);
+      const existingCategories = cats.data.categories;
+      console.log('[ensureCategoriesSeeded] Existing categories:', existingCategories.length);
       
-      // Delete nominees first, then categories
-      for (const cat of existingCategories) {
-        if (cat.nominees && cat.nominees.length) {
-          for (const nominee of cat.nominees) {
-            txs.push(dbCore.tx.nominees[nominee.id].delete());
-          }
-        }
-        txs.push(dbCore.tx.categories[cat.id].delete());
+      // Get the right category data for this event
+      let eventCategories;
+      switch (eventId) {
+        case 'golden-globes-2026':
+          eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026'];
+          break;
+        case 'baftas-2026':
+          eventCategories = MAIN_BAFTA_CATEGORIES;
+          break;
+        case 'sag-2026':
+          eventCategories = MAIN_SAG_CATEGORIES;
+          break;
+        case 'oscars-2026':
+          eventCategories = MAIN_OSCAR_CATEGORIES;
+          break;
+        default:
+          eventCategories = AWARD_SHOW_CATEGORIES['golden-globes-2026']; // Fallback
       }
       
-      // Execute cleanup in a separate batch first
-      console.log('[ensureCategoriesSeeded] Executing cleanup batch...');
-      await dbCore.transact(txs);
-      
-      // Wait a moment for cleanup to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Clear transactions array for new data creation
-      txs.length = 0;
-    }
+      // Force re-seed if category count doesn't match our new official list,
+      // category names don't match, nominee counts differ, or nominees are missing.
+      const eventCategoryByName = new Map(
+        eventCategories.map((cat: any) => [cat.name, cat])
+      );
+      const hasMatchingCategorySet =
+        existingCategories.length === eventCategories.length &&
+        existingCategories.every((c: any) => eventCategoryByName.has(c.name));
 
-    // 2. Create fresh data
-    console.log('[ensureCategoriesSeeded] Creating', eventCategories.length, 'new categories for', eventId);
-    console.log('[ensureCategoriesSeeded] Sample category data:', eventCategories[0]);
-    console.log('[ensureCategoriesSeeded] Sample category nominees:', eventCategories[0]?.nominees?.length || 0);
+      const normalizeName = (value: string) => value.trim().toLowerCase();
+      const hasMatchingNomineeSets = hasMatchingCategorySet
+        ? existingCategories.every((c: any) => {
+            const expected = eventCategoryByName.get(c.name);
+            if (!expected || !Array.isArray(c.nominees)) return false;
+            const expectedNames = new Set(
+              (expected.nominees || []).map((n: any) => normalizeName(n.name))
+            );
+            const existingNames = new Set(
+              c.nominees.map((n: any) => normalizeName(n.name))
+            );
+            if (expectedNames.size !== existingNames.size) return false;
+            for (const name of expectedNames) {
+              if (!existingNames.has(name)) return false;
+            }
+            return true;
+          })
+        : false;
+
+      const isDataComplete =
+        existingCategories.length === eventCategories.length &&
+        existingCategories.every((c: any) => c.nominees && c.nominees.length > 0) &&
+        hasMatchingCategorySet &&
+        hasMatchingNomineeSets;
+
+      console.log('[ensureCategoriesSeeded] Is data complete?', isDataComplete);
+      console.log('[ensureCategoriesSeeded] Expected categories:', eventCategories.length);
+      console.log('[ensureCategoriesSeeded] Event ID:', eventId);
       
-    for (let i = 0; i < eventCategories.length; i++) {
-      const cat = eventCategories[i];
-      const catId = id();
-      
-      console.log(`[ensureCategoriesSeeded] Processing category ${i+1}:`, cat.name, 'with', cat.nominees?.length || 0, 'nominees');
-      
-      txs.push(dbCore.tx.categories[catId].update({
-        event_id: eventId,
-        name: cat.name,
-          base_points: cat.base_points || cat.basePoints, // Handle both naming conventions
-          emoji: cat.emoji || getDefaultEmoji(cat.id, eventId), // Add emoji fallback
-          display_order: i + 1,
-        }));
+      if (isDataComplete) {
+        console.log('[ensureCategoriesSeeded] Data is good, no seeding needed');
+        return existingCategories; // Return existing data
+      }
+
+      const attempts = seedAttempts.get(eventId) || 0;
+      if (attempts >= 1) {
+        console.warn('[ensureCategoriesSeeded] Skipping repeat reseed attempt for', eventId);
+        return existingCategories;
+      }
+      seedAttempts.set(eventId, attempts + 1);
+
+      console.log("⚠️ [ensureCategoriesSeeded] Detecting incomplete or old data. Re-seeding", eventId, "...");
+
+      const txs = [];
+
+      // 1. Cleanup bad data
+      if (existingCategories.length > 0) {
+        console.log('[ensureCategoriesSeeded] Cleaning up', existingCategories.length, 'old categories');
         
-        // Create nominees for this category
-        if (cat.nominees && cat.nominees.length > 0) {
-          console.log(`[ensureCategoriesSeeded] Creating ${cat.nominees.length} nominees for ${cat.name}`);
-          for (let j = 0; j < cat.nominees.length; j++) {
-            const nominee = cat.nominees[j];
-            const nomineeId = id();
-            
-            console.log(`[ensureCategoriesSeeded] Creating nominee: ${nominee.name} with ID: ${nomineeId} for category: ${catId}`);
-            
-            txs.push(dbCore.tx.nominees[nomineeId].update({
-              category_id: catId,
-              name: nominee.name,
-              display_order: j + 1,
-              tmdb_id: nominee.tmdb_id || "",
-            }));
+        // Delete nominees first, then categories
+        for (const cat of existingCategories) {
+          if (cat.nominees && cat.nominees.length) {
+            for (const nominee of cat.nominees) {
+              txs.push(dbCore.tx.nominees[nominee.id].delete());
+            }
           }
-        } else {
-          console.warn(`[ensureCategoriesSeeded] NO NOMINEES found for category: ${cat.name}`);
+          txs.push(dbCore.tx.categories[cat.id].delete());
         }
+        
+        // Execute cleanup in a separate batch first
+        console.log('[ensureCategoriesSeeded] Executing cleanup batch...');
+        await dbCore.transact(txs);
+        
+        // Wait a moment for cleanup to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Clear transactions array for new data creation
+        txs.length = 0;
+      }
+
+      // 2. Create fresh data
+      console.log('[ensureCategoriesSeeded] Creating', eventCategories.length, 'new categories for', eventId);
+      console.log('[ensureCategoriesSeeded] Sample category data:', eventCategories[0]);
+      console.log('[ensureCategoriesSeeded] Sample category nominees:', eventCategories[0]?.nominees?.length || 0);
+        
+      for (let i = 0; i < eventCategories.length; i++) {
+        const cat = eventCategories[i];
+        const catId = id();
+        
+        console.log(`[ensureCategoriesSeeded] Processing category ${i+1}:`, cat.name, 'with', cat.nominees?.length || 0, 'nominees');
+        
+        txs.push(dbCore.tx.categories[catId].update({
+          event_id: eventId,
+          name: cat.name,
+            base_points: cat.base_points || cat.basePoints, // Handle both naming conventions
+            emoji: cat.emoji || getDefaultEmoji(cat.id, eventId), // Add emoji fallback
+            display_order: i + 1,
+          }));
+          
+          // Create nominees for this category
+          if (cat.nominees && cat.nominees.length > 0) {
+            console.log(`[ensureCategoriesSeeded] Creating ${cat.nominees.length} nominees for ${cat.name}`);
+            for (let j = 0; j < cat.nominees.length; j++) {
+              const nominee = cat.nominees[j];
+              const nomineeId = id();
+              
+              console.log(`[ensureCategoriesSeeded] Creating nominee: ${nominee.name} with ID: ${nomineeId} for category: ${catId}`);
+              
+              txs.push(dbCore.tx.nominees[nomineeId].update({
+                category_id: catId,
+                name: nominee.name,
+                display_order: j + 1,
+                tmdb_id: nominee.tmdb_id || "",
+              }));
+            }
+          } else {
+            console.warn(`[ensureCategoriesSeeded] NO NOMINEES found for category: ${cat.name}`);
+          }
       }
 
       console.log('[ensureCategoriesSeeded] Executing', txs.length, 'transactions...');
       
       // Break up large transactions into smaller batches to avoid timeout
-      const BATCH_SIZE = 50;
+      const BATCH_SIZE = 20;
       for (let i = 0; i < txs.length; i += BATCH_SIZE) {
         const batch = txs.slice(i, i + BATCH_SIZE);
         console.log(`[ensureCategoriesSeeded] Executing batch ${Math.floor(i/BATCH_SIZE) + 1} of ${Math.ceil(txs.length/BATCH_SIZE)} (${batch.length} transactions)`);
         await dbCore.transact(batch);
       }
-      
+
       console.log("✅ [ensureCategoriesSeeded] Re-seeding complete for", eventId, "!");
-      
-      // Query again to get fresh data - separate queries for categories and nominees
-      const freshCats = await dbCore.queryOnce({
-        categories: {
-          $: {
-            where: { event_id: eventId },
-          },
-        },
-      });
-      
-      console.log('[ensureCategoriesSeeded] Fresh query for event_id:', eventId);
-      console.log('[ensureCategoriesSeeded] Fresh query result count:', freshCats.data.categories.length);
-      console.log('[ensureCategoriesSeeded] Fresh query event_ids:', freshCats.data.categories.map((c: any) => c.event_id));
-      
-      const freshNoms = await dbCore.queryOnce({
-        nominees: {
-          $: {
-            where: { 
-              category_id: { 
-                $in: freshCats.data.categories.map((c: any) => c.id)
+        
+        // 3. Verify the data is in the database
+        const freshCats = await dbCore.queryOnce({
+          categories: {
+            $: { where: { event_id: eventId } },
+            nominees: {}
+          }
+        });
+        
+        console.log('[ensureCategoriesSeeded] Fresh query for event_id:', eventId);
+        console.log('[ensureCategoriesSeeded] Fresh query result count:', freshCats.data.categories.length);
+        console.log('[ensureCategoriesSeeded] Fresh query event_ids:', freshCats.data.categories.map((c: any) => c.event_id));
+        
+        // Manual nominee linking (due to InstantDB limitations)
+        const freshNoms = await dbCore.queryOnce({
+          nominees: {
+            $: {
+              where: {
+                category_id: { $in: freshCats.data.categories.map((c: any) => c.id) }
               }
-            },
-          },
-        },
-      });
-      
-      // Manually link nominees to categories
-      const categories = freshCats.data.categories;
-      const nominees = freshNoms.data.nominees;
-      
-      // Group nominees by category_id
-      const nomineesByCategory: { [key: string]: any[] } = {};
-      nominees.forEach((nominee: any) => {
-        if (!nomineesByCategory[nominee.category_id]) {
-          nomineesByCategory[nominee.category_id] = [];
-        }
-        nomineesByCategory[nominee.category_id].push(nominee);
-      });
-      
-      // Attach nominees to their categories
-      const categoriesWithNominees = categories.map(cat => ({
-        ...cat,
-        nominees: nomineesByCategory[cat.id] || []
-      }));
-      
-      // Filter to only return the expected number of categories
-      // This handles cases where cleanup didn't work properly
-      const filteredCategories = categoriesWithNominees.slice(0, eventCategories.length);
-      
-      console.log('[ensureCategoriesSeeded] Fresh categories query result:', categories);
-      console.log('[ensureCategoriesSeeded] Categories after nominee linking:', categoriesWithNominees.length);
-      console.log('[ensureCategoriesSeeded] Categories after filtering:', filteredCategories.length);
-      console.log('[ensureCategoriesSeeded] First fresh category nominees:', filteredCategories[0]?.nominees?.length || 0);
-      return filteredCategories;
-  } catch (error) {
-    console.error("❌ [ensureCategoriesSeeded] ERROR:", error);
-    throw error;
+            }
+          }
+        });
+        
+        // Manually link nominees to categories
+        const categories = freshCats.data.categories;
+        const nominees = freshNoms.data.nominees;
+        
+        // Group nominees by category_id
+        const nomineesByCategory: { [key: string]: any[] } = {};
+        nominees.forEach((nominee: any) => {
+          if (!nomineesByCategory[nominee.category_id]) {
+            nomineesByCategory[nominee.category_id] = [];
+          }
+          nomineesByCategory[nominee.category_id].push(nominee);
+        });
+        
+        // Attach nominees to their categories
+        const categoriesWithNominees = categories.map(cat => ({
+          ...cat,
+          nominees: nomineesByCategory[cat.id] || []
+        }));
+        
+        // Filter to only return the expected number of categories
+        // This handles cases where cleanup didn't work properly
+        const filteredCategories = categoriesWithNominees.slice(0, eventCategories.length);
+        
+        console.log('[ensureCategoriesSeeded] Fresh categories query result:', categories);
+        console.log('[ensureCategoriesSeeded] Categories after nominee linking:', categoriesWithNominees.length);
+        console.log('[ensureCategoriesSeeded] Categories after filtering:', filteredCategories.length);
+        console.log('[ensureCategoriesSeeded] First fresh category nominees:', filteredCategories[0]?.nominees?.length || 0);
+        return filteredCategories;
+    } catch (error) {
+      console.error("❌ [ensureCategoriesSeeded] ERROR:", error);
+      seedFailures.set(eventId, Date.now());
+      throw error;
+    }
+  })();
+
+  seedInFlight.set(eventId, seedPromise);
+  try {
+    return await seedPromise;
+  } finally {
+    seedInFlight.delete(eventId);
   }
 }
-
 // --- Ballot Functions --- //
 
 export async function getCategories(eventId: string) {
