@@ -89,26 +89,26 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, type, data }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 border border-white/20 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-amber-500/20 rounded-3xl p-6 max-w-md w-full shadow-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-black">Share</h3>
+          <h3 className="text-xl font-bold text-amber-100">Share</h3>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center hover:bg-black/20 transition-colors"
+            className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-100 flex items-center justify-center hover:bg-amber-500/20 transition-colors"
           >
             ×
           </button>
         </div>
 
-        <div className="bg-black/5 rounded-2xl p-4 mb-6">
-          <p className="text-sm text-gray-700 leading-relaxed">{shareText}</p>
+        <div className="bg-slate-800/70 rounded-2xl p-4 mb-6 border border-amber-500/10">
+          <p className="text-sm text-amber-100/90 leading-relaxed">{shareText}</p>
         </div>
 
         <div className="space-y-4">
           <button
             onClick={handleCopyLink}
-            className="w-full flex items-center justify-center space-x-3 bg-black text-white rounded-2xl py-3 hover:bg-black/90 transition-colors"
+            className="w-full flex items-center justify-center space-x-3 bg-amber-500 text-slate-900 rounded-2xl py-3 hover:bg-amber-400 transition-colors font-semibold"
           >
             <Copy size={18} />
             <span className="font-medium">{copied ? 'Copied!' : 'Copy Link'}</span>
@@ -117,7 +117,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, type, data }) 
           {navigator.share && (
             <button
               onClick={handleNativeShare}
-              className="w-full flex items-center justify-center space-x-3 bg-yellow-500 text-black rounded-2xl py-3 hover:bg-yellow-400 transition-colors font-medium"
+              className="w-full flex items-center justify-center space-x-3 bg-slate-800 text-amber-100 border border-amber-500/30 rounded-2xl py-3 hover:bg-slate-700 transition-colors font-medium"
             >
               <Share2 size={18} />
               <span>Share</span>
