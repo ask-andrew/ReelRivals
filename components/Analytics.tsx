@@ -65,6 +65,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState(eventId);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     setSelectedEventId(eventId);
@@ -107,6 +108,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       if (analyticsError) throw analyticsError;
 
       setAnalyticsData(analytics);
+      setLastUpdated(new Date());
 
     } catch (err) {
       console.error('Analytics fetch error:', err);
@@ -217,21 +219,26 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
                 ))}
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[10px] text-gray-400">
                   {selectedEventId === eventId ? 'Current Event' : 'Historical Data'}
                 </p>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="excludeTestUsers"
-                    checked={excludeTestUsers}
-                    onChange={(e) => setExcludeTestUsers(e.target.checked)}
-                    className="w-3 h-3 rounded border-gray-300 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
-                  />
-                  <label htmlFor="excludeTestUsers" className="text-[10px] text-gray-400">
-                    Exclude test users
-                  </label>
+                <div className="flex items-center gap-3 ml-auto">
+                  <p className="text-[10px] text-gray-400">
+                    Updated {lastUpdated ? lastUpdated.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="excludeTestUsers"
+                      checked={excludeTestUsers}
+                      onChange={(e) => setExcludeTestUsers(e.target.checked)}
+                      className="w-3 h-3 rounded border-gray-300 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
+                    />
+                    <label htmlFor="excludeTestUsers" className="text-[10px] text-gray-400">
+                      Exclude test users
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

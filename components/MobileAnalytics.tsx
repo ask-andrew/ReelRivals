@@ -65,6 +65,7 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Get award show name for share messages
   const getAwardShowName = (eventId: string) => {
@@ -103,6 +104,7 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
       if (analyticsError) throw analyticsError;
 
       setAnalyticsData(analytics);
+      setLastUpdated(new Date());
 
     } catch (err) {
       console.error('Analytics fetch error:', err);
@@ -355,6 +357,15 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
     </div>
   ];
 
+  const selectedEvent = SEASON_CIRCUIT.find(e => e.id === eventId);
+  const eventTitle = selectedEvent ? selectedEvent.name : getAwardShowName(eventId);
+  const eventDate = selectedEvent?.date || '';
+  const eventStatus = selectedEvent?.status || 'open';
+  const statusLabel = eventStatus === 'completed' ? 'Results' : eventStatus === 'open' ? 'Live' : 'Upcoming';
+  const updatedLabel = lastUpdated
+    ? lastUpdated.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '—';
+
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-900 via-black to-gray-900">
       {/* Hero Section */}
@@ -366,11 +377,23 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
               <Trophy className="w-10 h-10 text-yellow-500" />
             </div>
             <h1 className="text-2xl font-cinzel font-bold text-white mb-2">
-              The Results Are In!
+              {eventStatus === 'completed' ? 'The Results Are In!' : 'Analytics Dashboard'}
             </h1>
             <p className="text-gray-300 mb-4">
-              Golden Globes 2026 - Analytics
+              {eventTitle}{eventDate ? ` • ${eventDate}` : ''} • {statusLabel}
             </p>
+
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <span className="text-[11px] text-gray-300 bg-white/10 border border-white/20 rounded-full px-3 py-1">
+                Updated {updatedLabel}
+              </span>
+              <button
+                onClick={() => setRefreshKey(prev => prev + 1)}
+                className="text-[11px] text-yellow-400 border border-yellow-500/30 rounded-full px-3 py-1 hover:bg-yellow-500/10 transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
             
             {/* Key Stats */}
             <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
