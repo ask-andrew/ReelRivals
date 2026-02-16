@@ -536,6 +536,11 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
         return await fetchCategoriesWithNominees(eventId, eventCategories.length);
       }
 
+      if (import.meta.env.PROD) {
+        console.warn('[ensureCategoriesSeeded] Skipping client-side reseed in production for', eventId);
+        return await fetchCategoriesWithNominees(eventId, eventCategories.length);
+      }
+
       const attempts = seedAttempts.get(eventId) || 0;
       if (attempts >= 1) {
         console.warn('[ensureCategoriesSeeded] Skipping repeat reseed attempt for', eventId);
