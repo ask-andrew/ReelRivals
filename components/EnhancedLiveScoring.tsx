@@ -24,6 +24,7 @@ interface RecentWin {
   time: string;
   isUpset?: boolean;
   powerPickHits?: number;
+  isProvisional?: boolean;
 }
 
 interface EnhancedLiveScoringProps {
@@ -40,6 +41,7 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
   const [recentWins, setRecentWins] = useState<RecentWin[]>([]);
   const [showCelebration, setShowCelebration] = useState(false);
   const [lastWinner, setLastWinner] = useState<RecentWin | null>(null);
+  const [hasProvisional, setHasProvisional] = useState(false);
 
   useEffect(() => {
     if (!isLive) return;
@@ -113,7 +115,8 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
               winnerName: win.winnerName,
               time: formatTimeAgo(win.announcedAt),
               isUpset: upsetCheck.isUpset,
-              powerPickHits: upsetCheck.powerPickHits
+              powerPickHits: upsetCheck.powerPickHits,
+              isProvisional: !!win.isProvisional
             };
           })
         );
@@ -132,6 +135,7 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
         }
 
         setRecentWins(winsWithDetails);
+        setHasProvisional(winsWithDetails.some((win) => win.isProvisional));
       }
     } catch (error) {
       console.error('Error fetching recent wins:', error);
@@ -232,6 +236,14 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
 
   return (
     <div className="space-y-4 p-4">
+      {hasProvisional && (
+        <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-xl p-3">
+          <div className="text-xs text-yellow-200 font-semibold">Provisional Live Scoring</div>
+          <div className="text-[10px] text-yellow-100/80 mt-1">
+            Scores are live from media reports and will be finalized once official results are confirmed.
+          </div>
+        </div>
+      )}
       {/* Celebration Overlay */}
       <AnimatePresence>
         {showCelebration && (
@@ -307,6 +319,7 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
                   <p className="text-xs text-gray-300">
                     Winner: {lastWinner.winnerName}
                     {lastWinner.isUpset && ' • UPSET!'}
+                    {lastWinner.isProvisional && ' • PROVISIONAL'}
                   </p>
                 </div>
               </div>
@@ -418,6 +431,9 @@ const EnhancedLiveScoring: React.FC<EnhancedLiveScoringProps> = ({ eventId, leag
                   <p className="text-xs text-gray-400">{win.time}</p>
                   {win.isUpset && (
                     <p className="text-xs text-red-400 font-bold">UPSET</p>
+                  )}
+                  {win.isProvisional && (
+                    <p className="text-xs text-yellow-300 font-bold">PROVISIONAL</p>
                   )}
                 </div>
               </div>

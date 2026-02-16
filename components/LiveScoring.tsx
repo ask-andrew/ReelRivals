@@ -25,6 +25,7 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [connected, setConnected] = useState(false);
   const [recentWins, setRecentWins] = useState<any[]>([]);
+  const [hasProvisional, setHasProvisional] = useState(false);
 
   useEffect(() => {
     if (!isLive) return;
@@ -85,6 +86,7 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
           time: formatTimeAgo(win.announcedAt)
         }));
         setRecentWins(winsWithDetails);
+        setHasProvisional(winsWithDetails.some((win: any) => win.isProvisional));
       }
     } catch (error) {
       console.error('Error fetching recent wins:', error);
@@ -190,6 +192,14 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
       </div>
 
       <div className="space-y-6">
+        {hasProvisional && (
+          <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-xl p-4">
+            <div className="text-sm text-yellow-200 font-semibold">Provisional Live Scoring</div>
+            <div className="text-xs text-yellow-100/80 mt-1">
+              Scores are live from media reports and will be finalized once official results are confirmed.
+            </div>
+          </div>
+        )}
         {/* Live Leaderboard */}
         <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
           <h3 className="text-xl font-bold text-yellow-500 mb-4">Live Leaderboard</h3>
@@ -254,7 +264,10 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
             {recentWins.map((win, index) => (
               <div key={index} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-green-400 font-bold">{win.categoryName}</span>
+                  <span className="text-xs text-green-400 font-bold">
+                    {win.categoryName}
+                    {win.isProvisional && <span className="ml-2 text-[10px] text-yellow-300">PROVISIONAL</span>}
+                  </span>
                   <span className="text-xs text-gray-500">{win.time}</span>
                 </div>
                 <div className="text-sm text-gray-300 font-medium">🏆 {win.winnerName}</div>

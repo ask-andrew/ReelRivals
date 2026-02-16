@@ -416,39 +416,75 @@ export const handler = async (event) => {
       }
     });
     const existingResults = resultsQuery.results || [];
-    const existingCategoryIds = new Set(existingResults.map((r) => r.category_id));
+    const existingResultsByCategory = new Map(
+      existingResults.map((r) => [r.category_id, r])
+    );
 
     const resultTransactions = [];
     let matchedCount = 0;
+    let provisionalCount = 0;
 
     for (const category of categories) {
       const officialWinner = officialWinners.get(category.id);
       const mediaWinner = mediaWinners.get(category.id);
 
-      if (!officialWinner || !mediaWinner) continue;
-      const normOfficial = normalize(officialWinner);
-      const normMedia = normalize(mediaWinner);
-      if (
-        normOfficial !== normMedia &&
-        !normOfficial.includes(normMedia) &&
-        !normMedia.includes(normOfficial)
-      ) {
+      const existingResult = existingResultsByCategory.get(category.id);
+
+      if (officialWinner && mediaWinner) {
+        const normOfficial = normalize(officialWinner);
+        const normMedia = normalize(mediaWinner);
+        if (
+          normOfficial !== normMedia &&
+          !normOfficial.includes(normMedia) &&
+          !normMedia.includes(normOfficial)
+        ) {
+          continue;
+        }
+
+        const nominee = findNomineeMatch(officialWinner, category.nominees || []);
+        if (!nominee) continue;
+
+        if (existingResult) {
+          if (existingResult.is_provisional || existingResult.winner_nominee_id !== nominee.id) {
+            resultTransactions.push(
+              db.tx.results[existingResult.id].update({
+                winner_nominee_id: nominee.id,
+                is_provisional: false,
+                finalized_at: Date.now()
+              })
+            );
+            matchedCount++;
+          }
+        } else {
+          const resultId = id();
+          resultTransactions.push(
+            db.tx.results[resultId].create({
+              category_id: category.id,
+              winner_nominee_id: nominee.id,
+              announced_at: Date.now(),
+              is_provisional: false
+            })
+          );
+          matchedCount++;
+        }
         continue;
       }
-      if (existingCategoryIds.has(category.id)) continue;
 
-      const nominee = findNomineeMatch(officialWinner, category.nominees || []);
-      if (!nominee) continue;
-
-      const resultId = id();
-      resultTransactions.push(
-        db.tx.results[resultId].create({
-          category_id: category.id,
-          winner_nominee_id: nominee.id,
-          announced_at: Date.now()
-        })
-      );
-      matchedCount++;
+      if (!officialWinner && mediaWinner) {
+        if (existingResult) continue;
+        const nominee = findNomineeMatch(mediaWinner, category.nominees || []);
+        if (!nominee) continue;
+        const resultId = id();
+        resultTransactions.push(
+          db.tx.results[resultId].create({
+            category_id: category.id,
+            winner_nominee_id: nominee.id,
+            announced_at: Date.now(),
+            is_provisional: true
+          })
+        );
+        provisionalCount++;
+      }
     }
 
     if (resultTransactions.length > 0) {
@@ -461,6 +497,7 @@ export const handler = async (event) => {
       body: JSON.stringify({
         eventId,
         matched: matchedCount,
+        provisional: provisionalCount,
         existing: existingResults.length,
         timestamp: new Date().toISOString()
       })

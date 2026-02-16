@@ -1417,7 +1417,9 @@ export async function getRecentWins(eventId: string, limit: number = 15) {
         nomineeId: result.winner_nominee_id,
         categoryName: category?.name || 'Unknown Category',
         winnerName: nominee?.name || 'Unknown Winner',
-        announcedAt: result.announced_at
+        announcedAt: result.announced_at,
+        isProvisional: !!result.is_provisional,
+        finalizedAt: result.finalized_at || null
       };
     });
 
