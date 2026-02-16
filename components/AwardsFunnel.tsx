@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, Award, Globe, Users, Clock, Zap, Target, Trophy } from 'lucide-react';
+import { SEASON_CIRCUIT } from '../constants';
 
 interface TimelineEvent {
   id: string;
@@ -15,7 +16,11 @@ interface TimelineEvent {
   ceremonyDate?: string;
 }
 
-const AwardsFunnel: React.FC = () => {
+interface AwardsFunnelProps {
+  selectedEventId?: string;
+}
+
+const AwardsFunnel: React.FC<AwardsFunnelProps> = ({ selectedEventId }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hoveredEvent, setHoveredEvent] = useState<string | null>(null);
   const [pulseEvents, setPulseEvents] = useState<string[]>([]);
@@ -27,7 +32,7 @@ const AwardsFunnel: React.FC = () => {
 
     // Simulate pulse events for voting dates
     const pulseInterval = setInterval(() => {
-      setPulseEvents(['globes-voting', 'bafta-voting', 'sag-voting']);
+      setPulseEvents(['golden-globes-2026-voting', 'baftas-2026-voting', 'sag-2026-voting']);
       setTimeout(() => setPulseEvents([]), 2000);
     }, 5000);
 
@@ -37,60 +42,61 @@ const AwardsFunnel: React.FC = () => {
     };
   }, []);
 
-  const timelineEvents: TimelineEvent[] = [
-    {
-      id: 'globes',
-      name: 'Golden Globes',
-      date: 'January 5, 2026',
+  const timelineMeta: Record<string, Omit<TimelineEvent, 'id' | 'name' | 'date' | 'status'>> = {
+    'golden-globes-2026': {
       phase: 'Momentum & Buzz',
       description: 'The trendsetters kick off awards season with their picks',
       icon: <Globe className="w-5 h-5" />,
       color: 'from-red-500 to-red-600',
-      status: 'completed',
       votingOpens: 'Dec 15, 2025',
-      votingCloses: 'Jan 3, 2026',
-      ceremonyDate: 'Jan 5, 2026'
+      votingCloses: 'Jan 10, 2026',
+      ceremonyDate: 'Jan 11, 2026'
     },
-    {
-      id: 'bafta',
-      name: 'BAFTA Awards',
-      date: 'February 22, 2026',
+    'baftas-2026': {
       phase: 'The Final Exam',
       description: 'International industry experts weigh in with their perspective',
       icon: <Award className="w-5 h-5" />,
       color: 'from-purple-500 to-purple-600',
-      status: 'upcoming',
       votingOpens: 'Jan 20, 2026',
       votingCloses: 'Feb 22, 2026',
       ceremonyDate: 'Feb 22, 2026'
     },
-    {
-      id: 'sag',
-      name: 'SAG Awards',
-      date: 'March 1, 2026',
+    'sag-2026': {
       phase: 'The Final Exam',
       description: 'The largest voting body reveals their choices',
       icon: <Users className="w-5 h-5" />,
       color: 'from-blue-500 to-blue-600',
-      status: 'upcoming',
       votingOpens: 'Jan 25, 2026',
       votingCloses: 'Mar 1, 2026',
       ceremonyDate: 'Mar 1, 2026'
     },
-    {
-      id: 'oscars',
-      name: 'Academy Awards',
-      date: 'March 15, 2026',
+    'oscars-2026': {
       phase: 'The Coronation',
       description: 'The gold standard crowns the year\'s best',
       icon: <Trophy className="w-5 h-5" />,
       color: 'from-yellow-500 to-yellow-600',
-      status: 'upcoming',
       votingOpens: 'Mar 1, 2026',
       votingCloses: 'Mar 15, 2026',
       ceremonyDate: 'Mar 15, 2026'
     }
-  ];
+  };
+
+  const timelineEvents: TimelineEvent[] = SEASON_CIRCUIT.map((event) => {
+    const meta = timelineMeta[event.id];
+    return {
+      id: event.id,
+      name: event.name,
+      date: event.date,
+      phase: meta?.phase || 'Awards Season',
+      description: meta?.description || 'A key stop on the awards circuit',
+      icon: meta?.icon || <Award className="w-5 h-5" />,
+      color: meta?.color || 'from-gray-500 to-gray-600',
+      status: 'upcoming',
+      votingOpens: meta?.votingOpens,
+      votingCloses: meta?.votingCloses,
+      ceremonyDate: meta?.ceremonyDate || event.date
+    };
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -105,22 +111,18 @@ const AwardsFunnel: React.FC = () => {
     }
   };
 
-  const getCurrentStatus = () => {
-    const now = currentTime;
-    const currentDate = now.toISOString().split('T')[0];
-    
-    if (currentDate >= '2026-03-15') return { event: 'oscars', status: 'completed', message: 'Oscars completed!' };
-    if (currentDate >= '2026-03-01') return { event: 'sag', status: 'completed', message: 'SAG completed!' };
-    if (currentDate >= '2026-02-22') return { event: 'bafta', status: 'completed', message: 'BAFTA completed!' };
-    if (currentDate >= '2026-01-05') return { event: 'globes', status: 'completed', message: 'Globes completed!' };
-    
-    if (currentDate >= '2026-03-01') return { event: 'oscars', status: 'active', message: 'Oscars voting open!' };
-    if (currentDate >= '2026-02-15') return { event: 'sag', status: 'active', message: 'SAG voting open!' };
-    if (currentDate >= '2026-01-20') return { event: 'bafta', status: 'active', message: 'BAFTA voting open!' };
-    if (currentDate >= '2025-12-15') return { event: 'globes', status: 'active', message: 'Globes voting open!' };
-    
-    return { event: null, status: 'upcoming', message: 'Season approaching...' };
-  };
+  const parseEventDate = (value: string) => new Date(value);
+
+  const sortedEvents = [...timelineEvents].sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
+  const today = new Date(currentTime.toDateString());
+  const nextIndex = sortedEvents.findIndex((event) => parseEventDate(event.date) >= today);
+  const activeIndex = nextIndex === -1 ? sortedEvents.length - 1 : nextIndex;
+  const activeEvent = sortedEvents[activeIndex];
+
+  const timelineWithStatus = sortedEvents.map((event, index) => ({
+    ...event,
+    status: index < activeIndex ? 'completed' : index === activeIndex ? 'active' : 'upcoming'
+  })) as TimelineEvent[];
 
   const getPhaseColor = (phase: string) => {
     switch (phase) {
@@ -135,7 +137,11 @@ const AwardsFunnel: React.FC = () => {
     }
   };
 
-  const currentStatus = getCurrentStatus();
+  const currentStatus = {
+    event: activeEvent?.id || null,
+    status: activeEvent ? 'active' : 'upcoming',
+    message: activeEvent ? `${activeEvent.name} phase active` : 'Season approaching...'
+  };
 
   return (
     <div className="bg-linear-to-br from-gray-900/90 to-black/90 rounded-2xl p-6 border border-gray-700/50 backdrop-blur-sm">
@@ -163,7 +169,7 @@ const AwardsFunnel: React.FC = () => {
           <div 
             className="absolute left-8 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white shadow-lg z-30 animate-pulse"
             style={{ 
-              top: `${timelineEvents.findIndex(e => e.id === currentStatus.event) * 25 + 8}%` 
+              top: `${activeIndex * 25 + 8}%` 
             }}
           >
             <div className="absolute inset-0 flex items-center justify-center">
@@ -177,7 +183,7 @@ const AwardsFunnel: React.FC = () => {
 
         {/* Timeline events */}
         <div className="space-y-8">
-          {timelineEvents.map((event, index) => (
+          {timelineWithStatus.map((event, index) => (
             <div key={event.id} className="relative flex items-start space-x-6">
               {/* Timeline dot */}
               <div className="relative z-10">
@@ -188,7 +194,7 @@ const AwardsFunnel: React.FC = () => {
                       : event.status === 'active'
                       ? 'bg-yellow-500/20 border-yellow-500 animate-pulse'
                       : 'bg-gray-500/20 border-gray-500'
-                  }`}
+                  } ${selectedEventId === event.id ? 'ring-2 ring-yellow-400/60' : ''}`}
                   onMouseEnter={() => setHoveredEvent(event.id)}
                   onMouseLeave={() => setHoveredEvent(null)}
                 >
@@ -254,13 +260,13 @@ const AwardsFunnel: React.FC = () => {
                         <span className="text-yellow-400 font-bold text-sm">Strategic Impact</span>
                       </div>
                       <p className="text-gray-300 text-xs leading-relaxed">
-                        {event.id === 'globes' && 
+                        {event.id === 'golden-globes-2026' && 
                           'Early momentum builder. Wins here create the narrative that influences other voting bodies.'}
-                        {event.id === 'bafta' && 
+                        {event.id === 'baftas-2026' && 
                           'International perspective crucial for foreign films and diverse performances.'}
-                        {event.id === 'sag' && 
+                        {event.id === 'sag-2026' && 
                           'Largest voting body. Acting category wins here are strong Oscar predictors.'}
-                        {event.id === 'oscars' && 
+                        {event.id === 'oscars-2026' && 
                           'The final word. Industry peers vote based on technical and artistic merit.'}
                       </p>
                     </div>
@@ -317,7 +323,7 @@ const AwardsFunnel: React.FC = () => {
           </div>
           <div className="text-right">
             <span className="text-yellow-400 text-sm font-medium">
-              {timelineEvents.find(e => e.id === currentStatus.event)?.name || 'Between Events'}
+              {timelineWithStatus.find(e => e.id === currentStatus.event)?.name || 'Between Events'}
             </span>
             {currentStatus.message && (
               <div className="text-xs text-gray-300 mt-1">

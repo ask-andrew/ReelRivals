@@ -66,6 +66,11 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState(eventId);
+
+  useEffect(() => {
+    setSelectedEventId(eventId);
+  }, [eventId]);
 
   // Get award show name for share messages
   const getAwardShowName = (eventId: string) => {
@@ -99,7 +104,7 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
       setLoading(true);
       setError(null);
 
-      const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, eventId);
+      const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, selectedEventId);
 
       if (analyticsError) throw analyticsError;
 
@@ -116,7 +121,7 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
 
   useEffect(() => {
     fetchAnalytics();
-  }, [leagueId, eventId, excludeTestUsers, refreshKey]);
+  }, [leagueId, selectedEventId, excludeTestUsers, refreshKey]);
 
   if (loading) {
     return (
@@ -180,8 +185,8 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
         <div className="grid grid-cols-2 gap-3">
           <button 
             onClick={() => {
-              const awardShowName = getAwardShowName(eventId);
-              const awardShowYear = getAwardShowYear(eventId);
+              const awardShowName = getAwardShowName(selectedEventId);
+              const awardShowYear = getAwardShowYear(selectedEventId);
               const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
               const url = window.location.href;
               window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
@@ -194,8 +199,8 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
           
           <button 
             onClick={() => {
-              const awardShowName = getAwardShowName(eventId);
-              const awardShowYear = getAwardShowYear(eventId);
+              const awardShowName = getAwardShowName(selectedEventId);
+              const awardShowYear = getAwardShowYear(selectedEventId);
               const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
               navigator.clipboard.writeText(text);
             }}
@@ -357,8 +362,8 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
     </div>
   ];
 
-  const selectedEvent = SEASON_CIRCUIT.find(e => e.id === eventId);
-  const eventTitle = selectedEvent ? selectedEvent.name : getAwardShowName(eventId);
+  const selectedEvent = SEASON_CIRCUIT.find(e => e.id === selectedEventId);
+  const eventTitle = selectedEvent ? selectedEvent.name : getAwardShowName(selectedEventId);
   const eventDate = selectedEvent?.date || '';
   const eventStatus = selectedEvent?.status || 'open';
   const statusLabel = eventStatus === 'completed' ? 'Results' : eventStatus === 'open' ? 'Live' : 'Upcoming';
@@ -382,6 +387,25 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
             <p className="text-gray-300 mb-4">
               {eventTitle}{eventDate ? ` • ${eventDate}` : ''} • {statusLabel}
             </p>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3">
+              {SEASON_CIRCUIT.map((event) => (
+                <button
+                  key={event.id}
+                  onClick={() => setSelectedEventId(event.id)}
+                  className={`px-3 py-2 rounded-full text-[11px] font-semibold border transition-colors whitespace-nowrap ${
+                    selectedEventId === event.id
+                      ? event.status === 'completed'
+                        ? 'bg-green-500/20 text-green-300 border-green-500/40'
+                        : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                      : 'bg-white/5 text-gray-300 border-white/10'
+                  }`}
+                >
+                  <span className="mr-1">{event.icon}</span>
+                  {event.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
 
             <div className="flex items-center justify-center space-x-3 mb-4">
               <span className="text-[11px] text-gray-300 bg-white/10 border border-white/20 rounded-full px-3 py-1">
@@ -421,9 +445,9 @@ const MobileAnalytics: React.FC<{ leagueId: string; eventId: string }> = ({ leag
 
       {/* Advanced Analytics Section - Keep these as separate sections */}
       <div className="px-4 py-6 space-y-6">
-        <PowerScale leagueId={leagueId} eventId={eventId} />
-        <VoterOverlap leagueId={leagueId} eventId={eventId} />
-        <AwardsFunnel leagueId={leagueId} eventId={eventId} />
+        <PowerScale leagueId={leagueId} eventId={selectedEventId} />
+        <VoterOverlap leagueId={leagueId} eventId={selectedEventId} />
+        <AwardsFunnel selectedEventId={selectedEventId} />
       </div>
     </div>
   );

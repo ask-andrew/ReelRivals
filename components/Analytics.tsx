@@ -589,7 +589,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
             <div className="space-y-6">
               <PowerScale />
               <VoterOverlap />
-              <AwardsFunnel />
+              <AwardsFunnel selectedEventId={selectedEventId} />
             </div>
           </div>
         </div>

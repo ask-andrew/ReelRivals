@@ -1439,34 +1439,42 @@ export async function getRecentWins(eventId: string, limit: number = 15) {
 
 export async function getWinnersForEvent(eventId: string): Promise<{ winners: any[], error: any }> {
   try {
-    const resultsQuery = await dbCore.queryOnce({
-      results: {
-        $: {}
-      },
+    const categoriesQuery = await dbCore.queryOnce({
       categories: {
         $: {
           where: { event_id: eventId }
         }
-      },
-      nominees: {
-        $: {}
       }
     });
 
-    const allResults = resultsQuery.data.results || [];
-    const eventCategories = resultsQuery.data.categories || [];
-    const allNominees = resultsQuery.data.nominees || [];
-    
-    const eventCategoryIds = new Set(eventCategories.map((c: any) => c.id));
-    
-    // Filter results to only include categories from this event
-    const eventResults = allResults.filter((r: any) => eventCategoryIds.has(r.category_id));
-    
-    // Enrich results with category and nominee names
+    const eventCategories = categoriesQuery.data.categories || [];
+    if (eventCategories.length === 0) {
+      return { winners: [], error: null };
+    }
+
+    const categoryIds = eventCategories.map((c: any) => c.id);
+    const resultsQuery = await dbCore.queryOnce({
+      results: {
+        $: { where: { category_id: { in: categoryIds } } }
+      }
+    });
+
+    const eventResults = resultsQuery.data.results || [];
+    const nomineeIds = [...new Set(eventResults.map((r: any) => r.winner_nominee_id))];
+    const nomineesQuery = nomineeIds.length > 0
+      ? await dbCore.queryOnce({
+          nominees: {
+            $: { where: { id: { in: nomineeIds } } }
+          }
+        })
+      : { data: { nominees: [] } };
+
+    const allNominees = nomineesQuery.data.nominees || [];
+
     const winners = eventResults.map((result: any) => {
       const category = eventCategories.find((c: any) => c.id === result.category_id);
       const winnerNominee = allNominees.find((n: any) => n.id === result.winner_nominee_id);
-      
+
       return {
         categoryId: result.category_id,
         categoryName: (category as any)?.name || 'Unknown Category',
