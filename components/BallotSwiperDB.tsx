@@ -224,6 +224,15 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
     }
   };
 
+  const handleSkip = () => {
+    if (isEventCompleted) return;
+    if (currentCategoryIndex < categories.length - 1) {
+      setCurrentCategoryIndex(currentCategoryIndex + 1);
+    } else {
+      setViewMode('review');
+    }
+  };
+
   const handleBack = () => {
     if (currentCategoryIndex > 0) {
       setCurrentCategoryIndex(currentCategoryIndex - 1);
@@ -504,14 +513,12 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">{category.name}</h2>
           <div className="flex items-center space-x-4">
-            {completedCount > 0 && (
-              <button
-                onClick={() => setViewMode('review')}
-                className="text-sm text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
-              >
-                View Summary ({completedCount}/{totalCategories})
-              </button>
-            )}
+            <button
+              onClick={() => setViewMode('review')}
+              className="text-sm text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
+            >
+              View All Categories ({completedCount}/{totalCategories})
+            </button>
           </div>
         </div>
         
@@ -693,6 +700,14 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
           )}
 
           <div className="flex space-x-4">
+            <button
+              onClick={handleSkip}
+              disabled={saving}
+              className="flex-1 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-gray-300 font-bold py-3 rounded-xl transition-all"
+            >
+              Skip
+            </button>
+
             <button
               onClick={handleBack}
               disabled={currentCategoryIndex === 0}
