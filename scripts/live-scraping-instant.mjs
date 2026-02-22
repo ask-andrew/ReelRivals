@@ -1,4 +1,4 @@
-import { sendNotification, scrapeGoldenGlobesWinners } from './scraping-utils.mjs';
+import { sendNotification, scrapeEventWinners } from './scraping-utils.mjs';
 import { init, id } from '@instantdb/admin';
 import dotenv from 'dotenv';
 
@@ -14,19 +14,21 @@ if (!ADMIN_TOKEN) {
 
 const db = init({ appId: APP_ID, adminToken: ADMIN_TOKEN });
 
+function normalizeForMatch(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function scrapeWinnersInstantDB(eventId) {
   console.log(`🏆 Starting live winner scraping for ${eventId}...`);
 
   try {
-    let winners;
-    
-    if (eventId === 'golden-globes-2026') {
-      winners = await scrapeGoldenGlobesWinners();
-    } else {
-      // Fallback to mock data for other events
-      winners = await getMockWinners(eventId);
-    }
-    
+    const winners = await scrapeEventWinners(eventId);
+
     if (winners.length === 0) {
       console.log('ℹ️ No new winners found');
       return;
@@ -47,7 +49,8 @@ async function scrapeWinnersInstantDB(eventId) {
       console.log(`🏆 Recorded ${transactions.length} new winners.`);
       await recalculateScoresInstantDB(eventId);
       for (const winner of newWinners) {
-        await sendNotification(`🏆 ${winner.winnerName} wins ${winner.categoryName}!`);
+        const pendingText = winner.isProvisional ? ' (pending verification)' : '';
+        await sendNotification(`🏆 ${winner.winnerName} wins ${winner.categoryName}${pendingText}`);
       }
     } else {
       console.log('ℹ️ No new winners found after processing.');
@@ -72,10 +75,14 @@ async function processWinner(winner, eventId) {
     });
 
     // Find matching category (fuzzy match)
-    const category = categories.categories.find(cat => 
-      cat.name.toLowerCase().includes(winner.categoryName.toLowerCase()) ||
-      winner.categoryName.toLowerCase().includes(cat.name.toLowerCase())
-    );
+    const normalizedWinnerCategory = normalizeForMatch(winner.categoryName);
+    const category = categories.categories.find((cat) => {
+      const normalizedCategory = normalizeForMatch(cat.name);
+      return (
+        normalizedCategory.includes(normalizedWinnerCategory) ||
+        normalizedWinnerCategory.includes(normalizedCategory)
+      );
+    });
 
     if (!category) {
       console.log(`⚠️ No matching category found for: ${winner.categoryName}`);
@@ -94,15 +101,22 @@ async function processWinner(winner, eventId) {
     });
 
     // Find matching nominee (fuzzy match)
-    const nominee = nominees.nominees.find(nom => 
-      nom.name.toLowerCase().includes(winner.winnerName.toLowerCase()) ||
-      winner.winnerName.toLowerCase().includes(nom.name.toLowerCase())
-    );
+    const normalizedWinnerName = normalizeForMatch(winner.winnerName);
+    const nominee = nominees.nominees.find((nom) => {
+      const normalizedNominee = normalizeForMatch(nom.name);
+      return (
+        normalizedNominee.includes(normalizedWinnerName) ||
+        normalizedWinnerName.includes(normalizedNominee)
+      );
+    });
 
     if (!nominee) {
       console.log(`⚠️ No matching nominee found for: ${winner.winnerName} in category: ${category.name}`);
       return null; // Return null if no nominee found
     }
+
+    const isProvisional = winner.sourceTrust !== 'official';
+    winner.isProvisional = isProvisional;
 
     // Check if result already exists
     const existingResults = await db.query({
@@ -116,8 +130,48 @@ async function processWinner(winner, eventId) {
     });
 
     if (existingResults.results.length > 0) {
+      const existing = existingResults.results[0];
+      const sameWinner = existing.winner_nominee_id === nominee.id;
+      const existingIsProvisional = !!existing.is_provisional;
+
+      // Existing winner is already finalized; do not override.
+      if (!existingIsProvisional && sameWinner) {
+        console.log(`⏭️ Winner already finalized for ${category.name}`);
+        return null;
+      }
+
+      // Upgrade existing provisional winner to finalized if authoritative source matches.
+      if (sameWinner && existingIsProvisional && !isProvisional) {
+        console.log(`✅ Finalizing previously provisional winner for ${category.name}`);
+        return db.tx.results[existing.id].update({
+          is_provisional: false,
+          finalized_at: Date.now(),
+          verified_source_name: winner.sourceName || null,
+          verified_source_url: winner.sourceUrl || null
+        });
+      }
+
+      // Keep current provisional winner if we only have another non-authoritative signal.
+      if (!sameWinner && existingIsProvisional && isProvisional) {
+        console.log(`⚠️ Conflicting provisional winner for ${category.name}; keeping existing pending result`);
+        return null;
+      }
+
+      // Authoritative source contradicts provisional winner: replace and finalize.
+      if (!sameWinner && existingIsProvisional && !isProvisional) {
+        console.log(`🔄 Replacing provisional winner with verified winner for ${category.name}`);
+        return db.tx.results[existing.id].update({
+          winner_nominee_id: nominee.id,
+          announced_at: Date.now(),
+          is_provisional: false,
+          finalized_at: Date.now(),
+          verified_source_name: winner.sourceName || null,
+          verified_source_url: winner.sourceUrl || null
+        });
+      }
+
       console.log(`⏭️ Winner already recorded for ${category.name}`);
-      return null; // Return null if winner already recorded
+      return null;
     }
 
     // Return the create operation
@@ -125,13 +179,75 @@ async function processWinner(winner, eventId) {
     return db.tx.results[resultId].create({
       category_id: category.id,
       winner_nominee_id: nominee.id,
-      announced_at: Date.now()
+      announced_at: Date.now(),
+      is_provisional: isProvisional,
+      finalized_at: isProvisional ? null : Date.now(),
+      source_name: winner.sourceName || null,
+      source_url: winner.sourceUrl || null,
+      verified_source_name: isProvisional ? null : (winner.sourceName || null),
+      verified_source_url: isProvisional ? null : (winner.sourceUrl || null)
     });
     
   } catch (error) {
     console.error(`❌ Error processing winner ${winner.winnerName}:`, error);
     return null; // Return null on error
   }
+}
+
+async function getProvisionalStatus(eventId) {
+  const categoriesQuery = await db.query({
+    categories: { $: { where: { event_id: eventId } } }
+  });
+  const categories = categoriesQuery.categories || [];
+  const categoryIds = categories.map((c) => c.id);
+  if (categoryIds.length === 0) {
+    return { total: 0, provisional: 0, finalized: 0 };
+  }
+
+  const resultsQuery = await db.query({
+    results: { $: { where: { category_id: { in: categoryIds } } } }
+  });
+  const results = resultsQuery.results || [];
+  const provisional = results.filter((r) => !!r.is_provisional).length;
+  const finalized = results.length - provisional;
+  return { total: results.length, provisional, finalized };
+}
+
+async function finalizeEventResults(eventId) {
+  console.log(`🔒 Finalizing provisional results for ${eventId}...`);
+  const categoriesQuery = await db.query({
+    categories: { $: { where: { event_id: eventId } } }
+  });
+  const categories = categoriesQuery.categories || [];
+  const categoryIds = categories.map((c) => c.id);
+  if (categoryIds.length === 0) {
+    console.log(`ℹ️ No categories found for ${eventId}`);
+    return;
+  }
+
+  const resultsQuery = await db.query({
+    results: { $: { where: { category_id: { in: categoryIds } } } }
+  });
+  const results = resultsQuery.results || [];
+  const provisionalResults = results.filter((r) => !!r.is_provisional);
+
+  if (provisionalResults.length === 0) {
+    console.log('ℹ️ No provisional results to finalize');
+    await recalculateScoresInstantDB(eventId);
+    return;
+  }
+
+  const now = Date.now();
+  const txs = provisionalResults.map((result) =>
+    db.tx.results[result.id].update({
+      is_provisional: false,
+      finalized_at: now,
+      verification_note: 'Finalized via finalize-event command'
+    })
+  );
+  await db.transact(txs);
+  console.log(`✅ Finalized ${provisionalResults.length} results`);
+  await recalculateScoresInstantDB(eventId);
 }
 
 async function recalculateScoresInstantDB(eventId) {
@@ -301,21 +417,38 @@ async function startLiveScrapingInstantDB(eventId, intervalMinutes = 15) {
   }, 4 * 60 * 60 * 1000);
 }
 
-// Mock data (replace with real scraping)
-async function getMockWinners(eventId) {
-  const mockData = {
-    'golden-globes-2026': [
-      { categoryName: 'Best Motion Picture – Drama', winnerName: 'The Brutalist' }
-    ]
-  };
-  
-  return mockData[eventId] || [];
-}
-
 // CLI commands
 const command = process.argv[2];
 
 switch (command) {
+  case 'finalize-event':
+    const finalizeEventId = process.argv[3];
+    if (!finalizeEventId) {
+      console.error('❌ Please provide an event ID: node live-scraping-instant.mjs finalize-event baftas-2026');
+      process.exit(1);
+    }
+    await finalizeEventResults(finalizeEventId);
+    process.exit(0);
+    break;
+  case 'provisional-status':
+    const statusEventId = process.argv[3];
+    if (!statusEventId) {
+      console.error('❌ Please provide an event ID: node live-scraping-instant.mjs provisional-status baftas-2026');
+      process.exit(1);
+    }
+    const status = await getProvisionalStatus(statusEventId);
+    console.log(`📊 ${statusEventId} -> total: ${status.total}, provisional: ${status.provisional}, finalized: ${status.finalized}`);
+    process.exit(0);
+    break;
+  case 'scrape-once':
+    const singleEventId = process.argv[3];
+    if (!singleEventId) {
+      console.error('❌ Please provide an event ID: node live-scraping-instant.mjs scrape-once baftas-2026');
+      process.exit(1);
+    }
+    await scrapeWinnersInstantDB(singleEventId);
+    process.exit(0);
+    break;
   case 'live-scrape':
     const eventId = process.argv[3];
     if (!eventId) {
@@ -334,9 +467,15 @@ switch (command) {
 🏆 Instant DB Live Scoring Tool
 
 Commands:
+  node live-scraping-instant.mjs provisional-status [event] - Show pending/finalized winner counts
+  node live-scraping-instant.mjs finalize-event [event]     - Finalize provisional winners and recalculate scores
+  node live-scraping-instant.mjs scrape-once [event] - Run a single winner scrape pass
   node live-scraping-instant.mjs live-scrape [event]  - Start live scoring for event
   
 Examples:
+  node live-scraping-instant.mjs provisional-status baftas-2026
+  node live-scraping-instant.mjs finalize-event baftas-2026
+  node live-scraping-instant.mjs scrape-once baftas-2026
   node live-scraping-instant.mjs live-scrape golden-globes-2026
     `);
 }
