@@ -1,19 +1,54 @@
 [
   {
-    "id": "wikipedia-sag-2026",
-    "name": "Wikipedia SAG 2026",
-    "url": "https://en.wikipedia.org/wiki/32nd_Screen_Actors_Guild_Awards",
+    "id": "wikipedia-actor-awards-2026",
+    "name": "Wikipedia Actor Awards 2026",
+    "url": "https://en.wikipedia.org/wiki/32nd_Actor_Awards",
     "trust": "secondary",
     "type": "wikipedia-table",
-    "searchQuery": "32nd Screen Actors Guild Awards",
-    "expectedTitleIncludes": "32nd Screen Actors Guild Awards",
+    "searchQuery": "32nd Actor Awards",
+    "expectedTitleIncludes": "32nd Actor Awards",
     "selectors": {
       "winnerCard": "table.wikitable tr",
       "categoryName": "th, td:first-child",
       "winnerName": "b, strong"
     },
-    "reliabilityScore": 80,
+    "reliabilityScore": 85,
     "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "sag-2026"
+  },
+  {
+    "id": "actor-awards-official-2026",
+    "name": "Actor Awards Official 2026",
+    "url": "https://actorawards.org/awards/nominees-and-recipients/32nd-annual-actor-awards",
+    "trust": "official",
+    "type": "selectors",
+    "selectors": {
+      "winnerCard": ".views-row .details, .nominee-data .details",
+      "categoryName": ".meta h3, .category-title, h3",
+      "winnerName": "b, strong, .movie-title.alone, img[alt]",
+      "movieTitle": ".movie-title.alone, img[alt]"
+    },
+    "reliabilityScore": 90,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "sag-2026"
+  },
+  {
+    "id": "wikipedia-actor-awards-main",
+    "name": "Wikipedia Actor Awards Main",
+    "url": "https://en.wikipedia.org/wiki/Actor_Awards",
+    "trust": "secondary",
+    "type": "wikipedia-table",
+    "searchQuery": "Actor Awards",
+    "expectedTitleIncludes": "Actor Awards",
+    "selectors": {
+      "winnerCard": "table.wikitable tr",
+      "categoryName": "th, td:first-child",
+      "winnerName": "b, strong"
+    },
+    "reliabilityScore": 60,
+    "updateFrequency": 60000,
     "enabled": true,
     "eventId": "sag-2026"
   }

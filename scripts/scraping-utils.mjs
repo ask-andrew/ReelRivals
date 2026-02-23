@@ -272,6 +272,76 @@ function normalizeText(value) {
     .trim();
 }
 
+function extractWikipediaListWinners($, url) {
+  const winners = [];
+  const ignoredHeadings = new Set([
+    'ceremony information',
+    'presenters',
+    'in memoriam',
+    'references',
+    'external links',
+    'see also',
+    'notes'
+  ]);
+
+  const headingNodes = $('h2 .mw-headline, h3 .mw-headline, h4 .mw-headline').toArray();
+  for (const headlineNode of headingNodes) {
+    const $headline = $(headlineNode);
+    const categoryName = $headline.text().replace(/\[[^\]]+\]/g, '').trim();
+    if (!categoryName || categoryName.length < 4) continue;
+    if (ignoredHeadings.has(categoryName.toLowerCase())) continue;
+
+    const headingTag = ($headline.parent().prop('tagName') || '').toLowerCase();
+    const currentLevel = headingTag === 'h2' ? 2 : headingTag === 'h3' ? 3 : 4;
+    let cursor = $headline.parent().next();
+    while (cursor.length > 0) {
+      const cursorTag = (cursor.prop('tagName') || '').toLowerCase();
+      if (/^h[2-4]$/.test(cursorTag)) {
+        const nextLevel = Number(cursorTag.slice(1));
+        if (nextLevel <= currentLevel) break;
+      }
+
+      const listItems = cursor.is('ul') ? cursor.find('li') : cursor.find('ul > li');
+      if (listItems.length > 0) {
+        let winnerFound = false;
+        listItems.each((_, li) => {
+          if (winnerFound) return;
+          const $li = $(li);
+          const $winnerEmphasis = $li.find('b, strong').first();
+          if ($winnerEmphasis.length === 0) return;
+
+          const winnerName = $winnerEmphasis
+            .find('a')
+            .first()
+            .text()
+            .replace(/\[[^\]]+\]/g, '')
+            .trim() || $winnerEmphasis.text().replace(/\[[^\]]+\]/g, '').trim();
+          if (!winnerName) return;
+
+          const movieTitle = $li
+            .find('i a, i, em a, em')
+            .first()
+            .text()
+            .replace(/\[[^\]]+\]/g, '')
+            .trim();
+
+          winners.push({
+            categoryName,
+            winnerName,
+            movieTitle: movieTitle || undefined,
+            sourceUrl: url
+          });
+          winnerFound = true;
+        });
+      }
+
+      cursor = cursor.next();
+    }
+  }
+
+  return winners;
+}
+
 function dedupeWinners(winners) {
   const seen = new Set();
   const deduped = [];
@@ -451,7 +521,11 @@ async function scrapeWikipediaTable(source) {
       });
     });
 
-    return winners;
+    if (winners.length > 0) {
+      return winners;
+    }
+
+    return extractWikipediaListWinners($, url);
   };
 
   const resolveWikipediaUrl = async (searchQuery, expectedTitleIncludes) => {

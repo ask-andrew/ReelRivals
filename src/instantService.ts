@@ -693,6 +693,46 @@ export async function getBallot(userId: string, eventId: string) {
   }
 }
 
+async function getEventForPicks(eventId: string) {
+  const byIdQuery = await dbCore.queryOnce({
+    events: {
+      $: { where: { id: eventId } },
+    },
+  });
+  if (byIdQuery.data.events?.[0]) {
+    return byIdQuery.data.events[0];
+  }
+
+  const eventNameBySlug: Record<string, string> = {
+    'golden-globes-2026': 'Golden Globes 2026',
+    'baftas-2026': 'BAFTA Film Awards 2026',
+    'sag-2026': 'SAG Awards 2026',
+    'oscars-2026': 'The Oscars 2026'
+  };
+
+  const fallbackName = eventNameBySlug[eventId];
+  if (!fallbackName) return null;
+
+  const byNameQuery = await dbCore.queryOnce({
+    events: {
+      $: { where: { name: fallbackName } },
+    },
+  });
+  return byNameQuery.data.events?.[0] || null;
+}
+
+function isEventLockedForPicks(event: any): boolean {
+  if (!event) return false;
+  if (event.is_complete) return true;
+
+  const lockAt = Date.parse(event.picks_lock_at || '');
+  if (!Number.isNaN(lockAt) && Date.now() >= lockAt) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function saveBallotPick(
   userId: string,
   eventId: string,
@@ -702,6 +742,11 @@ export async function saveBallotPick(
   isPowerPick: boolean
 ) {
   try {
+    const event = await getEventForPicks(eventId);
+    if (isEventLockedForPicks(event)) {
+      return { error: new Error(`Picks are locked for event ${eventId}`) };
+    }
+
     // 1. Find or create ballot
     const ballotQuery = await dbCore.queryOnce({
       ballots: {
@@ -713,6 +758,9 @@ export async function saveBallotPick(
 
     if (ballotQuery.data.ballots.length > 0) {
       ballotId = ballotQuery.data.ballots[0].id;
+      if (ballotQuery.data.ballots[0].is_locked) {
+        return { error: new Error('Ballot is locked and cannot be edited') };
+      }
     } else {
       ballotId = id();
       await dbCore.transact(
