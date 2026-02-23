@@ -1,0 +1,36 @@
+[
+  {
+    "id": "oscars-official",
+    "name": "Oscars Official Winners",
+    "url": "https://www.oscars.org/oscars/ceremonies/2026",
+    "trust": "official",
+    "type": "selectors",
+    "selectors": {
+      "winnerCard": ".view-content .views-row, .award, article, .field-item",
+      "categoryName": ".category, h2, h3, h4",
+      "winnerName": ".winner, strong, b, .field--name-title",
+      "movieTitle": "em, i"
+    },
+    "reliabilityScore": 96,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "oscars-2026"
+  },
+  {
+    "id": "wikipedia-oscars-2026",
+    "name": "Wikipedia Oscars 2026",
+    "url": "https://en.wikipedia.org/wiki/98th_Academy_Awards",
+    "trust": "secondary",
+    "type": "wikipedia-table",
+    "searchQuery": "98th Academy Awards",
+    "selectors": {
+      "winnerCard": "table.wikitable tr",
+      "categoryName": "th, td:first-child",
+      "winnerName": "b, strong"
+    },
+    "reliabilityScore": 84,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "oscars-2026"
+  }
+]

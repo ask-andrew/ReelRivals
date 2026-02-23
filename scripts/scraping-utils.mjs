@@ -1,6 +1,14 @@
 import * as cheerio from 'cheerio';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { validateSourceConfig } from '../src/utils/source-config-validator.mjs';
 
-const EVENT_SOURCES = {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SOURCE_CONFIG_DIR = path.join(__dirname, 'source-configs');
+
+const FALLBACK_EVENT_SOURCES = {
   'golden-globes-2026': [
     {
       id: 'globes-official',
@@ -74,6 +82,33 @@ const EVENT_SOURCES = {
     }
   ]
 };
+
+async function loadEventSources(eventId) {
+  const filePath = path.join(SOURCE_CONFIG_DIR, `${eventId}.json`);
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const parsed = JSON.parse(content);
+    if (!Array.isArray(parsed)) {
+      throw new Error(`Expected array in ${filePath}`);
+    }
+    const enabled = parsed.filter((source) => source.enabled !== false);
+    for (const source of enabled) {
+      validateSourceConfig(source);
+    }
+    return enabled;
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.warn(`⚠️ Failed to load ${filePath}: ${error.message}. Falling back to built-in source config.`);
+    }
+    return (FALLBACK_EVENT_SOURCES[eventId] || []).map((source) => ({
+      ...source,
+      reliabilityScore: source.reliabilityScore ?? 80,
+      updateFrequency: source.updateFrequency ?? 30000,
+      enabled: source.enabled ?? true,
+      eventId: source.eventId ?? eventId
+    }));
+  }
+}
 
 async function fetchHtml(url) {
   const response = await fetch(url, {
@@ -317,9 +352,71 @@ async function scrapeWikipediaTable(source) {
     const $ = cheerio.load(html);
     const winners = [];
 
+    // Primary parser for paired-category award tables where each TD contains one category block.
     $('table.wikitable tr').each((_, row) => {
-      const categoryName = $(row).find('th').first().text().replace(/\[[^\]]+\]/g, '').trim();
-      const $resultCell = $(row).find('td').first();
+      const $cells = $(row).find('td');
+      if ($cells.length === 0) return;
+
+      $cells.each((__, cell) => {
+        const $cell = $(cell);
+        const categoryName = $cell
+          .find('div b, .navbox-title b, b')
+          .first()
+          .text()
+          .replace(/\[[^\]]+\]/g, '')
+          .trim();
+        if (!categoryName || categoryName.length < 4) {
+          return;
+        }
+
+        const $winnerBold = $cell.find('ul > li b').first();
+        if ($winnerBold.length === 0) return;
+
+        const winnerName = $winnerBold
+          .find('a')
+          .first()
+          .text()
+          .replace(/\[[^\]]+\]/g, '')
+          .trim()
+          || $winnerBold
+            .text()
+            .replace(/\[[^\]]+\]/g, '')
+            .split('–')[0]
+            .trim();
+
+        if (!winnerName) return;
+
+        const movieTitle = $winnerBold
+          .find('i a, i, em a, em')
+          .first()
+          .text()
+          .replace(/\[[^\]]+\]/g, '')
+          .trim();
+
+        winners.push({
+          categoryName,
+          winnerName,
+          movieTitle: movieTitle || undefined,
+          sourceUrl: url
+        });
+      });
+    });
+
+    if (winners.length > 0) {
+      return winners;
+    }
+
+    // Fallback parser for simpler table layouts.
+    $('table.wikitable tr').each((_, row) => {
+      const $cells = $(row).find('td');
+      const hasHeaderCategory = $(row).find('th').length > 0;
+      // Skip paired two-column award rows in fallback mode to avoid false positives.
+      if (!hasHeaderCategory && $cells.length > 1) return;
+      const categoryNameRaw = hasHeaderCategory
+        ? $(row).find('th').first().text()
+        : $cells.first().text();
+      const categoryName = categoryNameRaw.replace(/\[[^\]]+\]/g, '').trim();
+      const $resultCell = hasHeaderCategory ? $cells.first() : $cells.eq(1);
       if (!categoryName || $resultCell.length === 0) return;
 
       const winnerName = $resultCell
@@ -328,7 +425,16 @@ async function scrapeWikipediaTable(source) {
         .text()
         .replace(/\[[^\]]+\]/g, '')
         .trim();
-      if (!winnerName) return;
+
+      // Fallback: some tables use list items without bold for the winner.
+      const fallbackWinnerName = $resultCell
+        .find('li a, li')
+        .first()
+        .text()
+        .replace(/\[[^\]]+\]/g, '')
+        .trim();
+      const resolvedWinnerName = winnerName || fallbackWinnerName;
+      if (!resolvedWinnerName) return;
 
       const movieTitle = $resultCell
         .find('i a, i, em a, em')
@@ -339,7 +445,7 @@ async function scrapeWikipediaTable(source) {
 
       winners.push({
         categoryName,
-        winnerName,
+        winnerName: resolvedWinnerName,
         movieTitle: movieTitle || undefined,
         sourceUrl: url
       });
@@ -348,7 +454,7 @@ async function scrapeWikipediaTable(source) {
     return winners;
   };
 
-  const resolveWikipediaUrl = async (searchQuery) => {
+  const resolveWikipediaUrl = async (searchQuery, expectedTitleIncludes) => {
     if (!searchQuery) return null;
     const queryUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&format=json&srlimit=1`;
     try {
@@ -359,6 +465,10 @@ async function scrapeWikipediaTable(source) {
       const payload = await response.json();
       const title = payload?.query?.search?.[0]?.title;
       if (!title) return null;
+      if (expectedTitleIncludes && !title.toLowerCase().includes(String(expectedTitleIncludes).toLowerCase())) {
+        console.warn(`⚠️ Wikipedia search returned unexpected page title "${title}" (expected to include "${expectedTitleIncludes}")`);
+        return null;
+      }
       return `https://en.wikipedia.org/wiki/${title.replace(/\s+/g, '_')}`;
     } catch {
       return null;
@@ -372,7 +482,7 @@ async function scrapeWikipediaTable(source) {
       return dedupeWinners(winners);
     }
 
-    const resolvedUrl = await resolveWikipediaUrl(source.searchQuery);
+    const resolvedUrl = await resolveWikipediaUrl(source.searchQuery, source.expectedTitleIncludes);
     if (resolvedUrl && resolvedUrl !== source.url) {
       console.log(`🔁 Wikipedia fallback URL: ${resolvedUrl}`);
       const fallbackHtml = await fetchHtml(resolvedUrl);
@@ -383,7 +493,7 @@ async function scrapeWikipediaTable(source) {
     return [];
   } catch (error) {
     console.error(`❌ Error scraping Wikipedia source ${source.name}:`, error.message);
-    const resolvedUrl = await resolveWikipediaUrl(source.searchQuery);
+    const resolvedUrl = await resolveWikipediaUrl(source.searchQuery, source.expectedTitleIncludes);
     if (resolvedUrl && resolvedUrl !== source.url) {
       try {
         console.log(`🔁 Wikipedia recovery URL: ${resolvedUrl}`);
@@ -406,7 +516,7 @@ async function scrapeSource(source) {
 }
 
 async function scrapeEventWinners(eventId) {
-  const sources = EVENT_SOURCES[eventId] || [];
+  const sources = await loadEventSources(eventId);
   if (sources.length === 0) {
     console.warn(`⚠️ No sources configured for ${eventId}`);
     return [];
@@ -432,9 +542,51 @@ async function scrapeEventWinners(eventId) {
   return [];
 }
 
+async function scrapeEventWinnersDetailed(eventId) {
+  const sources = await loadEventSources(eventId);
+  if (sources.length === 0) {
+    return { eventId, observations: [], bySource: [] };
+  }
+
+  const bySource = [];
+  const observations = [];
+
+  for (const source of sources) {
+    console.log(`🔎 Scraping ${source.name}...`);
+    const winners = await scrapeSource(source);
+    const enriched = winners.map((winner) => ({
+      ...winner,
+      sourceId: source.id,
+      sourceName: source.name,
+      sourceUrl: winner.sourceUrl || source.url,
+      sourceTrust: source.trust || 'secondary'
+    }));
+    bySource.push({
+      sourceId: source.id,
+      sourceName: source.name,
+      sourceTrust: source.trust || 'secondary',
+      winnerCount: enriched.length
+    });
+    observations.push(...enriched);
+    if (enriched.length > 0) {
+      console.log(`✅ Found ${enriched.length} winners from ${source.name}`);
+    } else {
+      console.log(`ℹ️ No winners from ${source.name}`);
+    }
+  }
+
+  return { eventId, observations, bySource };
+}
+
 async function scrapeGoldenGlobesWinners() {
   console.log('🎬 Scraping Golden Globes winners...');
   return scrapeEventWinners('golden-globes-2026');
 }
 
-export { sendNotification, scrapeGoldenGlobesWinners, extractWinnersFromPage, scrapeEventWinners };
+export {
+  sendNotification,
+  scrapeGoldenGlobesWinners,
+  extractWinnersFromPage,
+  scrapeEventWinners,
+  scrapeEventWinnersDetailed
+};

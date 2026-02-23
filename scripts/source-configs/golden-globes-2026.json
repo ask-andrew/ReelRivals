@@ -1,0 +1,20 @@
+[
+  {
+    "id": "globes-official",
+    "name": "Golden Globes Official",
+    "url": "https://www.goldenglobes.com/winners",
+    "trust": "official",
+    "type": "selectors",
+    "selectors": {
+      "winnerCard": ".winner-card, .winner-item, .award-winner, .category-winner",
+      "categoryName": ".category-name, .category, .award-category, h3, h4",
+      "winnerName": ".winner-name, .winner, .recipient, .awardee, strong, b",
+      "movieTitle": ".movie-title, .film-title, .title, .work",
+      "personName": ".person-name, .recipient, .winner-name"
+    },
+    "reliabilityScore": 95,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "golden-globes-2026"
+  }
+]

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "wikipedia-bafta-2026",
+    "name": "Wikipedia BAFTA 2026",
+    "url": "https://en.wikipedia.org/wiki/79th_British_Academy_Film_Awards",
+    "trust": "secondary",
+    "type": "wikipedia-table",
+    "searchQuery": "79th British Academy Film Awards",
+    "selectors": {
+      "winnerCard": "table.wikitable tr",
+      "categoryName": "th, td:first-child",
+      "winnerName": "b, strong"
+    },
+    "reliabilityScore": 82,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "baftas-2026"
+  },
+  {
+    "id": "bafta-official",
+    "name": "BAFTA Official Winners",
+    "url": "https://www.bafta.org/film/awards/winners",
+    "trust": "official",
+    "type": "selectors",
+    "selectors": {
+      "winnerCard": ".view-content .views-row, .results li, article, .award",
+      "categoryName": ".category, .views-field-title, h2, h3, h4",
+      "winnerName": ".winner, .field--name-title, strong, b",
+      "movieTitle": "em, i"
+    },
+    "reliabilityScore": 95,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "baftas-2026"
+  }
+]

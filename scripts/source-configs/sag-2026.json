@@ -1,0 +1,20 @@
+[
+  {
+    "id": "wikipedia-sag-2026",
+    "name": "Wikipedia SAG 2026",
+    "url": "https://en.wikipedia.org/wiki/32nd_Screen_Actors_Guild_Awards",
+    "trust": "secondary",
+    "type": "wikipedia-table",
+    "searchQuery": "32nd Screen Actors Guild Awards",
+    "expectedTitleIncludes": "32nd Screen Actors Guild Awards",
+    "selectors": {
+      "winnerCard": "table.wikitable tr",
+      "categoryName": "th, td:first-child",
+      "winnerName": "b, strong"
+    },
+    "reliabilityScore": 80,
+    "updateFrequency": 30000,
+    "enabled": true,
+    "eventId": "sag-2026"
+  }
+]
