@@ -15,6 +15,7 @@ export const SEASON_CIRCUIT: AwardEvent[] = [
 
 export const GOLDEN_GLOBES_2026_DEADLINE = new Date('2026-01-11T14:59:00-08:00'); // Jan 11, 2026 2:59 PM PT
 export const BAFTAS_2026_DEADLINE = new Date('2026-02-22T17:00:00-00:00'); // Feb 22, 2026 5:00 PM GMT (BAFTAs are in London)
+export const SAG_2026_DEADLINE = new Date('2026-03-01T17:00:00-08:00'); // Mar 1, 2026 5:00 PM PT
 export const OSCARS_2026_DEADLINE = new Date('2026-03-15T17:00:00-08:00'); // Mar 15, 2026 5:00 PM PT
 
 export const CATEGORIES = [

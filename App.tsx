@@ -15,6 +15,7 @@ import SocialShare from './components/SocialShare';
 import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check, BarChart3, Users } from 'lucide-react';
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT, AWARD_SHOW_CATEGORIES } from './constants';
+import { getCountdownToNextAwardShow, CountdownInfo } from './src/utils/countdown';
 import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser } from './src/instantService';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
@@ -51,6 +52,7 @@ const App: React.FC = () => {
   const [standingsRefresh, setStandingsRefresh] = useState(0);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [selectedAwardShow, setSelectedAwardShow] = useState('oscars-2026'); // Default to Oscars since they're open
+  const [countdown, setCountdown] = useState<CountdownInfo>(getCountdownToNextAwardShow());
   
   // Golden Globes is completed - allow full viewing but no new picks
   const isGoldenGlobesCompleted = true;
@@ -213,6 +215,21 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
     } else {
       setBaftaBannerVisible(false);
     }
+  }, []);
+
+  // Update countdown every second
+  useEffect(() => {
+    const updateCountdown = () => {
+      setCountdown(getCountdownToNextAwardShow());
+    };
+
+    // Update immediately
+    updateCountdown();
+    
+    // Then update every second
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Reload data when award show changes
@@ -493,37 +510,64 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           <h2 className="text-2xl font-cinzel font-bold mb-2">The Circuit Continues</h2>
           <p className="text-sm text-gray-400 mb-6 leading-relaxed">Golden Globes are complete! Now focus on BAFTAs, SAG, and Oscars to climb the standings.</p>
           
-          {/* Current Events Status */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-lg">🎭</span>
-                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+          {/* Next Award Show Countdown */}
+          <div className="bg-linear-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">{countdown.nextEvent?.icon}</span>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Next Up: {countdown.nextEvent?.name}</h4>
+                  <p className="text-[10px] text-gray-400">{countdown.nextEvent?.date}</p>
+                </div>
               </div>
-              <h4 className="text-sm font-bold text-yellow-400">BAFTAs</h4>
-              <p className="text-[10px] text-gray-400">Feb 22, 2026</p>
-              <p className="text-[8px] text-yellow-300 mt-1">Open for Picks</p>
-            </div>
-
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-lg">👥</span>
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              </div>
-              <h4 className="text-sm font-bold text-emerald-400">SAG Awards</h4>
-              <p className="text-[10px] text-gray-400">Mar 1, 2026</p>
-              <p className="text-[8px] text-emerald-300 mt-1">Open for Picks</p>
+              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
             </div>
             
-            <div className="col-span-2 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-lg">✨</span>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            {!countdown.isExpired ? (
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="bg-black/30 rounded-lg p-2">
+                  <div className="text-lg font-bold text-emerald-400">{countdown.days}</div>
+                  <div className="text-[8px] text-gray-400">Days</div>
+                </div>
+                <div className="bg-black/30 rounded-lg p-2">
+                  <div className="text-lg font-bold text-blue-400">{countdown.hours}</div>
+                  <div className="text-[8px] text-gray-400">Hours</div>
+                </div>
+                <div className="bg-black/30 rounded-lg p-2">
+                  <div className="text-lg font-bold text-purple-400">{countdown.minutes}</div>
+                  <div className="text-[8px] text-gray-400">Minutes</div>
+                </div>
+                <div className="bg-black/30 rounded-lg p-2">
+                  <div className="text-lg font-bold text-pink-400">{countdown.seconds}</div>
+                  <div className="text-[8px] text-gray-400">Seconds</div>
+                </div>
               </div>
-              <h4 className="text-sm font-bold text-blue-400">Oscars</h4>
-              <p className="text-[10px] text-gray-400">Mar 15, 2026</p>
-              <p className="text-[8px] text-blue-300 mt-1">Open for Picks</p>
-            </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-sm font-bold text-red-400">{countdown.message}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Current Events Status */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {SEASON_CIRCUIT.filter(event => event.status !== 'completed').map((event) => (
+              <div key={event.id} className={`bg-white/5 border border-white/20 rounded-xl p-3 ${
+                event.id === countdown.nextEvent?.id ? 'ring-2 ring-emerald-500/50' : ''
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-lg">{event.icon}</span>
+                  {event.id === countdown.nextEvent?.id && (
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  )}
+                </div>
+                <h4 className="text-xs font-bold text-white">{event.name}</h4>
+                <p className="text-[8px] text-gray-400">{event.date}</p>
+                <p className="text-[8px] text-emerald-300 mt-1">
+                  {event.id === countdown.nextEvent?.id ? 'On Deck' : 'Open for Picks'}
+                </p>
+              </div>
+            ))}
           </div>
 
           <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-6">
@@ -637,44 +681,24 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
             </div>
             
             <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setSelectedAwardShow('oscars-2026')}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  selectedAwardShow === 'oscars-2026' 
-                    ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' 
-                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                }`}
-              >
-                <div className="text-2xl mb-2">🏆</div>
-                <div className="text-sm font-bold">Oscars</div>
-                <div className="text-[8px] opacity-70">Mar 15, 2026</div>
-              </button>
-              
-              <button 
-                onClick={() => setSelectedAwardShow('baftas-2026')}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  selectedAwardShow === 'baftas-2026' 
-                    ? 'bg-blue-500/20 border-blue-500 text-blue-400' 
-                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                }`}
-              >
-                <div className="text-2xl mb-2">🎬</div>
-                <div className="text-sm font-bold">BAFTAs</div>
-                <div className="text-[8px] opacity-70">Feb 22, 2026</div>
-              </button>
-
-              <button 
-                onClick={() => setSelectedAwardShow('sag-2026')}
-                className={`col-span-2 p-4 rounded-xl border-2 transition-all ${
-                  selectedAwardShow === 'sag-2026' 
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                }`}
-              >
-                <div className="text-2xl mb-2">👥</div>
-                <div className="text-sm font-bold">SAG Awards</div>
-                <div className="text-[8px] opacity-70">Mar 1, 2026</div>
-              </button>
+              {SEASON_CIRCUIT.filter(event => event.status !== 'completed').map((event) => (
+                <button 
+                  key={event.id}
+                  onClick={() => setSelectedAwardShow(event.id)}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    selectedAwardShow === event.id 
+                      ? `${event.id === 'sag-2026' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : event.id === 'oscars-2026' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-blue-500/20 border-blue-500 text-blue-400'}` 
+                      : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
+                  } ${event.id === countdown.nextEvent?.id ? 'ring-2 ring-emerald-500/50' : ''}`}
+                >
+                  <div className="text-2xl mb-2">{event.icon}</div>
+                  <div className="text-sm font-bold">{event.name}</div>
+                  <div className="text-[8px] opacity-70">{event.date}</div>
+                  {event.id === countdown.nextEvent?.id && (
+                    <div className="text-[8px] text-emerald-400 mt-1">On Deck</div>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
           
