@@ -1,7 +1,5 @@
 import { dbCore } from './src/instant.js';
 
-const APP_ID = '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
-
 async function updateEventStatus() {
   try {
     console.log('Updating Golden Globes event status to complete...');

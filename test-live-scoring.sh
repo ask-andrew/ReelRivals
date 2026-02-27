@@ -35,7 +35,10 @@ echo "🧪 Running basic test..."
 cat > test-live-scoring.mjs << 'EOF'
 import { init } from '@instantdb/core';
 
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const APP_ID = process.env.INSTANT_APP_ID || process.env.VITE_INSTANT_APP_ID;
+if (!APP_ID) {
+  throw new Error('Missing INSTANT_APP_ID. Set it before running this script.');
+}
 
 try {
   console.log('🔗 Testing InstantDB connection...');

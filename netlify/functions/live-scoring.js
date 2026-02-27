@@ -1,11 +1,15 @@
 import { load } from 'cheerio';
 import { init, id } from '@instantdb/admin';
 
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
-const ADMIN_TOKEN = process.env.VITE_INSTANT_SECRET || process.env.INSTANT_APP_ADMIN_TOKEN;
+const APP_ID = process.env.INSTANT_APP_ID || process.env.VITE_INSTANT_APP_ID;
+const ADMIN_TOKEN = process.env.INSTANT_APP_ADMIN_TOKEN || process.env.VITE_INSTANT_SECRET;
+
+if (!APP_ID) {
+  throw new Error('Missing INSTANT_APP_ID. Set it in Netlify environment variables.');
+}
 
 if (!ADMIN_TOKEN) {
-  console.error('❌ Missing admin token. Set VITE_INSTANT_SECRET or INSTANT_APP_ADMIN_TOKEN.');
+  console.error('❌ Missing admin token. Set INSTANT_APP_ADMIN_TOKEN (or VITE_INSTANT_SECRET for local development).');
 }
 
 const db = init({ appId: APP_ID, adminToken: ADMIN_TOKEN });
@@ -24,7 +28,7 @@ const BAFTA_CATEGORY_SLUGS = {
 };
 
 const SAG_SLUG_BY_EVENT = {
-  'sag-2026': '32nd-annual-actor-awards'
+  'sag-2026': process.env.SAG_EVENT_SLUG_2026 || '32nd-annual-actor-awards'
 };
 
 const normalize = (value) =>
