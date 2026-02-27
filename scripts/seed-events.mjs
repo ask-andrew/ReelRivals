@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: new URL('../.env.local', import.meta.url).pathname });
 
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const APP_ID = process.env.VITE_INSTANT_APP_ID || 'your_instant_app_id_here';
 const ADMIN_TOKEN = process.env.VITE_INSTANT_SECRET || process.env.INSTANT_APP_ADMIN_TOKEN;
 
 if (!ADMIN_TOKEN) {

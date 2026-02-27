@@ -2,7 +2,7 @@ import { init } from '@instantdb/core';
 import { readFileSync } from 'fs';
 
 // Instant DB configuration - using same pattern as frontend
-const APP_ID = '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const APP_ID = 'process.env.VITE_INSTANT_APP_ID || 'your_instant_app_id_here'';
 
 // Initialize exactly like the frontend instant.ts
 const dbCore = init({

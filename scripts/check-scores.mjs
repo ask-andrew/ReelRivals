@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const APP_ID = process.env.VITE_INSTANT_APP_ID || 'your_instant_app_id_here';
 const ADMIN_TOKEN = process.env.VITE_INSTANT_SECRET;
 
 if (!ADMIN_TOKEN) {

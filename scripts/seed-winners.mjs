@@ -1,6 +1,6 @@
 import { init } from '@instantdb/core';
 
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const APP_ID = process.env.VITE_INSTANT_APP_ID || 'your_instant_app_id_here';
 const EVENT_ID = 'golden-globes-2026';
 
 // Official Golden Globes 2026 winners

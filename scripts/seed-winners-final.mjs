@@ -1,7 +1,7 @@
 import { init } from '@instantdb/core';
 
 // Instant DB configuration
-const APP_ID = process.env.VITE_INSTANT_APP_ID || '14bcf449-e9b5-4c78-82f0-e5c63336fd68';
+const APP_ID = process.env.VITE_INSTANT_APP_ID || 'your_instant_app_id_here';
 
 // Initialize Instant DB Core Client
 const dbCore = init({
