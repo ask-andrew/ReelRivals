@@ -417,6 +417,95 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
           </div>
         </div>
         
+        {/* Power Scale Analysis */}
+        <PowerScale 
+          analyticsData={analyticsData}
+          eventId={selectedEventId}
+        />
+
+        {/* Voter Overlap Analysis */}
+        <VoterOverlap 
+          analyticsData={analyticsData}
+          eventId={selectedEventId}
+        />
+
+        {/* Awards Funnel */}
+        <AwardsFunnel 
+          analyticsData={analyticsData}
+          eventId={selectedEventId}
+        />
+
+        {/* Category Performance */}
+        <div className="bg-linear-to-r from-indigo-900/30 via-purple-900/20 to-indigo-900/30 rounded-2xl p-6 border border-indigo-500/30">
+          <h3 className="text-xl font-bold text-indigo-400 mb-4 flex items-center">
+            <Target className="w-5 h-5 mr-2" />
+            Category Performance
+          </h3>
+          <p className="text-gray-400 text-sm mb-4 italic">🎯 Which categories were hardest to predict?</p>
+          <div className="space-y-3">
+            {Object.entries(analyticsData.categoryAnalytics)
+              .sort(([, a]: [string, any], [, b]: [string, any]) => (b.consensusCorrect ? 1 : 0) - (a.consensusCorrect ? 1 : 0))
+              .slice(0, 5)
+              .map(([categoryId, data]: [string, any]) => (
+                <div key={categoryId} className={`p-4 rounded-xl border backdrop-blur-sm ${
+                  data.consensusCorrect 
+                    ? 'bg-green-500/10 border-green-500/30' 
+                    : 'bg-red-500/10 border-red-500/30'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-medium">{data.categoryName}</span>
+                    <div className="flex items-center space-x-1">
+                      {data.consensusCorrect ? (
+                        <Check className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-red-400" />
+                      )}
+                      <span className={`text-sm font-bold ${
+                        data.consensusCorrect ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {data.consensusCorrect ? 'Consensus' : 'Upset'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>{data.totalPicks} picks</span>
+                    <span>{data.uniqueNominees} nominees</span>
+                    {data.upset && <span className="text-orange-400">Major Upset!</span>}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Power Pick Heroes */}
+        <div className="bg-linear-to-r from-red-900/30 via-pink-900/20 to-red-900/30 rounded-2xl p-6 border border-red-500/30">
+          <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center">
+            <Flame className="w-5 h-5 mr-2" />
+            Power Pick Heroes
+          </h3>
+          <p className="text-gray-400 text-sm mb-4 italic">🔥 Who crushed it with 3x picks?</p>
+          <div className="space-y-3">
+            {Object.entries(analyticsData.powerPickAnalysis)
+              .sort(([, a]: [string, any], [, b]: [string, any]) => b.successRate - a.successRate)
+              .slice(0, 3)
+              .map(([nomineeId, data]: [string, any]) => (
+                <div key={nomineeId} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-medium">{data.nomineeName}</span>
+                    <div className="flex items-center space-x-1">
+                      <Flame className="w-4 h-4 text-red-400" />
+                      <span className="text-red-400 font-bold text-sm">{data.successRate.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>{data.count} power picks</span>
+                    <span>{data.category}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
         {/* Key Insights */}
         <div className="bg-linear-to-br from-yellow-900/30 via-black to-yellow-900/30 rounded-2xl p-6 border border-yellow-500/30">
           <h2 className="text-2xl font-cinzel font-bold text-yellow-500 mb-4 flex items-center">
