@@ -288,8 +288,48 @@ const BallotSwiperDB: React.FC<BallotSwiperDBProps> = ({ onComplete, userId, lea
     // Count power picks in updated picks
     const powerPickCount = Object.values(updatedPicks).filter(pick => pick.isPowerPick).length;
     setPowerPicksLeft(Math.max(0, 3 - powerPickCount));
-    setPicks(updatedPicks);
-    setShowPowerPickSelector(false);
+
+    // Save the power picks to the database
+    setSaving(true);
+    try {
+      const powerPicksToSave = [];
+      const regularPicksToSave = [];
+
+      // Separate power picks from regular picks
+      Object.entries(updatedPicks).forEach(([categoryId, pick]) => {
+        if (pick.isPowerPick) {
+          powerPicksToSave.push({ categoryId, nomineeId: pick.nomineeId, isPowerPick: true });
+        } else {
+          regularPicksToSave.push({ categoryId, nomineeId: pick.nomineeId, isPowerPick: false });
+        }
+      });
+
+      // Save all picks (this will update existing picks with new power pick status)
+      const allPicksToSave = [...powerPicksToSave, ...regularPicksToSave];
+
+      if (allPicksToSave.length > 0) {
+        const result = await saveBallotPicks(userId, eventId, leagueId, allPicksToSave);
+
+        if (result.error) {
+          console.error('Failed to save power picks:', result.error);
+          alert('Failed to save power picks. Please try again.');
+          return;
+        }
+      }
+
+      // Update local state only after successful save
+      setPicks(updatedPicks);
+      setShowPowerPickSelector(false);
+
+      // Show success feedback
+      alert(`Power picks saved successfully! You now have ${powerPickCount} power picks selected.`);
+
+    } catch (error) {
+      console.error('Error saving power picks:', error);
+      alert('Failed to save power picks. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
