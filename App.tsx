@@ -754,8 +754,8 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
               <Trophy size={20} className="mx-auto text-yellow-500 mb-2" />
-              <p className="text-2xl font-cinzel font-bold">{userScores[selectedAwardShow] || 0}</p>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{selectedAwardShow?.name || 'Current Event'} Points</p>
+              <p className="text-2xl font-cinzel font-bold">{userScores[currentEvent.id] || 0}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{currentEvent?.name || 'Current Event'} Points</p>
             </div>
           </div>
 
