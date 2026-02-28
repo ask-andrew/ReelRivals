@@ -53,7 +53,37 @@ const App: React.FC = () => {
   const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [selectedAwardShow, setSelectedAwardShow] = useState('oscars-2026'); // Default to Oscars since they're open
   const [countdown, setCountdown] = useState<CountdownInfo>(getCountdownToNextAwardShow());
-  
+  const [userScores, setUserScores] = useState<UserScores>({});
+
+  // Fetch user scores when user is loaded
+  useEffect(() => {
+    const fetchUserScores = async () => {
+      if (user) {
+        try {
+          const { players } = await getAllPlayersWithScores(selectedAwardShow);
+          const currentUserScore = players.find(p => p.id === user.id);
+          if (currentUserScore) {
+            setUserScores({
+              [selectedAwardShow]: currentUserScore.totalPoints
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user scores:', error);
+        }
+      }
+    };
+
+    fetchUserScores();
+  }, [user, selectedAwardShow]);
+
+  // Determine current event based on date
+  const today = new Date();
+  const currentEvents = [
+    { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
+    { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
+  ];
+  const currentEvent = currentEvents.find(event => today >= event.date) || currentEvents[0];
+
   // Golden Globes is completed - allow full viewing but no new picks
   const isGoldenGlobesCompleted = true;
   const SEASON_BADGES = [
