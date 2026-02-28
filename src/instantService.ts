@@ -1735,6 +1735,80 @@ function processAnalyticsData(ballots: any[], categories: any[], winners: any[],
       category.nominees.forEach((nominee: any) => {
         nomineeMap.set(nominee.id, nominee);
       });
+    }
+  });
+
+  ballots.forEach(ballot => {
+    ballot.picks?.forEach(pick => {
+      totalPicks++;
+      const categoryId = pick.categoryId;
+      const nomineeId = pick.nomineeId;
+      const isPowerPick = pick.isPowerPick || false;
+
+      // Check if this pick is correct
+      const winnerNomineeId = winnerMap.get(categoryId);
+      if (winnerNomineeId && winnerNomineeId === nomineeId) {
+        totalCorrectPicks++;
+        if (isPowerPick) {
+          correctPowerPicks++;
+        }
+      }
+
+      if (isPowerPick) {
+        totalPowerPicks++;
+      }
+
+      // Update nominee popularity
+      if (!nomineePopularity[nomineeId]) {
+        nomineePopularity[nomineeId] = {
+          name: nomineeMap.get(nomineeId)?.name || 'Unknown',
+          count: 0,
+          correct: 0,
+          isWinner: winnerNomineeId === nomineeId,
+          percentage: 0,
+          accuracy: 0,
+          category: categoryMap.get(categoryId)?.name || 'Unknown'
+        };
+      }
+      nomineePopularity[nomineeId].count++;
+
+      // Update power pick analysis
+      if (!powerPickAnalysis[nomineeId]) {
+        powerPickAnalysis[nomineeId] = {
+          nomineeName: nomineeMap.get(nomineeId)?.name || 'Unknown',
+          count: 0,
+          successRate: 0,
+          category: categoryMap.get(categoryId)?.name || 'Unknown'
+        };
+      }
+      if (isPowerPick) {
+        powerPickAnalysis[nomineeId].count++;
+        if (winnerNomineeId === nomineeId) {
+          powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1) + 100) / powerPickAnalysis[nomineeId].count;
+        } else {
+          powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1)) / powerPickAnalysis[nomineeId].count;
+        }
+      }
+
+      // Update category analytics
+      if (!categoryAnalytics[categoryId]) {
+        categoryAnalytics[categoryId] = {
+          categoryName: categoryMap.get(categoryId)?.name || 'Unknown',
+          totalPicks: 0,
+          uniqueNominees: new Set(),
+          consensusCorrect: false,
+          upset: false
+        };
+      }
+      categoryAnalytics[categoryId].totalPicks++;
+      categoryAnalytics[categoryId].uniqueNominees.add(nomineeId);
+    });
+  });
+
+  // Calculate nominee statistics
+  Object.keys(nomineePopularity).forEach(nomineeId => {
+    const data = nomineePopularity[nomineeId];
+    
     // Calculate percentage based on category total, not global total
     // We need to find which category this nominee belongs to
     const nomineeCategory = Array.from(categoryMap.values()).find((cat: any) => 
