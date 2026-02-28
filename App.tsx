@@ -16,7 +16,7 @@ import { Trophy, Zap, ChevronRight, Share2, Calendar, Target, Check, BarChart3, 
 import { User, Ballot, Pick, League, Activity } from './types';
 import { CATEGORIES, SEASON_CIRCUIT, AWARD_SHOW_CATEGORIES } from './constants';
 import { getCountdownToNextAwardShow, CountdownInfo } from './src/utils/countdown';
-import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser } from './src/instantService';
+import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser, UserScores } from './src/instantService';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
 

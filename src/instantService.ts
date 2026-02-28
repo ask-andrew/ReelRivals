@@ -1318,8 +1318,8 @@ export async function calculateScoresForEvent(eventId: string): Promise<{ succes
     const seenKeys = new Set(Object.keys(userLeaguePicks));
 
     // Update or create scores for users with correct picks
-    for (const [key, scoreData] of Object.entries(userLeaguePicks as any)) {
-      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData as any;
+    for (const [key, scoreData] of Object.entries(userLeaguePicks)) {
+      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData;
       const existingScore = existingScores.find(
         (s: any) => s.user_id === userId && s.league_id === leagueId
       );
