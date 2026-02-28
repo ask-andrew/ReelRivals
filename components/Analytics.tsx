@@ -104,12 +104,15 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       setLoading(true);
       setError(null);
 
-      console.log('[Analytics] Fetching analytics for event:', selectedEventId);
+      console.log('[Analytics] Fetching analytics for event:', selectedEventId, 'at:', new Date().toISOString());
 
       const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, selectedEventId);
 
-      console.log('[Analytics] Analytics data received:', analytics);
-      console.log('[Analytics] Analytics error:', analyticsError);
+      console.log('[Analytics] Raw analytics response:', { analytics, error: analyticsError });
+      console.log('[Analytics] Analytics data keys:', analytics ? Object.keys(analytics) : 'null');
+      console.log('[Analytics] Total ballots:', analytics?.totalBallots);
+      console.log('[Analytics] Overall stats:', analytics?.overallStats);
+      console.log('[Analytics] Insights count:', analytics?.insights?.length);
 
       if (analyticsError) throw analyticsError;
 
