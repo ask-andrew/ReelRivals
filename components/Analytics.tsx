@@ -83,6 +83,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
   };
   const [excludeTestUsers, setExcludeTestUsers] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [viewMode, setViewMode] = useState<'event' | 'season'>('event');
 
   // Test user detection patterns
   const isTestUser = (username: string) => {
@@ -103,7 +104,12 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       setLoading(true);
       setError(null);
 
+      console.log('[Analytics] Fetching analytics for event:', selectedEventId);
+
       const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, selectedEventId);
+
+      console.log('[Analytics] Analytics data received:', analytics);
+      console.log('[Analytics] Analytics error:', analyticsError);
 
       if (analyticsError) throw analyticsError;
 
@@ -261,26 +267,68 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
               {getAwardShowName(selectedEventId)} - {selectedEventId === eventId ? 'Live Analytics' : 'Historical Results'}
             </p>
             
+            {/* View Mode Toggle */}
+            <div className="flex justify-center mb-6">
+              <div className="bg-white/5 rounded-lg p-1 flex">
+                <button
+                  onClick={() => setViewMode('event')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'event'
+                      ? 'bg-yellow-500 text-black'
+                      : 'text-white hover:bg-white/10'
+                  }`}
+                >
+                  {getAwardShowName(selectedEventId)}
+                </button>
+                <button
+                  onClick={() => setViewMode('season')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'season'
+                      ? 'bg-yellow-500 text-black'
+                      : 'text-white hover:bg-white/10'
+                  }`}
+                >
+                  Season Overall
+                </button>
+              </div>
+            </div>
+            
             {/* Key Stats */}
             <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <Users className="w-6 h-6 text-blue-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">{analyticsData.totalBallots}</p>
+                <p className="text-xl font-bold text-white">
+                  {viewMode === 'season' && analyticsData.seasonAnalytics
+                    ? analyticsData.seasonAnalytics.totalBallots
+                    : analyticsData.totalBallots}
+                </p>
                 <p className="text-xs text-gray-300">Players</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">{analyticsData.overallStats.overallAccuracy.toFixed(1)}%</p>
+                <p className="text-xl font-bold text-white">
+                  {viewMode === 'season' && analyticsData.seasonAnalytics
+                    ? analyticsData.seasonAnalytics.overallStats.overallAccuracy.toFixed(1)
+                    : analyticsData.overallStats.overallAccuracy.toFixed(1)}%
+                </p>
                 <p className="text-xs text-gray-300">Accuracy</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <Zap className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">{analyticsData.overallStats.powerPickSuccessRate.toFixed(1)}%</p>
+                <p className="text-xl font-bold text-white">
+                  {viewMode === 'season' && analyticsData.seasonAnalytics
+                    ? analyticsData.seasonAnalytics.overallStats.powerPickSuccessRate.toFixed(1)
+                    : analyticsData.overallStats.powerPickSuccessRate.toFixed(1)}%
+                </p>
                 <p className="text-xs text-gray-300">Power Success</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <Flame className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">{upsets.length}</p>
+                <p className="text-xl font-bold text-white">
+                  {viewMode === 'season' && analyticsData.seasonAnalytics
+                    ? (analyticsData.seasonAnalytics.insights?.filter((i: any) => i.type === 'upset') || []).length
+                    : upsets.length}
+                </p>
                 <p className="text-xs text-gray-300">Major Upsets</p>
               </div>
             </div>
@@ -292,10 +340,12 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       <div className="px-4 pb-6">
         <div className="max-w-lg mx-auto text-center">
           <h2 className="text-2xl font-cinzel font-bold text-white mb-2">
-            {getAwardShowName(selectedEventId)} Analytics
+            {viewMode === 'season' ? 'Season Overall Analytics' : `${getAwardShowName(selectedEventId)} Analytics`}
           </h2>
           <p className="text-sm text-gray-400">
-            {selectedEventId === eventId ? 'Current Event Performance' : 'Historical Results'}
+            {viewMode === 'season' 
+              ? 'Combined performance across all 2026 award shows' 
+              : (selectedEventId === eventId ? 'Current Event Performance' : 'Historical Results')}
           </p>
         </div>
       </div>

@@ -1553,23 +1553,23 @@ export async function signupForEventNotifications(userId: string, eventId: strin
 export async function getAnalyticsData(leagueId: string, eventId: string): Promise<{ analytics: any, error: any }> {
   try {
     console.log('[getAnalyticsData] Fetching data for league:', leagueId, 'event:', eventId);
-    
+
     // For global analytics, always get all ballots for the event
     console.log('[getAnalyticsData] Getting all event ballots for global analytics...');
     const ballotsResult = await (dbCore.queryOnce as any)({
       ballots: {
         $: {
-          where: { 
+          where: {
             event_id: eventId
           }
         },
         picks: {}
       }
     });
-    
+
     let ballots = ballotsResult.data.ballots || [];
     console.log('[getAnalyticsData] Found all ballots for event:', ballots.length);
-    
+
     // Get all data we need in parallel
     const [
       categoriesResult, 
@@ -1596,6 +1596,10 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
     const winners = winnersResult.winners || [];
     const users = usersResult.data.users || [];
 
+    console.log('[getAnalyticsData] Categories found:', categories.length);
+    console.log('[getAnalyticsData] Winners found:', winners.length);
+    console.log('[getAnalyticsData] Users found:', users.length);
+
     // Debug: Print some ballot info
     if (ballots.length > 0) {
       console.log('[getAnalyticsData] Sample ballot IDs:', ballots.slice(0, 3).map((b: any) => b.id));
@@ -1603,13 +1607,100 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
     }
 
     // Process analytics data
-    const analytics = processAnalyticsData(ballots, categories, winners, users);
-    
-    return { analytics, error: null };
-    
+    const eventAnalytics = processAnalyticsData(ballots, categories, winners, users);
+
+    // Also get overall season analytics if this is not already a season-wide view
+    let seasonAnalytics = null;
+    if (eventId !== 'season-2026') {
+      try {
+        seasonAnalytics = await getSeasonAnalyticsData(leagueId);
+      } catch (seasonError) {
+        console.warn('[getAnalyticsData] Could not fetch season analytics:', seasonError);
+      }
+    }
+
+    return {
+      analytics: {
+        ...eventAnalytics,
+        seasonAnalytics
+      },
+      error: null
+    };
+
   } catch (error) {
     console.error('[getAnalyticsData] Error:', error);
     return { analytics: null, error };
+  }
+}
+
+// Get overall season analytics across all events
+export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
+  try {
+    console.log('[getSeasonAnalyticsData] Fetching overall season data for league:', leagueId);
+
+    // Get all events in the season
+    const SEASON_EVENTS = ['golden-globes-2026', 'baftas-2026', 'oscars-2026', 'sag-2026'];
+
+    // Get all ballots, categories, and winners for all events
+    const allDataPromises = SEASON_EVENTS.map(async (eventId) => {
+      const [ballotsResult, categoriesResult, winnersResult] = await Promise.all([
+        (dbCore.queryOnce as any)({
+          ballots: {
+            $: { where: { event_id: eventId } },
+            picks: {}
+          }
+        }),
+        dbCore.queryOnce({
+          categories: {
+            $: { where: { event_id: eventId } },
+            nominees: {}
+          }
+        }),
+        getWinnersForEvent(eventId)
+      ]);
+
+      return {
+        eventId,
+        ballots: ballotsResult.data.ballots || [],
+        categories: categoriesResult.data.categories || [],
+        winners: winnersResult.winners || []
+      };
+    });
+
+    const allEventData = await Promise.all(allDataPromises);
+
+    // Get users once
+    const usersResult = await dbCore.queryOnce({
+      users: { $: {} }
+    });
+    const users = usersResult.data.users || [];
+
+    // Aggregate all data
+    const allBallots: any[] = [];
+    const allCategories: any[] = [];
+    const allWinners: any[] = [];
+
+    allEventData.forEach(eventData => {
+      allBallots.push(...eventData.ballots);
+      allCategories.push(...eventData.categories);
+      allWinners.push(...eventData.winners);
+    });
+
+    console.log('[getSeasonAnalyticsData] Total season ballots:', allBallots.length);
+    console.log('[getSeasonAnalyticsData] Total season categories:', allCategories.length);
+
+    // Process season-wide analytics
+    const seasonAnalytics = processAnalyticsData(allBallots, allCategories, allWinners, users);
+
+    return {
+      ...seasonAnalytics,
+      isSeasonWide: true,
+      eventsIncluded: SEASON_EVENTS.length
+    };
+
+  } catch (error) {
+    console.error('[getSeasonAnalyticsData] Error:', error);
+    throw error;
   }
 }
 
