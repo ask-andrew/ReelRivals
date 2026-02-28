@@ -1705,6 +1705,13 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
 }
 
 function processAnalyticsData(ballots: any[], categories: any[], winners: any[], users: any[]) {
+  console.log('[processAnalyticsData] Processing analytics for event with:', {
+    ballots: ballots.length,
+    categories: categories.length, 
+    winners: winners.length,
+    users: users.length
+  });
+
   const nomineePopularity: Record<string, any> = {};
   const powerPickAnalysis: Record<string, any> = {};
   const categoryAnalytics: Record<string, any> = {};
@@ -1718,6 +1725,10 @@ function processAnalyticsData(ballots: any[], categories: any[], winners: any[],
   const nomineeMap = new Map();
   const winnerMap = new Map(winners.map((w: any) => [w.categoryId, w.winnerNomineeId]));
   const userMap = new Map(users.map((u: any) => [u.id, u]));
+
+  console.log('[processAnalyticsData] Winner map:', Object.fromEntries(winnerMap));
+  console.log('[processAnalyticsData] Category map size:', categoryMap.size);
+  console.log('[processAnalyticsData] First few ballots sample:', ballots.slice(0, 2).map(b => ({ id: b.id, picks: b.picks?.length || 0 })));
 
   categories.forEach((category: any) => {
     if (category.nominees) {
