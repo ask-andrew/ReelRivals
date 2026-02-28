@@ -1015,10 +1015,46 @@ export interface UserScores {
   [key: string]: number;
 }
 
-    return { players: playersWithScores, error: null };
+export async function getAllPlayersWithScores(eventId: string) {
+  try {
+    console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
+    
+    const scoresQuery = await db.query({
+      scores: { $: { where: { event_id: eventId } } }
+    });
+    
+    const scoresData = scoresQuery.data?.scores || [];
+    const scoreMap = new Map();
+    
+    scoresData.forEach((score: any) => {
+      scoreMap.set(score.user_id, {
+        totalPoints: score.total_points || 0,
+        correctPicks: score.correct_picks || 0,
+        powerPicksHit: score.power_picks_hit || 0,
+        updatedAt: score.updated_at
+      });
+    });
+    
+    console.log('[getAllPlayersWithScores] Raw scores data:', scoresQuery.data);
+    
+    // Transform to player format
+    const playersWithScores = scoresData.map((score: any) => ({
+      id: score.user_id,
+      username: score.user?.username || 'Unknown',
+      avatar_emoji: score.user?.avatar_emoji || '👤',
+      totalPoints: score.total_points || 0,
+      correctPicks: score.correct_picks || 0,
+      powerPicksHit: score.power_picks_hit || 0,
+      hasSubmitted: true,
+      updatedAt: score.updated_at
+    }));
+    
+    console.log('[getAllPlayersWithScores] Transformed players:', playersWithScores);
+    
+    return { players: playersWithScores, error: null, scoreMap };
   } catch (error) {
-    console.error("Error fetching players with scores:", error);
-    return { players: [], error };
+    console.error('[getAllPlayersWithScores] Error:', error);
+    return { players: [], error, scoreMap: new Map() };
   }
 }
 
