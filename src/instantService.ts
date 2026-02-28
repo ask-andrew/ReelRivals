@@ -976,7 +976,7 @@ export async function getAllPlayersWithScores(eventId: string) {
   try {
     console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
     
-    const scoresQuery = await dbCore.query({
+    const scoresQuery = await dbCore.queryOnce({
       scores: { $: { where: { event_id: eventId } } }
     });
     

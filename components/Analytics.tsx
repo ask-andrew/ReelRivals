@@ -114,6 +114,16 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
       console.log('[Analytics] Overall stats:', analytics?.overallStats);
       console.log('[Analytics] Insights count:', analytics?.insights?.length);
 
+      // Detailed debugging for BAFTA vs Golden Globes comparison
+      if (selectedEventId === 'baftas-2026' || selectedEventId === 'golden-globes-2026') {
+        console.log(`[Analytics] ${selectedEventId.toUpperCase()} Detailed Data:`);
+        console.log('  - Nominee Popularity:', Object.keys(analytics?.nomineePopularity || {}).length, 'nominees');
+        console.log('  - Power Pick Analysis:', Object.keys(analytics?.powerPickAnalysis || {}).length, 'power picks');
+        console.log('  - Category Analytics:', Object.keys(analytics?.categoryAnalytics || {}).length, 'categories');
+        console.log('  - Sample nominee data:', Object.values(analytics?.nomineePopularity || {}).slice(0, 2));
+        console.log('  - Sample power pick data:', Object.values(analytics?.powerPickAnalysis || {}).slice(0, 2));
+      }
+
       if (analyticsError) throw analyticsError;
 
       setAnalyticsData(analytics);
