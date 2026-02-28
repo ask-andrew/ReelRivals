@@ -51,7 +51,15 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [standingsRefresh, setStandingsRefresh] = useState(0);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
-  const [selectedAwardShow, setSelectedAwardShow] = useState('oscars-2026'); // Default to Oscars since they're open
+  // Determine current event based on date
+  const today = new Date();
+  const currentEvents = [
+    { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
+    { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
+  ];
+  const currentEvent = currentEvents.find(event => today >= event.date) || currentEvents[0];
+  
+  const [selectedAwardShow, setSelectedAwardShow] = useState(currentEvent.id); // Default to current event
   const [countdown, setCountdown] = useState<CountdownInfo>(getCountdownToNextAwardShow());
   const [userScores, setUserScores] = useState<UserScores>({});
 
