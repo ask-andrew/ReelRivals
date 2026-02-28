@@ -1548,6 +1548,7 @@ export async function signupForEventNotifications(userId: string, eventId: strin
     console.error('[signupForEventNotifications] Error:', error);
     return { success: false, error };
   }
+}
 
 export async function getAnalyticsData(leagueId: string, eventId: string): Promise<{ analytics: any, error: any }> {
   try {
