@@ -1548,54 +1548,42 @@ export async function signupForEventNotifications(userId: string, eventId: strin
     console.error('[signupForEventNotifications] Error:', error);
     return { success: false, error };
   }
-}
 
 export async function getAnalyticsData(leagueId: string, eventId: string): Promise<{ analytics: any, error: any }> {
   try {
     console.log('[getAnalyticsData] Fetching data for league:', leagueId, 'event:', eventId);
-
-    // For global analytics, always get all ballots for the event
-    console.log('[getAnalyticsData] Getting all event ballots for global analytics...');
-    const ballotsResult = await (dbCore.queryOnce as any)({
-      ballots: {
-        $: {
-          where: {
-            event_id: eventId
-          }
-        },
-        picks: {}
-      }
-    });
-
-    let ballots = ballotsResult.data.ballots || [];
-    console.log('[getAnalyticsData] Found all ballots for event:', ballots.length);
-
-    // Get all data we need in parallel
-    const [
-      categoriesResult, 
-      winnersResult,
-      usersResult
-    ] = await Promise.all([
+    // Query ballots, picks, categories, winners, and users
+    const [ballotsResult, picksResult, categoriesResult, winnersResult, usersResult] = await Promise.all([
+      (dbCore.queryOnce as any)({
+        ballots: {
+          $: { where: { event_id: eventId } }
+        }
+      }),
+      (dbCore.queryOnce as any)({
+        picks: {
+          $: { where: { event_id: eventId } }
+        }
+      }),
       dbCore.queryOnce({
         categories: {
-          $: {
-            where: { event_id: eventId }
-          },
+          $: { where: { event_id: eventId } },
           nominees: {}
         }
       }),
       getWinnersForEvent(eventId),
-      dbCore.queryOnce({
-        users: {
-          $: {}
-        }
+      (dbCore.queryOnce as any)({
+        users: {}
       })
     ]);
 
-    const categories = categoriesResult.data.categories || [];
-    const winners = winnersResult.winners || [];
-    const users = usersResult.data.users || [];
+    const ballots = ballotsResult.data?.ballots || [];
+    const picks = picksResult.data?.picks || [];
+    const categories = categoriesResult.data?.categories || [];
+    const winners = winnersResult || [];
+    const users = usersResult.data?.users || [];
 
+    console.log('[getAnalyticsData] Found all ballots for event:', ballots.length);
+    console.log('[getAnalyticsData] Found all picks for event:', picks.length);
     console.log('[getAnalyticsData] Categories found:', categories.length);
     console.log('[getAnalyticsData] Winners found:', winners.length);
     console.log('[getAnalyticsData] Users found:', users.length);
@@ -1607,7 +1595,7 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
     }
 
     // Process analytics data
-    const eventAnalytics = processAnalyticsData(ballots, categories, winners, users);
+    const eventAnalytics = processAnalyticsData(ballots, picks, categories, winners, users);
 
     // Also get overall season analytics if this is not already a season-wide view
     let seasonAnalytics = null;
@@ -1704,7 +1692,7 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
   }
 }
 
-function processAnalyticsData(ballots: any[], categories: any[], winners: any[], users: any[]) {
+function processAnalyticsData(ballots: any[], picks: any[], categories: any[], winners: any[], users: any[]) {
   console.log('[processAnalyticsData] Processing analytics for event with:', {
     ballots: ballots.length,
     categories: categories.length, 
@@ -1732,44 +1720,81 @@ function processAnalyticsData(ballots: any[], categories: any[], winners: any[],
   console.log('[processAnalyticsData] First ballot picks:', ballots[0]?.picks);
   console.log('[processAnalyticsData] First ballot picks type:', typeof ballots[0]?.picks);
   console.log('[processAnalyticsData] First ballot picks keys:', ballots[0]?.picks ? Object.keys(ballots[0].picks) : 'no picks');
+  console.log('[processAnalyticsData] Total picks array length:', picks.length);
+  console.log('[processAnalyticsData] First few picks:', picks.slice(0, 3));
 
-  ballots.forEach(ballot => {
-    ballot.picks?.forEach(pick => {
-      totalPicks++;
-      const categoryId = pick.categoryId;
-      const nomineeId = pick.nomineeId;
-      const isPowerPick = pick.isPowerPick || false;
+  // Process each pick directly (they're queried separately now)
+  picks.forEach(pick => {
+    totalPicks++;
+    const categoryId = pick.categoryId;
+    const nomineeId = pick.nomineeId;
+    const isPowerPick = pick.isPowerPick || false;
 
-      // Check if this pick is correct
-      const winnerNomineeId = winnerMap.get(categoryId);
-      console.log(`[processAnalyticsData] Pick: category=${categoryId}, nominee=${nomineeId}, winner=${winnerNomineeId}, power=${isPowerPick}`);
-      if (winnerNomineeId && winnerNomineeId === nomineeId) {
-        totalCorrectPicks++;
-        console.log(`[processAnalyticsData] CORRECT PICK: ${nomineeId} in category ${categoryId}`);
-        if (isPowerPick) {
-          correctPowerPicks++;
-        }
-      } else {
-        console.log(`[processAnalyticsData] INCORRECT PICK: picked ${nomineeId}, winner was ${winnerNomineeId}`);
-      }
+    console.log(`[processAnalyticsData] Processing pick: category=${categoryId}, nominee=${nomineeId}, power=${isPowerPick}`);
 
+    // Check if this pick is correct
+    const winnerNomineeId = winnerMap.get(categoryId);
+    console.log(`[processAnalyticsData] Winner for category ${categoryId}: ${winnerNomineeId}`);
+
+    if (winnerNomineeId && winnerNomineeId === nomineeId) {
+      totalCorrectPicks++;
+      console.log(`[processAnalyticsData] CORRECT PICK: ${nomineeId} in category ${categoryId}`);
       if (isPowerPick) {
-        totalPowerPicks++;
+        correctPowerPicks++;
       }
+    } else {
+      console.log(`[processAnalyticsData] INCORRECT PICK: picked ${nomineeId}, winner was ${winnerNomineeId}`);
+    }
 
-      // Update nominee popularity
-      if (!nomineePopularity[nomineeId]) {
-        nomineePopularity[nomineeId] = {
-          name: nomineeMap.get(nomineeId)?.name || 'Unknown',
-          count: 0,
-          correct: 0,
-          isWinner: winnerNomineeId === nomineeId,
-          percentage: 0,
-          accuracy: 0,
-          category: categoryMap.get(categoryId)?.name || 'Unknown'
-        };
+    if (isPowerPick) {
+      totalPowerPicks++;
+    }
+
+    // Update nominee popularity
+    if (!nomineePopularity[nomineeId]) {
+      nomineePopularity[nomineeId] = {
+        name: nomineeMap.get(nomineeId)?.name || 'Unknown',
+        count: 0,
+        correct: 0,
+        isWinner: winnerNomineeId === nomineeId,
+        percentage: 0,
+        accuracy: 0,
+        category: categoryMap.get(categoryId)?.name || 'Unknown'
+      };
+    }
+    nomineePopularity[nomineeId].count++;
+
+    // Update power pick analysis
+    if (!powerPickAnalysis[nomineeId]) {
+      powerPickAnalysis[nomineeId] = {
+        nomineeName: nomineeMap.get(nomineeId)?.name || 'Unknown',
+        count: 0,
+        successRate: 0,
+        category: categoryMap.get(categoryId)?.name || 'Unknown'
+      };
+    }
+    if (isPowerPick) {
+      powerPickAnalysis[nomineeId].count++;
+      if (winnerNomineeId === nomineeId) {
+        powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1) + 100) / powerPickAnalysis[nomineeId].count;
+      } else {
+        powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1)) / powerPickAnalysis[nomineeId].count;
       }
-      nomineePopularity[nomineeId].count++;
+    }
+
+    // Update category analytics
+    if (!categoryAnalytics[categoryId]) {
+      categoryAnalytics[categoryId] = {
+        categoryName: categoryMap.get(categoryId)?.name || 'Unknown',
+        totalPicks: 0,
+        uniqueNominees: new Set(),
+        consensusCorrect: false,
+        upset: false
+      };
+    }
+    categoryAnalytics[categoryId].totalPicks++;
+    categoryAnalytics[categoryId].uniqueNominees.add(nomineeId);
+  });
 
       // Update power pick analysis
       if (!powerPickAnalysis[nomineeId]) {
