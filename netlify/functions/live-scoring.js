@@ -384,8 +384,17 @@ export const handler = async (event) => {
     };
   }
 
-  const eventId = event.queryStringParameters?.event_id || 'oscars-2026';
-  const yearMatch = eventId.match(/(\d{4})$/);
+  // Determine current event based on date
+  const today = new Date();
+  const currentEvents = [
+    { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
+    { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
+  ];
+  
+  // Find the current or next event
+  const currentEvent = currentEvents.find(event => today >= event.date) || currentEvents[0];
+  const eventId = event.queryStringParameters?.event_id || currentEvent.id;
+  const yearMatch = currentEvent.id.match(/(\d{4})$/);
   const year = yearMatch ? Number(yearMatch[1]) : null;
 
   if (!year) {
