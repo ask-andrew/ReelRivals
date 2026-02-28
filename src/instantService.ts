@@ -506,12 +506,12 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
       const hasMatchingNomineeSets = hasMatchingCategorySet
         ? existingCategories.every((c: any) => {
             const expected = eventCategoryByName.get(c.name);
-            if (!expected || !Array.isArray((c as any).nominees)) return false;
+            if (!expected || !Array.isArray(c.nominees)) return false;
             const expectedNames = new Set(
-              ((expected as any).nominees || []).map((n: any) => normalizeName(n.name))
+              (expected.nominees || []).map((n: any) => normalizeName(n.name))
             );
             const existingNames = new Set(
-              ((c as any).nominees || []).map((n: any) => normalizeName(n.name))
+              c.nominees.map((n: any) => normalizeName(n.name))
             );
             if (expectedNames.size !== existingNames.size) return false;
             for (const name of expectedNames) {
