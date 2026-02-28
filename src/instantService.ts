@@ -967,37 +967,14 @@ export async function getAllPlayersWithScores(eventId: string) {
   try {
     console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
     
-    // Get all users first
-    const allUsersQuery = await dbCore.queryOnce({
-      users: { $: {} }
+    const scoresQuery = await db.query({
+      scores: { $: { where: { event_id: eventId } } }
     });
-
-    // Get all scores for this event
-    const scoresQuery = await dbCore.queryOnce({
-      scores: {
-        $: {
-          where: { event_id: eventId },
-        },
-      },
-      users: {}
-    });
-
-    // Get all ballots for this event to check submission status
-    const ballotsQuery = await dbCore.queryOnce({
-      ballots: {
-        $: {
-          where: { event_id: eventId },
-        },
-        picks: {}
-      },
-    });
-
-    console.log('[getAllPlayersWithScores] Raw scores data:', scoresQuery.data);
-    console.log('[getAllPlayersWithScores] Raw ballots data:', ballotsQuery.data);
-
-    // Create a map of user_id -> score for quick lookup
+    
+    const scoresData = scoresQuery.data?.scores || [];
     const scoreMap = new Map();
-    scoresQuery.data.scores.forEach((score: any) => {
+    
+    scoresData.forEach((score: any) => {
       scoreMap.set(score.user_id, {
         totalPoints: score.total_points || 0,
         correctPicks: score.correct_picks || 0,
@@ -1005,41 +982,38 @@ export async function getAllPlayersWithScores(eventId: string) {
         updatedAt: score.updated_at
       });
     });
-
-    // Create a set of user IDs who have submitted ballots
-    const submittedUserIds = new Set();
-    ballotsQuery.data.ballots.forEach((ballot: any) => {
-      if (ballot.picks && ballot.picks.length > 0) {
-        submittedUserIds.add(ballot.user_id);
-      }
-    });
-
-    // Combine users with their scores
-    const playersWithScores = allUsersQuery.data.users.map((user: any) => {
-      const score = scoreMap.get(user.id);
-      const hasSubmittedBallot = submittedUserIds.has(user.id);
-      
-      return {
-        id: user.id,
-        username: user.username,
-        avatar_emoji: user.avatar_emoji,
-        totalPoints: score?.totalPoints || 0,
-        correctPicks: score?.correctPicks || 0,
-        powerPicksHit: score?.powerPicksHit || 0,
-        hasSubmitted: hasSubmittedBallot,
-        updatedAt: score?.updatedAt || user.created_at
-      };
-    });
-
-    // Sort by total points (highest first), then by username
-    playersWithScores.sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) {
-        return b.totalPoints - a.totalPoints;
-      }
-      return a.username.localeCompare(b.username);
-    });
-
+    
+    console.log('[getAllPlayersWithScores] Raw scores data:', scoresQuery.data);
+    
+    // Transform to player format
+    const playersWithScores = scoresData.map((score: any) => ({
+      id: score.user_id,
+      username: score.user?.username || 'Unknown',
+      avatar_emoji: score.user?.avatar_emoji || '👤',
+      totalPoints: score.total_points || 0,
+      correctPicks: score.correct_picks || 0,
+      powerPicksHit: score.power_picks_hit || 0,
+      hasSubmitted: true,
+      updatedAt: score.updated_at
+    }));
+    
     console.log('[getAllPlayersWithScores] Transformed players:', playersWithScores);
+    
+    return { players: playersWithScores, error: null, scoreMap };
+  } catch (error) {
+    console.error('[getAllPlayersWithScores] Error:', error);
+    return { players: [], error, scoreMap: new Map() };
+  }
+}
+
+// Type definitions for user scores
+export interface UserScores {
+  goldenGlobesPoints?: number;
+  baftasPoints?: number;
+  oscarsPoints?: number;
+  sagPoints?: number;
+  [key: string]: number;
+}
 
     return { players: playersWithScores, error: null };
   } catch (error) {
