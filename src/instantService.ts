@@ -1728,15 +1728,10 @@ function processAnalyticsData(ballots: any[], categories: any[], winners: any[],
 
   console.log('[processAnalyticsData] Winner map:', Object.fromEntries(winnerMap));
   console.log('[processAnalyticsData] Category map size:', categoryMap.size);
-  console.log('[processAnalyticsData] First few ballots sample:', ballots.slice(0, 2).map(b => ({ id: b.id, picks: b.picks?.length || 0 })));
-
-  categories.forEach((category: any) => {
-    if (category.nominees) {
-      category.nominees.forEach((nominee: any) => {
-        nomineeMap.set(nominee.id, nominee);
-      });
-    }
-  });
+  console.log('[processAnalyticsData] First ballot structure:', ballots[0]);
+  console.log('[processAnalyticsData] First ballot picks:', ballots[0]?.picks);
+  console.log('[processAnalyticsData] First ballot picks type:', typeof ballots[0]?.picks);
+  console.log('[processAnalyticsData] First ballot picks keys:', ballots[0]?.picks ? Object.keys(ballots[0].picks) : 'no picks');
 
   ballots.forEach(ballot => {
     ballot.picks?.forEach(pick => {
