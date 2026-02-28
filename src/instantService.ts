@@ -1828,7 +1828,6 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
       categoryAnalytics[categoryId].totalPicks++;
       categoryAnalytics[categoryId].uniqueNominees.add(nomineeId);
     });
-  });
 
   // Calculate nominee statistics
   Object.keys(nomineePopularity).forEach(nomineeId => {
