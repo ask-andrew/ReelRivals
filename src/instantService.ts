@@ -1731,20 +1731,13 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
     const nomineeId = pick.nomineeId;
     const isPowerPick = pick.isPowerPick || false;
 
-    console.log(`[processAnalyticsData] Processing pick: category=${categoryId}, nominee=${nomineeId}, power=${isPowerPick}`);
-
     // Check if this pick is correct
     const winnerNomineeId = winnerMap.get(categoryId);
-    console.log(`[processAnalyticsData] Winner for category ${categoryId}: ${winnerNomineeId}`);
-
     if (winnerNomineeId && winnerNomineeId === nomineeId) {
       totalCorrectPicks++;
-      console.log(`[processAnalyticsData] CORRECT PICK: ${nomineeId} in category ${categoryId}`);
       if (isPowerPick) {
         correctPowerPicks++;
       }
-    } else {
-      console.log(`[processAnalyticsData] INCORRECT PICK: picked ${nomineeId}, winner was ${winnerNomineeId}`);
     }
 
     if (isPowerPick) {
@@ -1777,9 +1770,11 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
     if (isPowerPick) {
       powerPickAnalysis[nomineeId].count++;
       if (winnerNomineeId === nomineeId) {
-        powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1) + 100) / powerPickAnalysis[nomineeId].count;
+        powerPickAnalysis[nomineeId].successRate = 
+          (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1) + 100) / powerPickAnalysis[nomineeId].count;
       } else {
-        powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1)) / powerPickAnalysis[nomineeId].count;
+        powerPickAnalysis[nomineeId].successRate = 
+          (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1)) / powerPickAnalysis[nomineeId].count;
       }
     }
 
@@ -1797,44 +1792,11 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
     categoryAnalytics[categoryId].uniqueNominees.add(nomineeId);
   });
 
-      // Update power pick analysis
-      if (!powerPickAnalysis[nomineeId]) {
-        powerPickAnalysis[nomineeId] = {
-          nomineeName: nomineeMap.get(nomineeId)?.name || 'Unknown',
-          count: 0,
-          successRate: 0,
-          category: categoryMap.get(categoryId)?.name || 'Unknown'
-        };
-      }
-      if (isPowerPick) {
-        powerPickAnalysis[nomineeId].count++;
-        if (winnerNomineeId === nomineeId) {
-          powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1) + 100) / powerPickAnalysis[nomineeId].count;
-        } else {
-          powerPickAnalysis[nomineeId].successRate = (powerPickAnalysis[nomineeId].successRate * (powerPickAnalysis[nomineeId].count - 1)) / powerPickAnalysis[nomineeId].count;
-        }
-      }
-
-      // Update category analytics
-      if (!categoryAnalytics[categoryId]) {
-        categoryAnalytics[categoryId] = {
-          categoryName: categoryMap.get(categoryId)?.name || 'Unknown',
-          totalPicks: 0,
-          uniqueNominees: new Set(),
-          consensusCorrect: false,
-          upset: false
-        };
-      }
-      categoryAnalytics[categoryId].totalPicks++;
-      categoryAnalytics[categoryId].uniqueNominees.add(nomineeId);
-    });
-
   // Calculate nominee statistics
   Object.keys(nomineePopularity).forEach(nomineeId => {
     const data = nomineePopularity[nomineeId];
     
     // Calculate percentage based on category total, not global total
-    // We need to find which category this nominee belongs to
     const nomineeCategory = Array.from(categoryMap.values()).find((cat: any) => 
       cat.nominees?.some((nom: any) => nom.id === nomineeId)
     );
@@ -1843,7 +1805,7 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
       const categoryTotalPicks = categoryAnalytics[nomineeCategory.id]?.totalPicks || 1;
       data.percentage = (data.count / categoryTotalPicks) * 100;
     } else {
-      data.percentage = 0; // Fallback if category not found
+      data.percentage = 0;
     }
     
     data.accuracy = data.count > 0 ? (data.correctPicks / data.count) * 100 : 0;
