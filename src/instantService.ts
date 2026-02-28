@@ -1882,6 +1882,17 @@ function processAnalyticsData(ballots: any[], categories: any[], winners: any[],
     ballots.length
   );
 
+  console.log('[processAnalyticsData] Final results:', {
+    totalPicks,
+    totalCorrectPicks,
+    totalPowerPicks, 
+    correctPowerPicks,
+    nomineePopularityCount: Object.keys(nomineePopularity).length,
+    powerPickAnalysisCount: Object.keys(powerPickAnalysis).length,
+    categoryAnalyticsCount: Object.keys(categoryAnalytics).length,
+    insightsCount: insights.length
+  });
+
   return {
     totalBallots: ballots.length,
     nomineePopularity,
