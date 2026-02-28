@@ -1562,7 +1562,10 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
       }),
       (dbCore.queryOnce as any)({
         picks: {
-          $: { where: { event_id: eventId } }
+          $: { where: { 'ballot.event_id': eventId } },
+          ballot: {},
+          category: {},
+          nominee: {}
         }
       }),
       dbCore.queryOnce({
