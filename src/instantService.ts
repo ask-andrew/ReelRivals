@@ -1583,20 +1583,17 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
     const ballots = ballotsResult.data?.ballots || [];
     const picks = picksResult.data?.picks || [];
     const categories = categoriesResult.data?.categories || [];
-    const winners = winnersResult || [];
+    const winners = (winnersResult as any)?.winners || [];
     const users = usersResult.data?.users || [];
 
-    console.log('[getAnalyticsData] Found all ballots for event:', ballots.length);
-    console.log('[getAnalyticsData] Found all picks for event:', picks.length);
-    console.log('[getAnalyticsData] Categories found:', categories.length);
-    console.log('[getAnalyticsData] Winners found:', winners.length);
-    console.log('[getAnalyticsData] Users found:', users.length);
-
-    // Debug: Print some ballot info
-    if (ballots.length > 0) {
-      console.log('[getAnalyticsData] Sample ballot IDs:', ballots.slice(0, 3).map((b: any) => b.id));
-      console.log('[getAnalyticsData] Sample ballot user IDs:', ballots.slice(0, 3).map((b: any) => b.user_id));
-    }
+    // High-level summary logs for production diagnostics
+    console.log('[getAnalyticsData] Summary:', {
+      ballots: ballots.length,
+      picks: picks.length,
+      categories: categories.length,
+      winners: winners.length,
+      users: users.length
+    });
 
     // Process analytics data
     const eventAnalytics = processAnalyticsData(ballots, picks, categories, winners, users);
@@ -1699,7 +1696,8 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
 function processAnalyticsData(ballots: any[], picks: any[], categories: any[], winners: any[], users: any[]) {
   console.log('[processAnalyticsData] Processing analytics for event with:', {
     ballots: ballots.length,
-    categories: categories.length, 
+    picks: picks.length,
+    categories: categories.length,
     winners: winners.length,
     users: users.length
   });
@@ -1715,17 +1713,9 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
   // Create lookup maps
   const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
   const nomineeMap = new Map();
-  const winnerMap = new Map(winners.map((w: any) => [w.categoryId, w.winnerNomineeId]));
+  const safeWinners = Array.isArray(winners) ? winners : [];
+  const winnerMap = new Map(safeWinners.map((w: any) => [w.categoryId, w.winnerNomineeId]));
   const userMap = new Map(users.map((u: any) => [u.id, u]));
-
-  console.log('[processAnalyticsData] Winner map:', Object.fromEntries(winnerMap));
-  console.log('[processAnalyticsData] Category map size:', categoryMap.size);
-  console.log('[processAnalyticsData] First ballot structure:', ballots[0]);
-  console.log('[processAnalyticsData] First ballot picks:', ballots[0]?.picks);
-  console.log('[processAnalyticsData] First ballot picks type:', typeof ballots[0]?.picks);
-  console.log('[processAnalyticsData] First ballot picks keys:', ballots[0]?.picks ? Object.keys(ballots[0].picks) : 'no picks');
-  console.log('[processAnalyticsData] Total picks array length:', picks.length);
-  console.log('[processAnalyticsData] First few picks:', picks.slice(0, 3));
 
   // Process each pick directly (they're queried separately now)
   picks.forEach(pick => {
@@ -1869,10 +1859,11 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
     ballots.length
   );
 
-  console.log('[processAnalyticsData] Final results:', {
+  // High-level summary for diagnostics
+  console.log('[processAnalyticsData] Final results summary:', {
     totalPicks,
     totalCorrectPicks,
-    totalPowerPicks, 
+    totalPowerPicks,
     correctPowerPicks,
     nomineePopularityCount: Object.keys(nomineePopularity).length,
     powerPickAnalysisCount: Object.keys(powerPickAnalysis).length,
