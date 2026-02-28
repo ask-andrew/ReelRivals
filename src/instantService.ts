@@ -1747,11 +1747,15 @@ function processAnalyticsData(ballots: any[], categories: any[], winners: any[],
 
       // Check if this pick is correct
       const winnerNomineeId = winnerMap.get(categoryId);
+      console.log(`[processAnalyticsData] Pick: category=${categoryId}, nominee=${nomineeId}, winner=${winnerNomineeId}, power=${isPowerPick}`);
       if (winnerNomineeId && winnerNomineeId === nomineeId) {
         totalCorrectPicks++;
+        console.log(`[processAnalyticsData] CORRECT PICK: ${nomineeId} in category ${categoryId}`);
         if (isPowerPick) {
           correctPowerPicks++;
         }
+      } else {
+        console.log(`[processAnalyticsData] INCORRECT PICK: picked ${nomineeId}, winner was ${winnerNomineeId}`);
       }
 
       if (isPowerPick) {
