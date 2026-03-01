@@ -139,7 +139,7 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
 
   useEffect(() => {
     fetchAnalytics();
-  }, [leagueId, selectedEventId, excludeTestUsers, refreshKey]);
+  }, [leagueId, selectedEventId, excludeTestUsers, refreshKey, viewMode]);
 
   if (loading) {
     return (
