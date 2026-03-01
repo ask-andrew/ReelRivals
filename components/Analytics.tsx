@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp, Trophy, Target, Flame, Crown, AlertTriangle, Share2, MessageCircle, Twitter, Link } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp, Trophy, Target, Flame, Crown, AlertTriangle, Share2, MessageCircle, Twitter, Link, Check } from 'lucide-react';
 import { getAnalyticsData } from '../src/instantService';
 import type { Ballot, Category } from '../src/ballots';
 import { SEASON_CIRCUIT } from '../constants';
@@ -170,25 +170,23 @@ const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, 
     );
   }
 
-  // Sort nominees by popularity
-  const sortedNominees = (Object.entries(analyticsData.nomineePopularity) as [string, { name: string; count: number; percentage: number; powerPickCount: number; accuracy: number; isWinner: boolean }][])
-    .sort(([, a], [, b]) => b.count - a.count)
-    .slice(0, 15);
+  // Compute derived data from analyticsData
+  const sortedNominees = Object.entries(analyticsData.nomineePopularity || {})
+    .sort(([, a]: [string, any], [, b]: [string, any]) => b.count - a.count);
 
-  // Sort power picks by success rate
-  const sortedPowerPicks = (Object.entries(analyticsData.powerPickAnalysis) as [string, { nomineeName: string; count: number; category: string; successRate: number }][])
-    .sort(([, a], [, b]) => b.successRate - a.successRate)
-    .slice(0, 10);
-
-  // Get upsets and consensus categories
-  const upsets = Object.entries(analyticsData.categoryAnalytics)
+  const upsets = Object.entries(analyticsData.categoryAnalytics || {})
     .filter(([, data]: [string, any]) => data.upset)
-    .sort(([, a], [, b]: [string, any]) => (b as any).mostPopularPick.percentage - (a as any).mostPopularPick.percentage)
-    .slice(0, 5) as [string, any][];
+    .sort(([, a]: [string, any], [, b]: [string, any]) => (b.mostPopularPick?.percentage || 0) - (a.mostPopularPick?.percentage || 0));
 
-  const consensusCategories = Object.entries(analyticsData.categoryAnalytics)
+  const sortedPowerPicks = Object.entries(analyticsData.powerPickAnalysis || {})
+    .sort(([, a]: [string, any], [, b]: [string, any]) => b.successRate - a.successRate);
+
+  const topNominees = sortedNominees.slice(0, 15);
+  const topPowerPicks = sortedPowerPicks.slice(0, 10);
+
+  const consensusCategories = Object.entries(analyticsData.categoryAnalytics || {})
     .filter(([, data]: [string, any]) => data.consensusCorrect)
-    .slice(0, 5) as [string, any][];
+    .sort(([, a]: [string, any], [, b]: [string, any]) => b.totalPicks - a.totalPicks);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-900 via-black to-gray-900">
