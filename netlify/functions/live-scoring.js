@@ -313,6 +313,7 @@ function parseWikipediaWinners(html, categories) {
 function parseSagWikipediaWinners(html, categories) {
   const $ = load(html);
   const winners = new Map();
+  const debugInfo = [];
 
   console.log('[SAG Parser] Categories available:', categories.map(c => c.name));
 
@@ -347,6 +348,14 @@ function parseSagWikipediaWinners(html, categories) {
       
       if (categoryText && winnerText) {
         const matchedCategory = findCategoryMatch(categoryText, categories);
+        const debugEntry = {
+          wikipediaCategory: categoryText,
+          winnerName: winnerText,
+          matched: !!matchedCategory,
+          matchedCategory: matchedCategory ? matchedCategory.name : null
+        };
+        debugInfo.push(debugEntry);
+        
         if (matchedCategory) {
           console.log(`[SAG Parser] ✅ Matched category: "${categoryText}" -> "${matchedCategory.name}" (${matchedCategory.id})`);
           winners.set(matchedCategory.id, winnerText);
@@ -358,6 +367,10 @@ function parseSagWikipediaWinners(html, categories) {
   });
 
   console.log(`[SAG Parser] Final winners found: ${winners.size}`);
+  
+  // Store debug info on the winners map for later access
+  winners.debugInfo = debugInfo;
+  
   return winners;
 }
 
@@ -620,7 +633,8 @@ export const handler = async (event) => {
           categoriesFound: categories.length,
           winnersDetected: validatedWinners.size,
           sampleCategories: categories.slice(0, 3).map(c => c.name),
-          sampleWinners: Array.from(validatedWinners.entries()).slice(0, 3)
+          sampleWinners: Array.from(validatedWinners.entries()).slice(0, 3),
+          sagParserDebug: validatedWinners.debugInfo || []
         },
         timestamp: new Date().toISOString()
       })
