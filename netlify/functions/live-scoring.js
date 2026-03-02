@@ -309,8 +309,9 @@ function parseSagWikipediaWinners(html, categories) {
       // This cell contains a winner category
       const categoryText = $winnerDiv.text().trim();
       
-      // Find the first <li> in the following <ul> - that's the winner
-      const $firstLi = $cell.find('ul li').first();
+      // Find the FIRST <li> in the nested <ul> structure - that's the winner
+      // SAG has nested <ul><li><ul><li>WINNER</li><li>nominee</li></ul></li></ul>
+      const $firstLi = $cell.find('ul li ul li').first();
       const winnerText = $firstLi.text().trim();
       
       console.log(`[SAG Parser] Found potential winner: "${categoryText}" -> "${winnerText}"`);
