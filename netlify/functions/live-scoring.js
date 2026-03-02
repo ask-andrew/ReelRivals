@@ -59,6 +59,15 @@ const extractLines = (html) => {
 const findCategoryMatch = (wikipediaCategory, categories) => {
   console.log(`[Category Match] Trying to match: "${wikipediaCategory}"`);
   
+  // First try exact match
+  for (const category of categories) {
+    if (wikipediaCategory.trim() === category.name.trim()) {
+      console.log(`[Category Match] ✅ EXACT MATCH: "${wikipediaCategory}" ↔ "${category.name}"`);
+      return category;
+    }
+  }
+  
+  // Then try fuzzy matching with aliases
   for (const category of categories) {
     const aliases = buildCategoryAliases(category.name);
     console.log(`[Category Match] Checking category: "${category.name}" with aliases:`, aliases);
@@ -68,7 +77,7 @@ const findCategoryMatch = (wikipediaCategory, categories) => {
       const normAlias = normalize(alias);
       if (!normAlias) continue;
       if (normLine === normAlias || normLine.includes(normAlias) || normAlias.includes(normLine)) {
-        console.log(`[Category Match] ✅ MATCH FOUND: "${wikipediaCategory}" ↔ "${category.name}" (alias: "${alias}")`);
+        console.log(`[Category Match] ✅ FUZZY MATCH: "${wikipediaCategory}" ↔ "${category.name}" (alias: "${alias}")`);
         return category;
       }
     }
