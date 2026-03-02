@@ -531,6 +531,14 @@ export const handler = async (event) => {
       };
     }
 
+    // For SAG, use Wikipedia as primary source (other sources may not have SAG data)
+    if (eventId === 'sag-2026') {
+      const wikipediaWinners = await fetchWikipediaWinners(eventId, categories);
+      console.log(`🎭 [SAG] Using Wikipedia only: ${wikipediaWinners.size} winners found`);
+      return wikipediaWinners;
+    }
+
+    // For other events, use multi-source validation
     const officialWinners = await fetchOfficialWinners(eventId, year, categories);
     const mediaWinners = await fetchMediaWinners(eventId, categories);
     const wikipediaWinners = await fetchWikipediaWinners(eventId, categories);
