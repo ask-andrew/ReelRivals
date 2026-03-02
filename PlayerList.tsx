@@ -245,7 +245,7 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
         <div className="bg-gray-900/30 border border-gray-800 rounded-lg overflow-hidden">
           {/* Table Header */}
           <div className="bg-gray-800/50 border-b border-gray-700">
-            <div className="grid grid-cols-7 gap-2 px-4 py-3 text-xs font-bold text-gray-400">
+            <div className="grid grid-cols-8 gap-1 px-4 py-3 text-xs font-bold text-gray-400">
               <div className="col-span-3">Player</div>
               <button 
                 onClick={() => handleSort('goldenGlobesPoints')}
@@ -260,6 +260,13 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
               >
                 <span>🎭 BAFTAs</span>
                 {sortBy === 'baftasPoints' && <ArrowUpDown size={10} />}
+              </button>
+              <button 
+                onClick={() => handleSort('sagPoints')}
+                className="flex items-center space-x-1 hover:text-yellow-400 transition-colors"
+              >
+                <span>🎬 SAG</span>
+                {sortBy === 'sagPoints' && <ArrowUpDown size={10} />}
               </button>
               <button 
                 onClick={() => handleSort('oscarsPoints')}
@@ -283,7 +290,7 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
             {sortedPlayers.map((player, index) => (
               <div 
                 key={player.id}
-                className={`grid grid-cols-7 gap-2 px-4 py-3 border-b border-gray-800 hover:bg-gray-800/30 transition-colors ${
+                className={`grid grid-cols-8 gap-1 px-4 py-3 border-b border-gray-800 hover:bg-gray-800/30 transition-colors ${
                   index === 0 ? 'bg-yellow-500/10 border-yellow-500/30' : ''
                 }`}
               >
@@ -309,6 +316,11 @@ export const PlayerList: React.FC<PlayerListProps> = ({ refreshTrigger }) => {
                 <div className="text-center">
                   <span className={`text-sm ${player.baftasPoints > 0 ? 'text-blue-400 font-bold' : 'text-gray-500'}`}>
                     {player.baftasPoints > 0 ? player.baftasPoints : '-'}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className={`text-sm ${player.sagPoints > 0 ? 'text-purple-400 font-bold' : 'text-gray-500'}`}>
+                    {player.sagPoints > 0 ? player.sagPoints : '-'}
                   </span>
                 </div>
                 <div className="text-center">
