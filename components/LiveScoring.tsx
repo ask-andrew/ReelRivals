@@ -38,7 +38,7 @@ const LiveScoring: React.FC<LiveScoringProps> = ({ eventId, leagueId, isLive }) 
     const interval = setInterval(() => {
       fetchScores();
       fetchRecentWins();
-    }, 5000); // Poll every 5 seconds
+    }, 300000); // Poll every 5 minutes (300,000 seconds)
 
     setConnected(true);
 
