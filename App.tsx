@@ -54,12 +54,15 @@ const App: React.FC = () => {
   // Determine current event based on date
   const today = new Date();
   const currentEvents = [
-    { id: 'baftas-2026', name: 'BAFTA Awards', date: new Date('2026-02-16T17:00:00-08:00') },
     { id: 'golden-globes-2026', name: 'Golden Globe Awards', date: new Date('2026-02-02T17:00:00-08:00') },
+    { id: 'baftas-2026', name: 'BAFTA Awards', date: new Date('2026-02-16T17:00:00-08:00') },
     { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
     { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
   ];
-  const currentEvent = currentEvents.find(event => today >= event.date) || currentEvents[0];
+  
+  // Find the most recent past event, or the first upcoming one
+  const pastEvents = currentEvents.filter(event => today >= event.date);
+  const currentEvent = pastEvents.length > 0 ? pastEvents[pastEvents.length - 1] : currentEvents[0];
   
   const [selectedAwardShow, setSelectedAwardShow] = useState(currentEvent.id); // Default to current event
   const [countdown, setCountdown] = useState<CountdownInfo>(getCountdownToNextAwardShow());
