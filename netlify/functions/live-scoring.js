@@ -368,8 +368,12 @@ function parseSagWikipediaWinners(html, categories) {
 
   console.log(`[SAG Parser] Final winners found: ${winners.size}`);
   
-  // Store debug info on the winners map for later access
-  winners.debugInfo = debugInfo;
+  // Store debug info on winners map for later access
+  if (debugInfo.length > 0) {
+    winners.debugInfo = debugInfo;
+  } else {
+    winners.debugInfo = [];
+  }
   
   return winners;
 }
