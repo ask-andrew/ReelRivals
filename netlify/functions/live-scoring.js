@@ -296,6 +296,8 @@ function parseSagWikipediaWinners(html, categories) {
   const $ = load(html);
   const winners = new Map();
 
+  console.log('[SAG Parser] Categories available:', categories.map(c => c.name));
+
   // SAG uses complex tables with yellow background winners
   $('table.wikitable td').each((i, cell) => {
     const $cell = $(cell);
@@ -311,15 +313,21 @@ function parseSagWikipediaWinners(html, categories) {
       const $firstLi = $cell.find('ul li').first();
       const winnerText = $firstLi.text().trim();
       
+      console.log(`[SAG Parser] Found potential winner: "${categoryText}" -> "${winnerText}"`);
+      
       if (categoryText && winnerText) {
         const matchedCategory = findCategoryMatch(categoryText, categories);
         if (matchedCategory) {
+          console.log(`[SAG Parser] ✅ Matched category: "${categoryText}" -> "${matchedCategory.name}" (${matchedCategory.id})`);
           winners.set(matchedCategory.id, winnerText);
+        } else {
+          console.log(`[SAG Parser] ❌ No match found for category: "${categoryText}"`);
         }
       }
     }
   });
 
+  console.log(`[SAG Parser] Final winners found: ${winners.size}`);
   return winners;
 }
 
