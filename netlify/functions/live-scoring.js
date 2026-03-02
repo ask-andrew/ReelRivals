@@ -586,6 +586,12 @@ export const handler = async (event) => {
         matched: matchedCount,
         provisional: provisionalCount,
         existing: existingResults.length,
+        debug: {
+          categoriesFound: categories.length,
+          winnersDetected: validatedWinners.size,
+          sampleCategories: categories.slice(0, 3).map(c => c.name),
+          sampleWinners: Array.from(validatedWinners.entries()).slice(0, 3)
+        },
         timestamp: new Date().toISOString()
       })
     };
