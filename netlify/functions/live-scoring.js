@@ -645,8 +645,12 @@ export const handler = async (event) => {
           categoriesFound: categories.length,
           winnersDetected: validatedWinners.size,
           sampleCategories: categories.slice(0, 3).map(c => c.name),
-          sampleWinners: Array.from(validatedWinners.entries()).slice(0, 3),
-          sagParserDebug: validatedWinners.debugInfo || []
+          sampleWinners: Array.from(validatedWinners.entries()).slice(0, 3).map(([categoryId, winner]) => ({ categoryId, winner })),
+          sagParserDebug: (validatedWinners.debugInfo || []).map(d => ({
+            category: d.wikipediaCategory,
+            winner: d.winnerName,
+            matched: d.matched
+          }))
         },
         timestamp: new Date().toISOString()
       })
