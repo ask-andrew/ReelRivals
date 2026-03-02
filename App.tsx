@@ -54,6 +54,8 @@ const App: React.FC = () => {
   // Determine current event based on date
   const today = new Date();
   const currentEvents = [
+    { id: 'baftas-2026', name: 'BAFTA Awards', date: new Date('2026-02-16T17:00:00-08:00') },
+    { id: 'golden-globes-2026', name: 'Golden Globe Awards', date: new Date('2026-02-02T17:00:00-08:00') },
     { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
     { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
   ];
