@@ -56,17 +56,26 @@ const extractLines = (html) => {
     .filter(Boolean);
 };
 
-const findCategoryMatch = (line, categories) => {
-  const normLine = normalize(line);
+const findCategoryMatch = (wikipediaCategory, categories) => {
+  console.log(`[Category Match] Trying to match: "${wikipediaCategory}"`);
+  
   for (const category of categories) {
     const aliases = buildCategoryAliases(category.name);
+    console.log(`[Category Match] Checking category: "${category.name}" with aliases:`, aliases);
+    
     for (const alias of aliases) {
+      const normLine = normalize(wikipediaCategory);
       const normAlias = normalize(alias);
       if (!normAlias) continue;
-      if (normLine === normAlias) return category;
-      if (normLine.includes(normAlias) || normAlias.includes(normLine)) return category;
+      if (normLine === normAlias || normLine.includes(normAlias) || normAlias.includes(normLine)) {
+        console.log(`[Category Match] ✅ MATCH FOUND: "${wikipediaCategory}" ↔ "${category.name}" (alias: "${alias}")`);
+        return category;
+      }
     }
   }
+  
+  console.log(`[Category Match] ❌ NO MATCH FOUND for: "${wikipediaCategory}"`);
+  console.log(`[Category Match] Available categories:`, categories.map(c => c.name));
   return null;
 };
 
