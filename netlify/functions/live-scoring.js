@@ -452,14 +452,15 @@ export const handler = async (event) => {
   // Determine current event based on date
   const today = new Date();
   const currentEvents = [
-    { id: 'baftas-2026', name: 'BAFTA Awards', date: new Date('2026-02-16T17:00:00-08:00') },
     { id: 'golden-globes-2026', name: 'Golden Globe Awards', date: new Date('2026-02-02T17:00:00-08:00') },
+    { id: 'baftas-2026', name: 'BAFTA Awards', date: new Date('2026-02-16T17:00:00-08:00') },
     { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
     { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
   ];
   
-  // Find the current or next event
-  const currentEvent = currentEvents.find(event => today >= event.date) || currentEvents[0];
+  // Find the most recent past event, or the first upcoming one
+  const pastEvents = currentEvents.filter(event => today >= event.date);
+  const currentEvent = pastEvents.length > 0 ? pastEvents[pastEvents.length - 1] : currentEvents[0];
   const eventId = event.queryStringParameters?.event_id || currentEvent.id;
   const yearMatch = currentEvent.id.match(/(\d{4})$/);
   const year = yearMatch ? Number(yearMatch[1]) : null;
@@ -571,6 +572,12 @@ export const handler = async (event) => {
       await db.transact(resultTransactions);
       await recalculateScoresForEvent(eventId, categories.map((c) => c.id));
     }
+
+    console.log(`🎭 [LIVE SCORING] Starting for event: ${eventId}`);
+    console.log(`🎭 [LIVE SCORING] Processing event: ${eventId}`);
+    console.log(`🎭 [LIVE SCORING] Found ${categories.length} categories`);
+    console.log(`🎭 [LIVE SCORING] Found ${validatedWinners.size} winners`);
+    console.log(`🎭 [LIVE SCORING] Result:`, { eventId, matched: matchedCount, provisional: provisionalCount, existing: existingResults.length, timestamp: new Date().toISOString() });
 
     return {
       statusCode: 200,
