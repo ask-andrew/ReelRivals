@@ -630,9 +630,6 @@ export const handler = async (event) => {
 
     console.log(`🎭 [LIVE SCORING] Starting for event: ${eventId}`);
     console.log(`🎭 [LIVE SCORING] Processing event: ${eventId}`);
-    console.log(`🎭 [LIVE SCORING] Found ${categories.length} categories`);
-    console.log(`🎭 [LIVE SCORING] Found ${validatedWinners.size} winners`);
-    console.log(`🎭 [LIVE SCORING] Result:`, { eventId, matched: matchedCount, provisional: provisionalCount, existing: existingResults.length, timestamp: new Date().toISOString() });
 
     return {
       statusCode: 200,
@@ -641,17 +638,6 @@ export const handler = async (event) => {
         matched: matchedCount,
         provisional: provisionalCount,
         existing: existingResults.length,
-        debug: {
-          categoriesFound: categories.length,
-          winnersDetected: validatedWinners.size,
-          sampleCategories: categories.slice(0, 3).map(c => c.name),
-          sampleWinners: Array.from(validatedWinners.entries()).slice(0, 3).map(([categoryId, winner]) => ({ categoryId, winner })),
-          sagParserDebug: (validatedWinners.debugInfo || []).map(d => ({
-            category: d.wikipediaCategory,
-            winner: d.winnerName,
-            matched: d.matched
-          }))
-        },
         timestamp: new Date().toISOString()
       })
     };
