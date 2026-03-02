@@ -254,7 +254,12 @@ async function fetchWikipediaWinners(eventId, categories) {
 
   try {
     const html = await fetchHtml(url);
-    return parseWikipediaWinners(html, categories);
+    // Use custom SAG parser for SAG events, standard parser for others
+    if (eventId === 'sag-2026') {
+      return parseSagWikipediaWinners(html, categories);
+    } else {
+      return parseWikipediaWinners(html, categories);
+    }
   } catch (error) {
     console.warn(`⚠️ Wikipedia scraping failed:`, error.message);
     return new Map();
@@ -275,6 +280,38 @@ function parseWikipediaWinners(html, categories) {
       const winnerText = $(cells[1]).text().trim();
 
       if (categoryText && winnerText && winnerText.toLowerCase() !== 'pending') {
+        const matchedCategory = findCategoryMatch(categoryText, categories);
+        if (matchedCategory) {
+          winners.set(matchedCategory.id, winnerText);
+        }
+      }
+    }
+  });
+
+  return winners;
+}
+
+// Custom SAG parser for unique Wikipedia table structure
+function parseSagWikipediaWinners(html, categories) {
+  const $ = load(html);
+  const winners = new Map();
+
+  // SAG uses complex tables with yellow background winners
+  $('table.wikitable td').each((i, cell) => {
+    const $cell = $(cell);
+    
+    // Look for yellow background divs (indicate winners)
+    const $winnerDiv = $cell.find('div[style*="background-color:#FAEB86"], div[style*="background-color: #FAEB86"]');
+    
+    if ($winnerDiv.length > 0) {
+      // This cell contains a winner category
+      const categoryText = $winnerDiv.text().trim();
+      
+      // Find the first <li> in the following <ul> - that's the winner
+      const $firstLi = $cell.find('ul li').first();
+      const winnerText = $firstLi.text().trim();
+      
+      if (categoryText && winnerText) {
         const matchedCategory = findCategoryMatch(categoryText, categories);
         if (matchedCategory) {
           winners.set(matchedCategory.id, winnerText);
