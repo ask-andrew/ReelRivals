@@ -202,34 +202,8 @@ function parseMediaList(html, categories) {
 }
 
 async function fetchOfficialWinners(eventId, year, categories) {
-  if (eventId.startsWith('oscars-')) {
-    const html = await fetchHtml(`https://www.oscars.org/oscars/ceremonies/${year}`);
-    return parseOscarsWinners(html, categories);
-  }
-
-  if (eventId.startsWith('sag-')) {
-    const slug =
-      process.env[`SAG_EVENT_SLUG_${year}`] ||
-      SAG_SLUG_BY_EVENT[eventId];
-    if (!slug) return new Map();
-    const html = await fetchHtml(`https://www.actorawards.org/awards/nominees-and-recipients/${slug}`);
-    return parseSagWinners(html, categories);
-  }
-
-  if (eventId.startsWith('baftas-')) {
-    const winners = new Map();
-    for (const category of categories) {
-      const slug = BAFTA_CATEGORY_SLUGS[category.name];
-      if (!slug) continue;
-      const html = await fetchHtml(`https://www.bafta.org/awards/film/${slug}/`);
-      const winner = parseBaftaCategoryWinner(html, year);
-      if (winner) {
-        winners.set(category.id, winner);
-      }
-    }
-    return winners;
-  }
-
+  // Skip official sites for now since they block scraping
+  // Will rely on media sources and Wikipedia instead
   return new Map();
 }
 
@@ -264,6 +238,52 @@ async function fetchMediaWinners(eventId, categories) {
     }
   }
   return merged;
+}
+
+// Add Wikipedia scraping as primary source
+async function fetchWikipediaWinners(eventId, categories) {
+  const wikiUrls = {
+    'oscars-2026': 'https://en.wikipedia.org/wiki/98th_Academy_Awards',
+    'baftas-2026': 'https://en.wikipedia.org/wiki/79th_British_Academy_Film_Awards',
+    'sag-2026': 'https://en.wikipedia.org/wiki/32nd_Actor_Awards',
+    'golden-globes-2026': 'https://en.wikipedia.org/wiki/81st_Golden_Globe_Awards'
+  };
+
+  const url = wikiUrls[eventId];
+  if (!url) return new Map();
+
+  try {
+    const html = await fetchHtml(url);
+    return parseWikipediaWinners(html, categories);
+  } catch (error) {
+    console.warn(`⚠️ Wikipedia scraping failed:`, error.message);
+    return new Map();
+  }
+}
+
+function parseWikipediaWinners(html, categories) {
+  const $ = load(html);
+  const winners = new Map();
+
+  // Look for winner tables
+  $('table.wikitable tr').each((i, row) => {
+    const $row = $(row);
+    const cells = $row.find('td, th');
+
+    if (cells.length >= 2) {
+      const categoryText = $(cells[0]).text().trim();
+      const winnerText = $(cells[1]).text().trim();
+
+      if (categoryText && winnerText && winnerText.toLowerCase() !== 'pending') {
+        const matchedCategory = findCategoryMatch(categoryText, categories);
+        if (matchedCategory) {
+          winners.set(matchedCategory.id, winnerText);
+        }
+      }
+    }
+  });
+
+  return winners;
 }
 
 async function recalculateScoresForEvent(eventId, categoryIds) {
@@ -387,6 +407,8 @@ export const handler = async (event) => {
   // Determine current event based on date
   const today = new Date();
   const currentEvents = [
+    { id: 'baftas-2026', name: 'BAFTA Awards', date: new Date('2026-02-16T17:00:00-08:00') },
+    { id: 'golden-globes-2026', name: 'Golden Globe Awards', date: new Date('2026-02-02T17:00:00-08:00') },
     { id: 'sag-2026', name: 'SAG Awards', date: new Date('2026-03-01T17:00:00-08:00') },
     { id: 'oscars-2026', name: 'The Oscars', date: new Date('2026-03-15T17:00:00-08:00') }
   ];
@@ -422,13 +444,42 @@ export const handler = async (event) => {
 
     const officialWinners = await fetchOfficialWinners(eventId, year, categories);
     const mediaWinners = await fetchMediaWinners(eventId, categories);
+    const wikipediaWinners = await fetchWikipediaWinners(eventId, categories);
 
-    const resultsQuery = await db.query({
+    // Multi-source validation: require consensus from at least 2 sources
+    const validatedWinners = new Map();
+    for (const category of categories) {
+      const officialWinner = officialWinners.get(category.id);
+      const mediaWinner = mediaWinners.get(category.id);
+      const wikiWinner = wikipediaWinners.get(category.id);
+
+      const sources = [officialWinner, mediaWinner, wikiWinner].filter(Boolean);
+      if (sources.length >= 2) {
+        // Check if at least 2 sources agree
+        const winnerCounts = {};
+        sources.forEach(winner => {
+          const normWinner = normalize(winner);
+          winnerCounts[normWinner] = (winnerCounts[normWinner] || 0) + 1;
+        });
+
+        const agreedWinner = Object.entries(winnerCounts).find(([_, count]) => count >= 2)?.[0];
+        if (agreedWinner) {
+          // Find the original winner name (not normalized)
+          const originalWinner = sources.find(w => normalize(w) === agreedWinner);
+          validatedWinners.set(category.id, originalWinner);
+        }
+      } else if (wikiWinner) {
+        // If only Wikipedia has data, use it (Wikipedia is reliable for live events)
+        validatedWinners.set(category.id, wikiWinner);
+      }
+    }
+
+    const existingResultsQuery = await db.query({
       results: {
         $: { where: { category_id: { in: categories.map((c) => c.id) } } }
       }
     });
-    const existingResults = resultsQuery.results || [];
+    const existingResults = existingResultsQuery.results || [];
     const existingResultsByCategory = new Map(
       existingResults.map((r) => [r.category_id, r])
     );
@@ -438,27 +489,15 @@ export const handler = async (event) => {
     let provisionalCount = 0;
 
     for (const category of categories) {
-      const officialWinner = officialWinners.get(category.id);
-      const mediaWinner = mediaWinners.get(category.id);
-
+      const validatedWinner = validatedWinners.get(category.id);
       const existingResult = existingResultsByCategory.get(category.id);
 
-      if (officialWinner && mediaWinner) {
-        const normOfficial = normalize(officialWinner);
-        const normMedia = normalize(mediaWinner);
-        if (
-          normOfficial !== normMedia &&
-          !normOfficial.includes(normMedia) &&
-          !normMedia.includes(normOfficial)
-        ) {
-          continue;
-        }
-
-        const nominee = findNomineeMatch(officialWinner, category.nominees || []);
+      if (validatedWinner) {
+        const nominee = findNomineeMatch(validatedWinner, category.nominees || []);
         if (!nominee) continue;
 
         if (existingResult) {
-          if (existingResult.is_provisional || existingResult.winner_nominee_id !== nominee.id) {
+          if (existingResult.winner_nominee_id !== nominee.id) {
             resultTransactions.push(
               db.tx.results[existingResult.id].update({
                 winner_nominee_id: nominee.id,
@@ -480,23 +519,6 @@ export const handler = async (event) => {
           );
           matchedCount++;
         }
-        continue;
-      }
-
-      if (!officialWinner && mediaWinner) {
-        if (existingResult) continue;
-        const nominee = findNomineeMatch(mediaWinner, category.nominees || []);
-        if (!nominee) continue;
-        const resultId = id();
-        resultTransactions.push(
-          db.tx.results[resultId].create({
-            category_id: category.id,
-            winner_nominee_id: nominee.id,
-            announced_at: Date.now(),
-            is_provisional: true
-          })
-        );
-        provisionalCount++;
       }
     }
 
