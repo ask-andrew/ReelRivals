@@ -560,7 +560,9 @@ export const handler = async (event) => {
         ['documentary-short', '"All the Empty Rooms"'],
         ['animated-short', 'Butterfly']
       ]);
-      return manualWinners;
+      
+      // Process manual winners for Oscars
+      const validatedWinners = manualWinners;
     }
 
     // For SAG, use manual winners to bypass scraping/validation issues
