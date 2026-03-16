@@ -34,10 +34,19 @@ export const handler = async (event) => {
     const categories = categoriesQuery.categories || [];
     console.log(`📂 Found ${categories.length} Oscar categories`);
     
-    // Debug: List all found categories
-    categories.forEach((cat, index) => {
-      console.log(`${index + 1}. ${cat.id} - ${cat.name}`);
+    // Debug: List all found categories and nominees
+    const categoryDebug = categories.map((cat, index) => {
+      const nomineeNames = cat.nominees?.map(n => n.name) || [];
+      return {
+        index: index + 1,
+        id: cat.id,
+        name: cat.name,
+        nomineeCount: cat.nominees?.length || 0,
+        nominees: nomineeNames.slice(0, 3) // Show first 3 nominees
+      };
     });
+    
+    console.log('🔍 Category Debug Info:', JSON.stringify(categoryDebug, null, 2));
     
     if (categories.length === 0) {
       return {
@@ -46,34 +55,72 @@ export const handler = async (event) => {
       };
     }
 
-    // Manual Oscar winners
-    const manualWinners = new Map([
-      ['best-picture', 'Sinners'],
-      ['actress-leading', 'Mikey Madison'],
-      ['actor-leading', 'Timothée Chalamet'],
-      ['actress-supporting', 'Zoe Saldaña'],
-      ['actor-supporting', 'Kieran Culkin'],
-      ['directing', 'Chloé Zhao'],
-      ['original-screenplay', 'Ryan Coogler'],
-      ['adapted-screenplay', 'Paul Thomas Anderson'],
-      ['international-feature', 'The Secret Agent (Brazil)'],
-      ['animated-feature', 'Zootopia 2'],
-      ['documentary-feature', 'Mr. Nobody Against Putin'],
-      ['original-score', 'Ludwig Göransson'],
-      ['original-song', '"Golden" from KPop Demon Hunters'],
-      ['casting', 'Nina Gold (Hamnet)'],
-      ['cinematography', 'Michael Bauman (One Battle After Another)'],
-      ['film-editing', 'Olivier Bugge Coutté (Sentimental Value)'],
-      ['costume-design', 'Ruth E. Carter (Sinners)'],
-      ['production-design', 'Chris Welcker (Sinners)'],
-      ['makeup-hairstyling', 'Oscar Nominees (TBA)'],
-      ['sound', 'Chris Welcker, Benjamin A. Burtt, Felipe Pacheco, Brandon Proctor and Steve Boeddeker (Sinners)'],
-      ['visual-effects', 'Michael Ralla, Espen Nordahl, Guido Wolter and Donnie Dean (Sinners)'],
-      ['live-action-short', 'A Friend of Dorothy'],
-      ['documentary-short', '"All the Empty Rooms"'],
-      ['animated-short', 'Butterfly']
-    ]);
-
+    // Create dynamic manual winners based on actual categories found
+    const manualWinners = new Map();
+    
+    // Map winners based on category names and IDs
+    categories.forEach(category => {
+      const categoryId = category.id;
+      const categoryName = category.name.toLowerCase();
+      
+      // Map winners based on category identification
+      if (categoryId.includes('picture') || categoryName.includes('picture')) {
+        manualWinners.set(categoryId, 'Sinners');
+      } else if (categoryId.includes('actress-leading') || categoryName.includes('actress') && categoryName.includes('leading')) {
+        manualWinners.set(categoryId, 'Mikey Madison');
+      } else if (categoryId.includes('actor-leading') || categoryName.includes('actor') && categoryName.includes('leading')) {
+        manualWinners.set(categoryId, 'Timothée Chalamet');
+      } else if (categoryId.includes('actress-supporting') || categoryName.includes('actress') && categoryName.includes('supporting')) {
+        manualWinners.set(categoryId, 'Zoe Saldaña');
+      } else if (categoryId.includes('actor-supporting') || categoryName.includes('actor') && categoryName.includes('supporting')) {
+        manualWinners.set(categoryId, 'Kieran Culkin');
+      } else if (categoryId.includes('directing') || categoryName.includes('director')) {
+        manualWinners.set(categoryId, 'Chloé Zhao');
+      } else if (categoryId.includes('original-screenplay') || categoryName.includes('original') && categoryName.includes('screenplay')) {
+        manualWinners.set(categoryId, 'Ryan Coogler');
+      } else if (categoryId.includes('adapted-screenplay') || categoryName.includes('adapted') && categoryName.includes('screenplay')) {
+        manualWinners.set(categoryId, 'Paul Thomas Anderson');
+      } else if (categoryId.includes('international-feature') || categoryName.includes('international')) {
+        manualWinners.set(categoryId, 'The Secret Agent (Brazil)');
+      } else if (categoryId.includes('animated-feature') || categoryName.includes('animated')) {
+        manualWinners.set(categoryId, 'Zootopia 2');
+      } else if (categoryId.includes('documentary-feature') || categoryName.includes('documentary')) {
+        manualWinners.set(categoryId, 'Mr. Nobody Against Putin');
+      } else if (categoryId.includes('original-score') || categoryName.includes('score')) {
+        manualWinners.set(categoryId, 'Ludwig Göransson');
+      } else if (categoryId.includes('original-song') || categoryName.includes('song')) {
+        manualWinners.set(categoryId, '"Golden" from KPop Demon Hunters');
+      } else if (categoryId.includes('casting')) {
+        manualWinners.set(categoryId, 'Nina Gold (Hamnet)');
+      } else if (categoryId.includes('cinematography')) {
+        manualWinners.set(categoryId, 'Michael Bauman (One Battle After Another)');
+      } else if (categoryId.includes('film-editing') || categoryName.includes('editing')) {
+        manualWinners.set(categoryId, 'Olivier Bugge Coutté (Sentimental Value)');
+      } else if (categoryId.includes('costume-design') || categoryName.includes('costume')) {
+        manualWinners.set(categoryId, 'Ruth E. Carter (Sinners)');
+      } else if (categoryId.includes('production-design') || categoryName.includes('production')) {
+        manualWinners.set(categoryId, 'Chris Welcker (Sinners)');
+      } else if (categoryId.includes('makeup-hairstyling') || categoryName.includes('makeup')) {
+        manualWinners.set(categoryId, 'Oscar Nominees (TBA)');
+      } else if (categoryId.includes('sound')) {
+        manualWinners.set(categoryId, 'Chris Welcker, Benjamin A. Burtt, Felipe Pacheco, Brandon Proctor and Steve Boeddeker (Sinners)');
+      } else if (categoryId.includes('visual-effects') || categoryName.includes('effects')) {
+        manualWinners.set(categoryId, 'Michael Ralla, Espen Nordahl, Guido Wolter and Donnie Dean (Sinners)');
+      } else if (categoryId.includes('live-action-short') || categoryName.includes('short')) {
+        manualWinners.set(categoryId, 'A Friend of Dorothy');
+      } else if (categoryId.includes('documentary-short')) {
+        manualWinners.set(categoryId, '"All the Empty Rooms"');
+      } else if (categoryId.includes('animated-short')) {
+        manualWinners.set(categoryId, 'Butterfly');
+      } else {
+        // Default fallback
+        console.log(` Unknown category: ${categoryId} - ${category.name}`);
+        manualWinners.set(categoryId, 'Sinners'); // Default fallback
+      }
+    });
+    
+    console.log(` Mapped ${manualWinners.size} manual winners`);
+    
     // Get existing results
     const existingResultsQuery = await db.query({
       results: {
