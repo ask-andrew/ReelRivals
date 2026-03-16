@@ -531,6 +531,38 @@ export const handler = async (event) => {
       };
     }
 
+    // For Oscars, use manual winners to bypass scraping/validation issues
+    if (eventId === 'oscars-2026') {
+      console.log(`🏆 [OSCARS] Using manual winners for immediate scoring`);
+      const manualWinners = new Map([
+        ['best-picture', 'Sinners'],
+        ['actress-leading', 'Mikey Madison'],
+        ['actor-leading', 'Timothée Chalamet'],
+        ['actress-supporting', 'Zoe Saldaña'],
+        ['actor-supporting', 'Kieran Culkin'],
+        ['directing', 'Chloé Zhao'],
+        ['original-screenplay', 'Ryan Coogler'],
+        ['adapted-screenplay', 'Paul Thomas Anderson'],
+        ['international-feature', 'The Secret Agent (Brazil)'],
+        ['animated-feature', 'Zootopia 2'],
+        ['documentary-feature', 'Mr. Nobody Against Putin'],
+        ['original-score', 'Ludwig Göransson'],
+        ['original-song', '"Golden" from KPop Demon Hunters'],
+        ['casting', 'Nina Gold (Hamnet)'],
+        ['cinematography', 'Michael Bauman (One Battle After Another)'],
+        ['film-editing', 'Olivier Bugge Coutté (Sentimental Value)'],
+        ['costume-design', 'Ruth E. Carter (Sinners)'],
+        ['production-design', 'Chris Welcker (Sinners)'],
+        ['makeup-hairstyling', 'Oscar Nominees (TBA)'],
+        ['sound', 'Chris Welcker, Benjamin A. Burtt, Felipe Pacheco, Brandon Proctor and Steve Boeddeker (Sinners)'],
+        ['visual-effects', 'Michael Ralla, Espen Nordahl, Guido Wolter and Donnie Dean (Sinners)'],
+        ['live-action-short', 'A Friend of Dorothy'],
+        ['documentary-short', '"All the Empty Rooms"'],
+        ['animated-short', 'Butterfly']
+      ]);
+      return manualWinners;
+    }
+
     // For SAG, use manual winners to bypass scraping/validation issues
     if (eventId === 'sag-2026') {
       console.log(`🎭 [SAG] Using manual winners for immediate scoring`);
@@ -633,7 +665,15 @@ export const handler = async (event) => {
 
     if (resultTransactions.length > 0) {
       await db.transact(resultTransactions);
+      console.log(`🎭 [LIVE SCORING] Updated ${resultTransactions.length} results for ${eventId}`);
       await recalculateScoresForEvent(eventId, categories.map((c) => c.id));
+    } else {
+      console.log(`🎭 [LIVE SCORING] No new winners to update for ${eventId}`);
+      // Still recalculate scores if requested
+      if (event.queryStringParameters?.recalculate === 'true') {
+        console.log(`🎭 [LIVE SCORING] Force recalculating scores for ${eventId}`);
+        await recalculateScoresForEvent(eventId, categories.map((c) => c.id));
+      }
     }
 
     console.log(`🎭 [LIVE SCORING] Starting for event: ${eventId}`);
