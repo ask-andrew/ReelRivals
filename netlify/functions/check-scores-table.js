@@ -1,4 +1,4 @@
-import { init } from '@instantdb/admin';
+import { init } from '@instantdb/core';
 
 const db = init({ 
   appId: 'a4c0e0b8-8b4a-4b4a-8b4a8b4a8b4a', 
