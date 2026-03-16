@@ -679,7 +679,10 @@ export async function getBallot(userId: string, eventId: string) {
     const ballotQuery = await dbCore.queryOnce({
       ballots: {
         $: { where: { user_id: userId, event_id: eventId } },
-        picks: {}
+        picks: {
+          nominee: {},
+          category: {}
+        }
       },
     });
 
@@ -825,8 +828,8 @@ export async function getActivePlayers(eventId: string) {
         $: {
           where: { event_id: eventId },
         },
-      },
-      users: {}
+        user: {}
+      }
     });
 
     console.log('[getActivePlayers] Raw ballots data:', ballotsQuery.data);
@@ -834,8 +837,8 @@ export async function getActivePlayers(eventId: string) {
     // Transform the data to get unique users with their latest ballot
     const players = ballotsQuery.data.ballots.map((ballot: any) => ({
       id: ballot.user_id,
-      username: ballot.users?.username || 'Unknown',
-      avatar_emoji: ballot.users?.avatar_emoji || '🎬',
+      username: ballot.user?.username || 'Unknown',
+      avatar_emoji: ballot.user?.avatar_emoji || '🎬',
       submittedAt: new Date(ballot.submitted_at).toISOString().split('T')[0], // Format as YYYY-MM-DD
       ballotId: ballot.id,
     }));
@@ -977,7 +980,10 @@ export async function getAllPlayersWithScores(eventId: string) {
     console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
     
     const scoresQuery = await dbCore.queryOnce({
-      scores: { $: { where: { event_id: eventId } } }
+      scores: {
+        $: { where: { event_id: eventId } },
+        user: {}
+      }
     });
     
     const scoresData = scoresQuery.data?.scores || [];
@@ -1557,13 +1563,16 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
     const [ballotsResult, picksResult, categoriesResult, winnersResult, usersResult] = await Promise.all([
       (dbCore.queryOnce as any)({
         ballots: {
-          $: { where: { event_id: eventId } }
+          $: { where: { event_id: eventId } },
+          user: {}
         }
       }),
       (dbCore.queryOnce as any)({
         picks: {
           $: { where: { 'ballot.event_id': eventId } },
-          ballot: {},
+          ballot: {
+            user: {}
+          },
           category: {},
           nominee: {}
         }
@@ -1720,9 +1729,9 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
   // Process each pick directly (they're queried separately now)
   picks.forEach(pick => {
     totalPicks++;
-    const categoryId = pick.categoryId;
-    const nomineeId = pick.nomineeId;
-    const isPowerPick = pick.isPowerPick || false;
+    const categoryId = pick.category_id || pick.categoryId;
+    const nomineeId = pick.nominee_id || pick.nomineeId;
+    const isPowerPick = pick.is_power_pick || pick.isPowerPick || false;
 
     // Check if this pick is correct
     const winnerNomineeId = winnerMap.get(categoryId);
@@ -1739,22 +1748,35 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
 
     // Update nominee popularity
     if (!nomineePopularity[nomineeId]) {
+      const nominee = pick.nominee || nomineeMap.get(nomineeId);
       nomineePopularity[nomineeId] = {
-        name: nomineeMap.get(nomineeId)?.name || 'Unknown',
+        name: nominee?.name || 'Unknown',
         count: 0,
         correct: 0,
         isWinner: winnerNomineeId === nomineeId,
         percentage: 0,
         accuracy: 0,
-        category: categoryMap.get(categoryId)?.name || 'Unknown'
+        category: categoryMap.get(categoryId)?.name || 'Unknown',
+        powerPickCount: 0,
+        correctPowerPicks: 0
       };
     }
     nomineePopularity[nomineeId].count++;
+    if (winnerNomineeId === nomineeId) {
+      nomineePopularity[nomineeId].correct++;
+    }
+    if (isPowerPick) {
+      nomineePopularity[nomineeId].powerPickCount++;
+      if (winnerNomineeId === nomineeId) {
+        nomineePopularity[nomineeId].correctPowerPicks++;
+      }
+    }
 
     // Update power pick analysis
     if (!powerPickAnalysis[nomineeId]) {
+      const nominee = pick.nominee || nomineeMap.get(nomineeId);
       powerPickAnalysis[nomineeId] = {
-        nomineeName: nomineeMap.get(nomineeId)?.name || 'Unknown',
+        nomineeName: nominee?.name || 'Unknown',
         count: 0,
         successRate: 0,
         category: categoryMap.get(categoryId)?.name || 'Unknown'

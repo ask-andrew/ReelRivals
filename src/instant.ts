@@ -215,6 +215,54 @@ const schema = i.schema({
         has: 'many',
         label: 'professional_picks'
       }
+    },
+    ballotsUser: {
+      forward: {
+        on: 'ballots',
+        has: 'one',
+        label: 'user'
+      },
+      reverse: {
+        on: 'users',
+        has: 'many',
+        label: 'ballots'
+      }
+    },
+    scoresUser: {
+      forward: {
+        on: 'scores',
+        has: 'one',
+        label: 'user'
+      },
+      reverse: {
+        on: 'users',
+        has: 'many',
+        label: 'scores'
+      }
+    },
+    leaguesCreator: {
+      forward: {
+        on: 'leagues',
+        has: 'one',
+        label: 'creator'
+      },
+      reverse: {
+        on: 'users',
+        has: 'many',
+        label: 'leagues'
+      }
+    },
+    leagueMembersUser: {
+      forward: {
+        on: 'league_members',
+        has: 'one',
+        label: 'user'
+      },
+      reverse: {
+        on: 'users',
+        has: 'many',
+        label: 'league_members'
+      }
     }
   }
 });

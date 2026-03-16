@@ -8,18 +8,22 @@ const db = init({
 // Official Oscar winners from user
 const OSCAR_WINNERS = [
   { category: 'Best Picture', winner: 'One Battle After Another' },
-  { category: 'Best Actress', winner: 'Jessie Buckley, Hamnet' },
-  { category: 'Best Actor', winner: 'Michael B. Jordan, Sinners' },
-  { category: 'Best Director', winner: 'Paul Thomas Anderson, One Battle After Another' },
-  { category: 'Best Supporting Actor', winner: 'Sean Penn, One Battle After Another' },
-  { category: 'Best Supporting Actress', winner: 'Amy Madigan, Weapons' },
-  { category: 'Best Animated Feature', winner: 'Kpop Demon Hunters' },
-  { category: 'Best Casting', winner: 'Cassandra Kulukundis, One Battle After Another' },
-  { category: 'Best Live Action Short', winner: 'The Singers' }, // First tie winner
-  { category: 'Best Live Action Short', winner: 'Two People Exchanging Saliva' }, // Second tie winner
-  { category: 'Best Documentary Feature', winner: 'Mr. Nobody Against Putin' },
-  { category: 'Best Original Score', winner: 'Ludwig Göransson, Sinners' },
-  { category: 'Best International Feature', winner: 'Sentimental Value, Norway' }
+  { category: 'Directing', winner: 'Paul Thomas Anderson' },
+  { category: 'Actor In A Leading Role', winner: 'Michael B. Jordan' },
+  { category: 'Actress In A Leading Role', winner: 'Jessie Buckley' },
+  { category: 'Actor In A Supporting Role', winner: 'Sean Penn' },
+  { category: 'Actress In A Supporting Role', winner: 'Amy Madigan' },
+  { category: 'Writing (Original Screenplay)', winner: 'Ryan Coogler' },
+  { category: 'Writing (Adapted Screenplay)', winner: 'Paul Thomas Anderson' },
+  { category: 'International Feature Film', winner: 'Sentimental Value' },
+  { category: 'Animated Feature Film', winner: 'KPop Demon Hunters' },
+  { category: 'Documentary Feature Film', winner: 'Mr. Nobody Against Putin' },
+  { category: 'Casting', winner: 'Cassandra Kulukundis' },
+  { category: 'Cinematography', winner: 'Autumn Durald Arkapaw' },
+  { category: 'Film Editing', winner: 'Andy Jurgensen' },
+  { category: 'Visual Effects', winner: 'Avatar: Fire and Ash' },
+  { category: 'Original Score', winner: 'Ludwig Göransson' },
+  { category: 'Original Song', winner: 'Golden' }
 ];
 
 async function storeOscarWinners() {
@@ -39,8 +43,7 @@ async function storeOscarWinners() {
   // Create category name to ID mapping
   const categoryMap = new Map();
   categories.forEach(cat => {
-    const cleanName = cat.name.toLowerCase().replace(/best /i, '').trim();
-    categoryMap.set(cleanName, cat);
+    categoryMap.set(cat.name, cat);
   });
 
   // Get existing results to avoid duplicates
@@ -59,8 +62,7 @@ async function storeOscarWinners() {
   const transactions = [];
 
   for (const winner of OSCAR_WINNERS) {
-    const categoryKey = winner.category.toLowerCase().replace(/best /i, '').trim();
-    const category = categoryMap.get(categoryKey);
+    const category = categoryMap.get(winner.category);
 
     if (!category) {
       console.log(`❌ Category not found: ${winner.category}`);
