@@ -38,8 +38,27 @@ export const handler = async (event) => {
     // Show Oscar categories specifically
     const oscarCategories = events['oscars-2026'] || [];
     console.log(`🏆 Oscar categories (${oscarCategories.length}):`);
-    oscarCategories.forEach((cat, index) => {
-      console.log(`  ${index + 1}. ${cat.id} - ${cat.name} (${cat.nomineeCount} nominees)`);
+    
+    // Get detailed Oscar categories with nominees
+    const oscarCategoriesDetailed = await db.query({
+      categories: {
+        $: { where: { event_id: 'oscars-2026' } },
+        nominees: {}
+      }
+    });
+    
+    const detailedCategories = oscarCategoriesDetailed.categories || [];
+    console.log(`📊 Detailed Oscar categories: ${detailedCategories.length}`);
+    
+    const categoryDetails = detailedCategories.map((cat, index) => {
+      const nominees = cat.nominees || [];
+      return {
+        index: index + 1,
+        id: cat.id,
+        name: cat.name,
+        nomineeCount: nominees.length,
+        nominees: nominees.slice(0, 3).map(n => ({ id: n.id, name: n.name }))
+      };
     });
     
     return {
@@ -48,7 +67,7 @@ export const handler = async (event) => {
         totalCategories: allCategories.length,
         events: Object.keys(events),
         oscarCategories: oscarCategories.length,
-        oscarCategoryDetails: oscarCategories,
+        oscarCategoryDetails: categoryDetails,
         timestamp: new Date().toISOString()
       })
     };
