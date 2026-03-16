@@ -524,6 +524,8 @@ export const handler = async (event) => {
     });
 
     const categories = categoriesQuery.categories || [];
+    console.log(`🎭 [LIVE SCORING] Found ${categories.length} categories for ${eventId}`);
+    
     if (categories.length === 0) {
       return {
         statusCode: 200,
