@@ -34,6 +34,11 @@ export const handler = async (event) => {
     const categories = categoriesQuery.categories || [];
     console.log(`📂 Found ${categories.length} Oscar categories`);
     
+    // Debug: List all found categories
+    categories.forEach((cat, index) => {
+      console.log(`${index + 1}. ${cat.id} - ${cat.name}`);
+    });
+    
     if (categories.length === 0) {
       return {
         statusCode: 200,
