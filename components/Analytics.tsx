@@ -1,749 +1,233 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Users, TrendingUp, Zap, Award, Filter, RefreshCw, Calendar, TrendingDown, TrendingUp as ArrowTrendingUp, Trophy, Target, Flame, Crown, AlertTriangle, Share2, MessageCircle, Twitter, Link, Check } from 'lucide-react';
-import { getAnalyticsData } from '../src/instantService';
-import type { Ballot, Category } from '../src/ballots';
+import { BarChart3, Users, Target, Zap, Trophy, AlertTriangle, Check, Crown, RefreshCw } from 'lucide-react';
+import { getAnalyticsData, getAllPlayersWithScores } from '../src/instantService';
 import { SEASON_CIRCUIT } from '../constants';
-import PowerScale from './PowerScale';
-import VoterOverlap from './VoterOverlap';
-import AwardsFunnel from './AwardsFunnel';
-
-interface TrendData {
-  nomineeId: string;
-  nomineeName: string;
-  currentEvent: { count: number; percentage: number };
-  previousEvents: Array<{ eventId: string; eventName: string; count: number; percentage: number }>;
-  trend: 'up' | 'down' | 'stable' | 'new';
-  trendPercentage: number;
-}
-
-interface AnalyticsData {
-  totalBallots: number;
-  nomineePopularity: Record<string, { 
-    name: string; 
-    count: number; 
-    percentage: number; 
-    powerPickCount: number;
-    correctPicks: number;
-    accuracy: number;
-    isWinner: boolean;
-  }>;
-  powerPickAnalysis: Record<string, { 
-    nomineeName: string; 
-    count: number; 
-    category: string;
-    successRate: number;
-  }>;
-  categoryAnalytics: Record<string, { 
-    categoryName: string; 
-    totalPicks: number; 
-    uniqueNominees: number;
-    winnerNomineeId: string;
-    winnerNomineeName: string;
-    consensusCorrect: boolean;
-    upset: boolean;
-    mostPopularPick: any;
-  }>;
-  overallStats: {
-    totalPicks: number;
-    totalCorrectPicks: number;
-    totalPowerPicks: number;
-    correctPowerPicks: number;
-    overallAccuracy: number;
-    powerPickSuccessRate: number;
-  };
-  insights: Array<{
-    type: string;
-    title: string;
-    description: string;
-    impact: 'high' | 'medium' | 'low';
-  }>;
-}
+import { dbCore } from '../src/instant';
 
 const Analytics: React.FC<{ leagueId: string; eventId: string }> = ({ leagueId, eventId }) => {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [data, setData] = useState<any>(null);
+  const [scores, setScores] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState(eventId);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     setSelectedEventId(eventId);
   }, [eventId]);
 
-  // Get award show name for share messages
-  const getAwardShowName = (eventId: string) => {
-    const show = SEASON_CIRCUIT.find(s => s.id === eventId);
-    return show ? show.name : 'Awards Show';
-  };
-
-  const getAwardShowYear = (eventId: string) => {
-    const show = SEASON_CIRCUIT.find(s => s.id === eventId);
-    return show ? show.name.split(' ').pop() : '2026';
-  };
-  const [excludeTestUsers, setExcludeTestUsers] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [viewMode, setViewMode] = useState<'event' | 'season'>('event');
-
-  // Test user detection patterns
-  const isTestUser = (username: string) => {
-    const testPatterns = [
-      /^test/i,
-      /^demo/i,
-      /^admin/i,
-      /^sample/i,
-      /user\d+/i,
-      /^.*_test$/i,
-      /^test_.*$/i
-    ];
-    return testPatterns.some(pattern => pattern.test(username));
-  };
-
-  const fetchAnalytics = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
+      const [analyticsRes, scoresRes, categoriesRes] = await Promise.all([
+        getAnalyticsData(leagueId, selectedEventId),
+        getAllPlayersWithScores(selectedEventId),
+        dbCore.queryOnce({ 
+          categories: { 
+            $: { where: { event_id: selectedEventId } },
+            nominees: {}
+          },
+          ballots: {
+            $: { where: { event_id: selectedEventId } },
+            picks: {}
+          }
+        })
+      ]);
 
-      console.log('[Analytics] Fetching analytics for event:', selectedEventId, 'at:', new Date().toISOString());
+      setData(analyticsRes.analytics);
+      setScores(scoresRes.players);
+      
+      const cats = categoriesRes.data.categories || [];
+      const ballots = categoriesRes.data.ballots || [];
+      
+      // Map ballots to categories for the grid
+      const gridData = cats.map((cat: any) => {
+        const userPicks = scoresRes.players.map((player: any) => {
+          const userBallot = ballots.find((b: any) => b.user_id === player.id);
+          const pick = userBallot?.picks?.find((p: any) => p.category_id === cat.id);
+          const winnerId = analyticsRes.analytics?.categoryAnalytics?.[cat.id]?.winnerNomineeId;
+          return {
+            userId: player.id,
+            isCorrect: pick && winnerId && pick.nominee_id === winnerId
+          };
+        });
+        return {
+          categoryId: cat.id,
+          categoryName: cat.name,
+          userPicks
+        };
+      });
 
-      const { analytics, error: analyticsError } = await getAnalyticsData(leagueId, selectedEventId);
-
-      console.log('[Analytics] Raw analytics response:', { analytics, error: analyticsError });
-      console.log('[Analytics] Analytics data keys:', analytics ? Object.keys(analytics) : 'null');
-      console.log('[Analytics] Total ballots:', analytics?.totalBallots);
-      console.log('[Analytics] Overall stats:', analytics?.overallStats);
-      console.log('[Analytics] Insights count:', analytics?.insights?.length);
-
-      // Detailed debugging for BAFTA vs Golden Globes comparison
-      if (selectedEventId === 'baftas-2026' || selectedEventId === 'golden-globes-2026') {
-        console.log(`[Analytics] ${selectedEventId.toUpperCase()} Detailed Data:`);
-        console.log('  - Nominee Popularity:', Object.keys(analytics?.nomineePopularity || {}).length, 'nominees');
-        console.log('  - Power Pick Analysis:', Object.keys(analytics?.powerPickAnalysis || {}).length, 'power picks');
-        console.log('  - Category Analytics:', Object.keys(analytics?.categoryAnalytics || {}).length, 'categories');
-        console.log('  - Sample nominee data:', Object.values(analytics?.nomineePopularity || {}).slice(0, 2));
-        console.log('  - Sample power pick data:', Object.values(analytics?.powerPickAnalysis || {}).slice(0, 2));
-      }
-
-      if (analyticsError) throw analyticsError;
-
-      setAnalyticsData(analytics);
-      setLastUpdated(new Date());
-
+      setCategories(gridData);
     } catch (err) {
-      console.error('Analytics fetch error:', err);
-      setError('Failed to load analytics data');
+      console.error('Error fetching analytics:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [leagueId, selectedEventId, excludeTestUsers, refreshKey, viewMode]);
+    fetchData();
+  }, [selectedEventId]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-text-secondary">Loading Analytics...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-12 text-center text-gray-400">Loading Stats...</div>;
+  if (!data) return <div className="p-12 text-center text-gray-400">No data available for this event.</div>;
 
-  if (error || !analyticsData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-danger text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-white mb-2">Analytics Error</h2>
-          <p className="text-text-secondary mb-4">{error || 'No data available'}</p>
-          <button 
-            onClick={() => setRefreshKey(prev => prev + 1)} 
-            className="bg-primary text-black px-6 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const upsets = Object.entries(data.categoryAnalytics || {})
+    .filter(([, d]: any) => d.upset)
+    .sort(([, a]: any, [, b]: any) => b.mostPopularPick?.percentage - a.mostPopularPick?.percentage);
 
-  // Compute derived data from analyticsData
-  const sortedNominees = Object.entries(analyticsData.nomineePopularity || {})
-    .sort(([, a]: [string, any], [, b]: [string, any]) => b.count - a.count);
+  const hardest = Object.values(data.categoryCorrectness || {})
+    .sort((a: any, b: any) => a.percentCorrect - b.percentCorrect)[0] as any;
 
-  const upsets = Object.entries(analyticsData.categoryAnalytics || {})
-    .filter(([, data]: [string, any]) => data.upset)
-    .sort(([, a]: [string, any], [, b]: [string, any]) => (b.mostPopularPick?.percentage || 0) - (a.mostPopularPick?.percentage || 0));
-
-  const sortedPowerPicks = Object.entries(analyticsData.powerPickAnalysis || {})
-    .sort(([, a]: [string, any], [, b]: [string, any]) => b.successRate - a.successRate);
-
-  const topNominees = sortedNominees.slice(0, 15);
-  const topPowerPicks = sortedPowerPicks.slice(0, 10);
-
-  const consensusCategories = Object.entries(analyticsData.categoryAnalytics || {})
-    .filter(([, data]: [string, any]) => data.consensusCorrect)
-    .sort(([, a]: [string, any], [, b]: [string, any]) => b.totalPicks - a.totalPicks);
+  const easiest = Object.values(data.categoryCorrectness || {})
+    .sort((a: any, b: any) => b.percentCorrect - a.percentCorrect)[0] as any;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-900 via-black to-gray-900">
-      {/* Award Show Selector - Moved to Top */}
-      <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-lg border-b border-white/10">
-        <div className="px-4 py-4">
-          <div className="max-w-lg mx-auto">
-            <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold text-white">Award Show</h2>
-                <button 
-                  onClick={() => setRefreshKey(prev => prev + 1)}
-                  className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Refresh Data"
-                >
-                  <RefreshCw size={14} className="text-white" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {SEASON_CIRCUIT.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => setSelectedEventId(event.id)}
-                    className={`p-2 rounded-lg border transition-all text-center ${
-                      selectedEventId === event.id
-                        ? event.status === 'completed'
-                          ? 'bg-green-500/20 border-green-500 text-green-400'
-                          : 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
-                        : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex justify-center mb-1">
-                      <span className="text-sm">{event.icon}</span>
-                      {event.status === 'completed' && (
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full ml-1" />
-                      )}
-                      {event.status === 'open' && (
-                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse ml-1" />
-                      )}
-                    </div>
-                    <div className="text-[10px] font-bold leading-tight">{event.name.split(' ')[0]}</div>
-                    <div className="text-[8px] opacity-70">
-                      {event.status === 'completed' ? '✅' : event.status === 'open' ? '📊' : '📅'}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[10px] text-gray-400">
-                  {selectedEventId === eventId ? 'Current Event' : 'Historical Data'}
-                </p>
-                <div className="flex items-center gap-3 ml-auto">
-                  <p className="text-[10px] text-gray-400">
-                    Updated {lastUpdated ? lastUpdated.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="excludeTestUsers"
-                      checked={excludeTestUsers}
-                      onChange={(e) => setExcludeTestUsers(e.target.checked)}
-                      className="w-3 h-3 rounded border-gray-300 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
-                    />
-                    <label htmlFor="excludeTestUsers" className="text-[10px] text-gray-400">
-                      Exclude test users
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-900/50 p-6 rounded-2xl border border-gray-800">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center">
+            <BarChart3 className="mr-2 text-yellow-500" />
+            {SEASON_CIRCUIT.find(e => e.id === selectedEventId)?.name} Stats
+          </h1>
+          <p className="text-sm text-gray-400">Audit & Performance Breakdown</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {SEASON_CIRCUIT.map(e => (
+            <button
+              key={e.id}
+              onClick={() => setSelectedEventId(e.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                selectedEventId === e.id ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              {e.icon}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-linear-to-r from-yellow-600/20 via-yellow-500/10 to-yellow-600/20 border-b border-yellow-500/20">
-        <div className="absolute inset-0 bg-black/40"></div>
-        <div className="relative px-4 py-8">
-          <div className="max-w-lg mx-auto text-center">
-            <div className="flex justify-center mb-4">
-              <Trophy className="w-12 h-12 text-yellow-500" />
-            </div>
-            <h1 className="text-3xl font-cinzel font-bold text-white mb-3">
-              {selectedEventId === 'golden-globes-2026' ? 'The Results Are In!' : 'Analytics Dashboard'}
-            </h1>
-            <p className="text-lg text-gray-300 mb-6">
-              {getAwardShowName(selectedEventId)} - {selectedEventId === eventId ? 'Live Analytics' : 'Historical Results'}
-            </p>
-            
-            {/* View Mode Toggle */}
-            <div className="flex justify-center mb-6">
-              <div className="bg-white/5 rounded-lg p-1 flex">
-                <button
-                  onClick={() => setViewMode('event')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'event'
-                      ? 'bg-yellow-500 text-black'
-                      : 'text-white hover:bg-white/10'
-                  }`}
-                >
-                  {getAwardShowName(selectedEventId)}
-                </button>
-                <button
-                  onClick={() => setViewMode('season')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'season'
-                      ? 'bg-yellow-500 text-black'
-                      : 'text-white hover:bg-white/10'
-                  }`}
-                >
-                  Season Overall
-                </button>
-              </div>
-            </div>
-            
-            {/* Key Stats */}
-            <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                <Users className="w-6 h-6 text-blue-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">
-                  {viewMode === 'season' && analyticsData.seasonAnalytics
-                    ? analyticsData.seasonAnalytics.totalBallots
-                    : analyticsData.totalBallots}
-                </p>
-                <p className="text-xs text-gray-300">Players</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">
-                  {viewMode === 'season' && analyticsData.seasonAnalytics
-                    ? analyticsData.seasonAnalytics.overallStats.overallAccuracy.toFixed(1)
-                    : analyticsData.overallStats.overallAccuracy.toFixed(1)}%
-                </p>
-                <p className="text-xs text-gray-300">Accuracy</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                <Zap className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">
-                  {viewMode === 'season' && analyticsData.seasonAnalytics
-                    ? analyticsData.seasonAnalytics.overallStats.powerPickSuccessRate.toFixed(1)
-                    : analyticsData.overallStats.powerPickSuccessRate.toFixed(1)}%
-                </p>
-                <p className="text-xs text-gray-300">Power Success</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                <Flame className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">
-                  {viewMode === 'season' && analyticsData.seasonAnalytics
-                    ? (analyticsData.seasonAnalytics.insights?.filter((i: any) => i.type === 'upset') || []).length
-                    : upsets.length}
-                </p>
-                <p className="text-xs text-gray-300">Major Upsets</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Update Header Title */}
-      <div className="px-4 pb-6">
-        <div className="max-w-lg mx-auto text-center">
-          <h2 className="text-2xl font-cinzel font-bold text-white mb-2">
-            {viewMode === 'season' ? 'Season Overall Analytics' : `${getAwardShowName(selectedEventId)} Analytics`}
-          </h2>
-          <p className="text-sm text-gray-400">
-            {viewMode === 'season' 
-              ? 'Combined performance across all 2026 award shows' 
-              : (selectedEventId === eventId ? 'Current Event Performance' : 'Historical Results')}
-          </p>
-        </div>
-      </div>
-
-      <div className="px-4 py-8 max-w-lg mx-auto space-y-8">
-        
-        {/* Share Results */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h3 className="text-xl font-bold text-blue-400 mb-4 flex items-center">
-            <Share2 className="w-5 h-5 mr-2" />
-            Share Your Results
-          </h3>
-          <p className="text-gray-400 text-sm mb-4 italic">📤 Let friends see how you did</p>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => {
-                  const awardShowName = getAwardShowName(selectedEventId);
-                  const awardShowYear = getAwardShowYear(selectedEventId);
-                  const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
-                  const url = window.location.href;
-                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-                }}
-                className="bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-              >
-                <Twitter size={16} />
-                <span className="text-sm">Twitter</span>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  const awardShowName = getAwardShowName(selectedEventId);
-                  const awardShowYear = getAwardShowYear(selectedEventId);
-                  const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
-                  navigator.clipboard.writeText(text);
-                }}
-                className="bg-green-500/20 hover:bg-green-500/30 text-green-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-              >
-                <MessageCircle size={16} />
-                <span className="text-sm">iMessage</span>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  const awardShowName = getAwardShowName(selectedEventId);
-                  const awardShowYear = getAwardShowYear(selectedEventId);
-                  const text = `🏆 My ${awardShowName} ${awardShowYear} Results!\n🎯 Accuracy: ${analyticsData.overallStats.overallAccuracy.toFixed(1)}%\n⚡ Power Picks: ${analyticsData.overallStats.correctPowerPicks}/${analyticsData.overallStats.totalPowerPicks} correct\n\nThink you can do better? Join Reel Rivals! 🎭`;
-                  const url = window.location.href;
-                  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
-                }}
-                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-              >
-                <MessageCircle size={16} />
-                <span className="text-sm">WhatsApp</span>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  const url = window.location.href;
-                  navigator.clipboard.writeText(url);
-                }}
-                className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-              >
-                <Link size={16} />
-                <span className="text-sm">Copy Link</span>
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 text-center">Challenge friends to beat your score for the next show!</p>
-          </div>
-        </div>
-        
-        {/* Power Scale Analysis */}
-        <PowerScale 
-          analyticsData={analyticsData}
-          eventId={selectedEventId}
-        />
-
-        {/* Voter Overlap Analysis */}
-        <VoterOverlap 
-          analyticsData={analyticsData}
-          eventId={selectedEventId}
-        />
-
-        {/* Awards Funnel */}
-        <AwardsFunnel 
-          analyticsData={analyticsData}
-          eventId={selectedEventId}
-        />
-
-        {/* Category Performance */}
-        <div className="bg-linear-to-r from-indigo-900/30 via-purple-900/20 to-indigo-900/30 rounded-2xl p-6 border border-indigo-500/30">
-          <h3 className="text-xl font-bold text-indigo-400 mb-4 flex items-center">
-            <Target className="w-5 h-5 mr-2" />
-            Category Performance
-          </h3>
-          <p className="text-gray-400 text-sm mb-4 italic">🎯 Which categories were hardest to predict?</p>
-          <div className="space-y-3">
-            {Object.entries(analyticsData.categoryAnalytics)
-              .sort(([, a]: [string, any], [, b]: [string, any]) => (b.consensusCorrect ? 1 : 0) - (a.consensusCorrect ? 1 : 0))
-              .slice(0, 5)
-              .map(([categoryId, data]: [string, any]) => (
-                <div key={categoryId} className={`p-4 rounded-xl border backdrop-blur-sm ${
-                  data.consensusCorrect 
-                    ? 'bg-green-500/10 border-green-500/30' 
-                    : 'bg-red-500/10 border-red-500/30'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-medium">{data.categoryName}</span>
-                    <div className="flex items-center space-x-1">
-                      {data.consensusCorrect ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                      )}
-                      <span className={`text-sm font-bold ${
-                        data.consensusCorrect ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {data.consensusCorrect ? 'Consensus' : 'Upset'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>{data.totalPicks} picks</span>
-                    <span>{data.uniqueNominees} nominees</span>
-                    {data.upset && <span className="text-orange-400">Major Upset!</span>}
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Power Pick Heroes */}
-        <div className="bg-linear-to-r from-red-900/30 via-pink-900/20 to-red-900/30 rounded-2xl p-6 border border-red-500/30">
-          <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center">
-            <Flame className="w-5 h-5 mr-2" />
-            Power Pick Heroes
-          </h3>
-          <p className="text-gray-400 text-sm mb-4 italic">🔥 Who crushed it with 3x picks?</p>
-          <div className="space-y-3">
-            {Object.entries(analyticsData.powerPickAnalysis)
-              .sort(([, a]: [string, any], [, b]: [string, any]) => b.successRate - a.successRate)
-              .slice(0, 3)
-              .map(([nomineeId, data]: [string, any]) => (
-                <div key={nomineeId} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-medium">{data.nomineeName}</span>
-                    <div className="flex items-center space-x-1">
-                      <Flame className="w-4 h-4 text-red-400" />
-                      <span className="text-red-400 font-bold text-sm">{data.successRate.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400">
-                    <span>{data.count} power picks</span>
-                    <span>{data.category}</span>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Key Insights */}
-        <div className="bg-linear-to-br from-yellow-900/30 via-black to-yellow-900/30 rounded-2xl p-6 border border-yellow-500/30">
-          <h2 className="text-2xl font-cinzel font-bold text-yellow-500 mb-4 flex items-center">
-            <Crown className="w-6 h-6 mr-2" />
-            Key Insights
-          </h2>
-          <p className="text-gray-400 text-sm mb-4 italic">🎭 The tea nobody asked for but everyone needs</p>
-          <div className="space-y-4">
-            {analyticsData.insights.map((insight, index) => (
-              <div 
-                key={index}
-                className={`p-4 rounded-xl border backdrop-blur-sm transition-all ${
-                  insight.impact === 'high' 
-                    ? 'bg-red-500/10 border-red-500/30' 
-                    : insight.impact === 'medium' 
-                    ? 'bg-yellow-500/10 border-yellow-500/30'
-                    : 'bg-white/5 border-white/20'
-                }`}
-              >
-                <h3 className="text-base font-bold text-white mb-1">{insight.title}</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">{insight.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Overall Stats First */}
-        <div className="bg-linear-to-r from-purple-900/30 via-pink-900/20 to-purple-900/30 rounded-2xl p-6 border border-purple-500/30">
-          <h3 className="text-xl font-bold text-purple-400 mb-4">Global Performance</h3>
-          <p className="text-gray-400 text-sm mb-4 italic">📊 How badly did we all do?</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center bg-white/5 rounded-xl p-3">
-              <p className="text-2xl font-bold text-white mb-1">{analyticsData.totalBallots}</p>
-              <p className="text-xs text-gray-300">Players</p>
-            </div>
-            <div className="text-center bg-white/5 rounded-xl p-3">
-              <p className="text-2xl font-bold text-green-400 mb-1">{analyticsData.overallStats.overallAccuracy.toFixed(1)}%</p>
-              <p className="text-xs text-gray-300">Accuracy</p>
-            </div>
-            <div className="text-center bg-white/5 rounded-xl p-3">
-              <p className="text-2xl font-bold text-yellow-400 mb-1">{analyticsData.overallStats.powerPickSuccessRate.toFixed(1)}%</p>
-              <p className="text-xs text-gray-300">Power Success</p>
-            </div>
-            <div className="text-center bg-white/5 rounded-xl p-3">
-              <p className="text-2xl font-bold text-orange-400 mb-1">{upsets.length}</p>
-              <p className="text-xs text-gray-300">Major Upsets</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Crowd Favorites Who Won */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h3 className="text-xl font-bold text-green-400 mb-4 flex items-center">
-            <Trophy className="w-5 h-5 mr-2" />
-            Crowd Favorites Who Won
-          </h3>
-          <p className="text-gray-400 text-sm mb-4 italic">🎉 The rare times we were actually right</p>
-          <div className="space-y-3">
-            {sortedNominees.filter(([, data]) => data.isWinner).slice(0, 3).map(([nomineeId, data], index) => (
-              <div key={nomineeId} className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-white font-medium">{data.name}</span>
-                  <div className="flex items-center space-x-1">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
-                    <span className="text-green-400 font-bold text-sm">{data.count}</span>
-                  </div>
-                </div>
-                <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-                  <div 
-                    className="bg-linear-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(data.percentage, 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-400">
-                  <span>{data.percentage.toFixed(1)}% of all picks</span>
-                  <span>{data.accuracy.toFixed(1)}% accuracy</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Biggest Upsets */}
-        {upsets.length > 0 && (
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              Biggest Upsets
-            </h3>
-            <p className="text-gray-400 text-sm mb-4 italic">💀 When the crowd was spectacularly wrong</p>
-            <div className="space-y-3">
-              {upsets.slice(0, 3).map(([categoryId, data], index) => (
-                <div key={categoryId} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <p className="text-white font-medium text-sm">{data.categoryName}</p>
-                      <p className="text-xs text-gray-400">Expected: {data.mostPopularPick?.name}</p>
-                    </div>
-                    <div className="text-right ml-2">
-                      <p className="text-red-400 font-bold text-xs">UPSET</p>
-                      <p className="text-xs text-gray-400">{data.mostPopularPick?.percentage?.toFixed(1)}% picks</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-300">Winner: <span className="text-white font-medium">{data.winnerNomineeName}</span></p>
-                    <div className="flex items-center space-x-1 text-red-400">
-                      <AlertTriangle className="w-3 h-3" />
-                      <span className="text-xs font-bold">SHOCKER</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Power Pick Analysis */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h3 className="text-xl font-bold text-yellow-400 mb-4 flex items-center">
-            <Zap className="w-5 h-5 mr-2" />
-            Power Pick Strategy
-          </h3>
-          <p className="text-gray-400 text-sm mb-4 italic">⚡ Where our confidence went to die (or thrive)</p>
-          <div className="space-y-3">
-            {sortedPowerPicks.slice(0, 5).map(([nomineeId, data]) => (
-              <div key={nomineeId} className="bg-linear-to-r from-yellow-500/10 to-yellow-600/5 border border-yellow-500/30 rounded-xl p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <p className="text-white font-medium text-sm">{data.nomineeName}</p>
-                    <p className="text-xs text-gray-400">{data.category}</p>
-                  </div>
-                  <div className={`px-2 py-1 rounded-full text-xs font-bold ml-2 ${
-                    data.successRate > 60 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : data.successRate > 30
-                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  }`}>
-                    {data.successRate.toFixed(0)}% success
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Zap className="w-3 h-3 text-yellow-400" />
-                    <span className="text-xs text-gray-300">{data.count} power picks</span>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {data.successRate > 60 ? '🔥 Hot' : data.successRate > 30 ? '⚖️ Mixed' : '❌ Cold'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Wisdom of the Crowd */}
-        {consensusCategories.length > 0 && (
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h3 className="text-xl font-bold text-blue-400 mb-4 flex items-center">
-              <Target className="w-5 h-5 mr-2" />
-              Wisdom of the Crowd
-            </h3>
-            <p className="text-gray-300 text-sm mb-4 italic">🧠 Sometimes the hive mind actually works</p>
-            <p className="text-gray-400 text-xs mb-4">Categories where the most popular pick correctly predicted the winner</p>
-            <div className="space-y-2">
-              {consensusCategories.slice(0, 5).map(([categoryId, data]) => (
-                <div key={categoryId} className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-                  <p className="text-white font-medium text-sm mb-1">{data.categoryName}</p>
-                  <p className="text-xs text-gray-300">Winner: {data.winnerNomineeName}</p>
-                  <div className="flex items-center mt-1 text-xs text-blue-400">
-                    <Target className="w-3 h-3 mr-1" />
-                    Consensus Correct
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Detailed Performance */}
-        <div className="bg-linear-to-r from-purple-900/30 via-pink-900/20 to-purple-900/30 rounded-2xl p-6 border border-purple-500/30">
-          <h3 className="text-xl font-bold text-purple-400 mb-4">Detailed Performance</h3>
-          <p className="text-gray-400 text-sm mb-4 italic">🔍 The nerdy numbers nobody asked for</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-white mb-1">{analyticsData.overallStats.totalPicks}</p>
-              <p className="text-xs text-gray-300">Total Picks</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-green-400 mb-1">{analyticsData.overallStats.totalCorrectPicks}</p>
-              <p className="text-xs text-gray-300">Correct</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-yellow-400 mb-1">{analyticsData.overallStats.totalPowerPicks}</p>
-              <p className="text-xs text-gray-300">Power Picks</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-purple-400 mb-1">{analyticsData.overallStats.correctPowerPicks}</p>
-              <p className="text-xs text-gray-300">Power Hits</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Educational Content Section */}
-        <div className="space-y-6 py-8 px-6">
-          <div className="bg-linear-to-br from-yellow-900/40 via-black to-yellow-900/40 rounded-2xl p-6 border border-yellow-500/30">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-cinzel font-bold text-yellow-500 flex items-center">
-                <Award className="w-6 h-6 mr-2" />
-                The Road to the Oscars
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Easiest/Hardest */}
+        <div className="space-y-6">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-green-400 font-bold flex items-center">
+                <Check className="mr-2 w-4 h-4" /> Easiest Category
               </h3>
-              <div className="text-xs text-gray-400 bg-yellow-500/20 px-3 py-1 rounded-full">
-                Understanding Awards Season
-              </div>
+              <span className="text-2xl font-bold text-green-400">{easiest?.percentCorrect.toFixed(0)}%</span>
             </div>
-            <p className="text-gray-300 text-sm mb-6 italic">
-              🎓 Master the art of awards prediction with these visual insights into how films are selected and awarded.
-            </p>
-            
-            <div className="space-y-6">
-              <PowerScale />
-              <VoterOverlap />
-              <AwardsFunnel selectedEventId={selectedEventId} />
+            <p className="text-white font-medium">{easiest?.categoryName}</p>
+            <p className="text-xs text-green-400/60 mt-1">Highest accuracy across all players</p>
+          </div>
+
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-red-400 font-bold flex items-center">
+                <AlertTriangle className="mr-2 w-4 h-4" /> Hardest Category
+              </h3>
+              <span className="text-2xl font-bold text-red-400">{hardest?.percentCorrect.toFixed(0)}%</span>
             </div>
+            <p className="text-white font-medium">{hardest?.categoryName}</p>
+            <p className="text-xs text-red-400/60 mt-1">Lowest accuracy across all players</p>
           </div>
         </div>
 
+        {/* Popular but Wrong */}
+        <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-6 flex flex-col justify-center">
+          <h3 className="text-orange-400 font-bold flex items-center mb-4">
+            <Users className="mr-2 w-4 h-4" /> Popular But Wrong
+          </h3>
+          {upsets[0] ? (
+            <>
+              <div className="mb-2">
+                <p className="text-[10px] text-orange-400/60 uppercase tracking-widest font-bold">The Upset</p>
+                <p className="text-white font-bold">{(upsets[0][1] as any).categoryName}</p>
+              </div>
+              <div className="bg-black/40 rounded-xl p-4 mt-2">
+                <p className="text-sm text-gray-400">Most players picked:</p>
+                <p className="text-lg font-bold text-red-400">{(upsets[0][1] as any).mostPopularPick?.name}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-gray-500">Actual Winner:</span>
+                  <span className="text-xs font-bold text-green-400">{(upsets[0][1] as any).winnerNomineeName}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-gray-500 italic text-center">No major upsets recorded yet.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Most Picked per Category */}
+      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-gray-800 bg-linear-to-r from-gray-800/50 to-transparent">
+          <h3 className="text-lg font-bold text-white flex items-center">
+            <Crown className="mr-2 w-5 h-5 text-yellow-500" />
+            Consensus Leaderboard
+          </h3>
+          <p className="text-xs text-gray-400">Most picked nominee per category</p>
+        </div>
+        <div className="divide-y divide-gray-800">
+          {Object.entries(data.categoryAnalytics).map(([id, cat]: any) => (
+            <div key={id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{cat.categoryName}</p>
+                <p className="text-sm font-medium text-white">{cat.mostPopularPick?.name}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-yellow-500">{cat.mostPopularPick?.percentage.toFixed(0)}%</div>
+                <div className="text-[10px] text-gray-500 uppercase font-bold">of picks</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Score Grid (Optional Breakdown) */}
+      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-gray-800 flex justify-between items-end">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center">
+              <Zap className="mr-2 w-5 h-5 text-purple-500" />
+              Player Breakdown Grid
+            </h3>
+            <p className="text-xs text-gray-400">Category-by-category hits (✓) and misses (✗)</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-black/40">
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase sticky left-0 bg-gray-900/95 z-10 w-48 border-r border-gray-800">Category</th>
+                {scores.map(s => (
+                  <th key={s.id} className="p-4 text-center min-w-[80px]">
+                    <div className="text-lg mb-1">{s.avatar_emoji}</div>
+                    <div className="text-[10px] font-bold text-white truncate max-w-[60px] mx-auto">{s.username}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {categories.map(cat => (
+                <tr key={cat.categoryId} className="hover:bg-white/5">
+                  <td className="p-4 text-xs font-medium text-gray-300 sticky left-0 bg-gray-900/95 z-10 border-r border-gray-800">{cat.categoryName}</td>
+                  {cat.userPicks.map((up: any, idx: number) => (
+                    <td key={idx} className="p-4 text-center">
+                      {up.isCorrect ? (
+                        <span className="text-green-500 font-bold">✓</span>
+                      ) : (
+                        <span className="text-red-500/30">✗</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

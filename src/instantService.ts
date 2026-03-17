@@ -2,6 +2,8 @@ import { dbCore, InstantUser } from "./instant";
 import { id } from "@instantdb/core";
 import { MAIN_OSCAR_CATEGORIES, MAIN_BAFTA_CATEGORIES, MAIN_SAG_CATEGORIES } from './constants-main';
 import { AWARD_SHOW_CATEGORIES } from '../constants';
+import { computeAnalyticsData } from './analytics.js';
+import type { Category } from './ballots';
 
 const seedInFlight = new Map<string, Promise<any>>();
 const seedAttempts = new Map<string, number>();
@@ -404,6 +406,43 @@ function getBAFTAEmoji(categoryId: string): string {
   return emojiMap[categoryId] || '🏆';
 }
 
+export async function getCategoriesWithNominees(eventId: string): Promise<any[]> {
+  const result = await dbCore.queryOnce({
+    categories: {
+      $: { where: { event_id: eventId } },
+      nominees: {}
+    }
+  });
+
+  const categories = result.data.categories || [];
+  if (!categories.length) return [];
+
+  const nominees = await dbCore.queryOnce({
+    nominees: {
+      $: {
+        where: {
+          category_id: { $in: categories.map((c: any) => c.id) }
+        }
+      }
+    }
+  });
+
+  const nomineesByCategory: { [key: string]: any[] } = {};
+  nominees.data.nominees.forEach((nominee: any) => {
+    if (!nomineesByCategory[nominee.category_id]) {
+      nomineesByCategory[nominee.category_id] = [];
+    }
+    nomineesByCategory[nominee.category_id].push(nominee);
+  });
+
+  const categoriesWithNominees = categories.map(cat => ({
+    ...cat,
+    nominees: nomineesByCategory[cat.id] || []
+  }));
+
+  return categoriesWithNominees as any[];
+}
+
 async function fetchCategoriesWithNominees(eventId: string, expectedCount?: number) {
   const cats = await dbCore.queryOnce({
     categories: {
@@ -506,12 +545,12 @@ export async function ensureCategoriesSeeded(eventId: string = "golden-globes-20
       const hasMatchingNomineeSets = hasMatchingCategorySet
         ? existingCategories.every((c: any) => {
             const expected = eventCategoryByName.get(c.name);
-            if (!expected || !Array.isArray(c.nominees)) return false;
+            if (!expected || !Array.isArray((c as any).nominees)) return false;
             const expectedNames = new Set(
               (expected.nominees || []).map((n: any) => normalizeName(n.name))
             );
             const existingNames = new Set(
-              c.nominees.map((n: any) => normalizeName(n.name))
+              ((c as any).nominees || []).map((n: any) => normalizeName(n.name))
             );
             if (expectedNames.size !== existingNames.size) return false;
             for (const name of expectedNames) {
@@ -761,7 +800,7 @@ export async function saveBallotPick(
 
     if (ballotQuery.data.ballots.length > 0) {
       ballotId = ballotQuery.data.ballots[0].id;
-      if (ballotQuery.data.ballots[0].is_locked) {
+      if ((ballotQuery.data.ballots[0] as any).is_locked) {
         return { error: new Error('Ballot is locked and cannot be edited') };
       }
     } else {
@@ -979,45 +1018,46 @@ export async function getAllPlayersWithScores(eventId: string) {
   try {
     console.log('[getAllPlayersWithScores] Starting - eventId:', eventId);
     
-    const scoresQuery = await dbCore.queryOnce({
-      scores: {
-        $: { where: { event_id: eventId } },
-        user: {}
-      }
-    });
+    // Fetch scores and users separately then join
+    const [scoresQuery, usersQuery] = await Promise.all([
+      dbCore.queryOnce({
+        scores: { $: { where: { event_id: eventId } } }
+      }),
+      dbCore.queryOnce({
+        users: { $: {} }
+      })
+    ]);
     
     const scoresData = scoresQuery.data?.scores || [];
-    const scoreMap = new Map();
+    const usersData = usersQuery.data?.users || [];
     
-    scoresData.forEach((score: any) => {
-      scoreMap.set(score.user_id, {
+    const userMap = new Map();
+    usersData.forEach((u: any) => userMap.set(u.id, u));
+    
+    // Transform to player format and join with user data
+    const playersWithScores = scoresData.map((score: any) => {
+      const user = userMap.get(score.user_id);
+      return {
+        id: score.user_id,
+        username: user?.username || 'Unknown User',
+        avatar_emoji: user?.avatar_emoji || '👤',
         totalPoints: score.total_points || 0,
         correctPicks: score.correct_picks || 0,
         powerPicksHit: score.power_picks_hit || 0,
+        hasSubmitted: true,
         updatedAt: score.updated_at
-      });
+      };
     });
     
-    console.log('[getAllPlayersWithScores] Raw scores data:', scoresQuery.data);
+    // Sort by total points descending
+    playersWithScores.sort((a, b) => b.totalPoints - a.totalPoints);
     
-    // Transform to player format
-    const playersWithScores = scoresData.map((score: any) => ({
-      id: score.user_id,
-      username: score.user?.username || 'Unknown',
-      avatar_emoji: score.user?.avatar_emoji || '👤',
-      totalPoints: score.total_points || 0,
-      correctPicks: score.correct_picks || 0,
-      powerPicksHit: score.power_picks_hit || 0,
-      hasSubmitted: true,
-      updatedAt: score.updated_at
-    }));
+    console.log('[getAllPlayersWithScores] Transformed players:', playersWithScores.length);
     
-    console.log('[getAllPlayersWithScores] Transformed players:', playersWithScores);
-    
-    return { players: playersWithScores, error: null, scoreMap };
+    return { players: playersWithScores, error: null };
   } catch (error) {
     console.error('[getAllPlayersWithScores] Error:', error);
-    return { players: [], error, scoreMap: new Map() };
+    return { players: [], error };
   }
 }
 
@@ -1231,7 +1271,7 @@ export async function calculateScoresForEvent(eventId: string): Promise<{ succes
         results: {
           $: { where: { category_id: { in: categoryIds } } }
         }
-      }),
+      } as any),
       dbCore.queryOnce({
         picks: {
           $: { where: { category_id: { in: categoryIds } } },
@@ -1243,12 +1283,12 @@ export async function calculateScoresForEvent(eventId: string): Promise<{ succes
         scores: {
           $: { where: { event_id: eventId } }
         }
-      })
-    ]);
+      } as any)
+    ] as any[]);
 
-    const results = resultsQuery.data.results || [];
-    const picks = picksQuery.data.picks || [];
-    const existingScores = existingScoresQuery.data.scores || [];
+    const results = (resultsQuery as any).data.results || [];
+    const picks = (picksQuery as any).data.picks || [];
+    const existingScores = (existingScoresQuery as any).data.scores || [];
 
     const winnerByCategory = new Map(
       results.map((r: any) => [r.category_id, r.winner_nominee_id])
@@ -1261,11 +1301,13 @@ export async function calculateScoresForEvent(eventId: string): Promise<{ succes
       const ballot = pick.ballot;
       if (!ballot) return acc;
 
-      const key = `${ballot.user_id}-${ballot.league_id}`;
+      const userId = (ballot as any).user_id;
+      const leagueId = (ballot as any).league_id;
+      const key = `${userId}-${leagueId}`;
       if (!acc[key]) {
         acc[key] = {
-          userId: ballot.user_id,
-          leagueId: ballot.league_id,
+          userId,
+          leagueId,
           correctPicks: 0,
           powerPicksHit: 0,
           totalPoints: 0
@@ -1292,7 +1334,7 @@ export async function calculateScoresForEvent(eventId: string): Promise<{ succes
 
     // Update or create scores for users with correct picks
     for (const [key, scoreData] of Object.entries(userLeaguePicks)) {
-      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData;
+      const { userId, leagueId, correctPicks, powerPicksHit, totalPoints } = scoreData as any;
       const existingScore = existingScores.find(
         (s: any) => s.user_id === userId && s.league_id === leagueId
       );
@@ -1527,9 +1569,9 @@ export async function signupForEventNotifications(userId: string, eventId: strin
           }
         }
       }
-    });
+    } as any);
     
-    const existingSignups = existingSignupQuery.data.notification_signups || [];
+    const existingSignups = (existingSignupQuery as any).data.notification_signups || [];
     
     if (existingSignups.length > 0) {
       console.log('[signupForEventNotifications] User already signed up');
@@ -1539,13 +1581,13 @@ export async function signupForEventNotifications(userId: string, eventId: strin
     // Create new notification signup
     const signupId = id();
     await dbCore.transact([
-      dbCore.tx.notification_signups[signupId].create({
+      (dbCore.tx as any).notification_signups[signupId].create({
         user_id: userId,
         event_id: eventId,
         created_at: Date.now(),
         notified: false
       })
-    ]);
+    ] as any[]);
     
     console.log('[signupForEventNotifications] Successfully signed up user');
     return { success: true, error: null };
@@ -1559,8 +1601,9 @@ export async function signupForEventNotifications(userId: string, eventId: strin
 export async function getAnalyticsData(leagueId: string, eventId: string): Promise<{ analytics: any, error: any }> {
   try {
     console.log('[getAnalyticsData] Fetching data for league:', leagueId, 'event:', eventId);
-    // Query ballots, picks, categories, winners, and users
-    const [ballotsResult, picksResult, categoriesResult, winnersResult, usersResult] = await Promise.all([
+    
+    // Fetch all data separately for more reliable joins
+    const [ballotsResult, picksResult, categoriesResult, winnersResult, usersResult, nomineesResult] = await Promise.all([
       (dbCore.queryOnce as any)({
         ballots: {
           $: { where: { event_id: eventId } },
@@ -1569,12 +1612,7 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
       }),
       (dbCore.queryOnce as any)({
         picks: {
-          $: { where: { 'ballot.event_id': eventId } },
-          ballot: {
-            user: {}
-          },
-          category: {},
-          nominee: {}
+          $: { where: { 'ballot.event_id': eventId } }
         }
       }),
       dbCore.queryOnce({
@@ -1586,26 +1624,57 @@ export async function getAnalyticsData(leagueId: string, eventId: string): Promi
       getWinnersForEvent(eventId),
       (dbCore.queryOnce as any)({
         users: {}
+      }),
+      dbCore.queryOnce({
+        nominees: { $: {} }
       })
     ]);
 
     const ballots = ballotsResult.data?.ballots || [];
-    const picks = picksResult.data?.picks || [];
+    let picks = picksResult.data?.picks || [];
     const categories = categoriesResult.data?.categories || [];
     const winners = (winnersResult as any)?.winners || [];
     const users = usersResult.data?.users || [];
+    const allNominees = nomineesResult.data?.nominees || [];
 
-    // High-level summary logs for production diagnostics
-    console.log('[getAnalyticsData] Summary:', {
+    // If no picks found with complex query, try simpler approach
+    if (picks.length === 0) {
+      console.log('[getAnalyticsData] No picks found with complex query, trying simple pick query...');
+      const simplePicksResult = await (dbCore.queryOnce as any)({
+        picks: { $: { limit: 100 } }
+      });
+      picks = simplePicksResult.data?.picks || [];
+      
+      // Filter picks for the specific event
+      const eventBallotIds = new Set(ballots.map((b: any) => b.id));
+      picks = picks.filter((pick: any) => eventBallotIds.has(pick.ballot_id));
+      console.log('[getAnalyticsData] After filtering for event:', picks.length, 'picks');
+    }
+
+    // Create lookup maps for manual joins
+    const nomineeMap = new Map(allNominees.map((n: any) => [n.id, n]));
+    const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
+    const ballotMap = new Map(ballots.map((b: any) => [b.id, b]));
+
+    // Manually join related data to ensure nominee names are available
+    picks = picks.map((pick: any) => ({
+      ...pick,
+      nominee: nomineeMap.get(pick.nominee_id),
+      category: categoryMap.get(pick.category_id),
+      ballot: ballotMap.get(pick.ballot_id)
+    }));
+
+    console.log('[getAnalyticsData] Final data summary:', {
       ballots: ballots.length,
       picks: picks.length,
       categories: categories.length,
       winners: winners.length,
-      users: users.length
+      users: users.length,
+      nominees: allNominees.length
     });
 
     // Process analytics data
-    const eventAnalytics = processAnalyticsData(ballots, picks, categories, winners, users);
+    const eventAnalytics = computeAnalyticsData({ ballots, picks, categories, winners, users });
 
     // Also get overall season analytics if this is not already a season-wide view
     let seasonAnalytics = null;
@@ -1639,13 +1708,20 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
     // Get all events in the season
     const SEASON_EVENTS = ['golden-globes-2026', 'baftas-2026', 'oscars-2026', 'sag-2026'];
 
-    // Get all ballots, categories, and winners for all events
+    // Get all ballots, picks, categories, and winners for all events
     const allDataPromises = SEASON_EVENTS.map(async (eventId) => {
-      const [ballotsResult, categoriesResult, winnersResult] = await Promise.all([
+      const [ballotsResult, picksResult, categoriesResult, winnersResult] = await Promise.all([
         (dbCore.queryOnce as any)({
           ballots: {
             $: { where: { event_id: eventId } },
-            picks: {}
+          }
+        }),
+        (dbCore.queryOnce as any)({
+          picks: {
+            $: { where: { 'ballot.event_id': eventId } },
+            ballot: {},
+            category: {},
+            nominee: {}
           }
         }),
         dbCore.queryOnce({
@@ -1660,6 +1736,7 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
       return {
         eventId,
         ballots: ballotsResult.data.ballots || [],
+        picks: picksResult.data?.picks || [],
         categories: categoriesResult.data.categories || [],
         winners: winnersResult.winners || []
       };
@@ -1675,11 +1752,13 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
 
     // Aggregate all data
     const allBallots: any[] = [];
+    const allPicks: any[] = [];
     const allCategories: any[] = [];
     const allWinners: any[] = [];
 
     allEventData.forEach(eventData => {
       allBallots.push(...eventData.ballots);
+      allPicks.push(...(eventData.picks || []));
       allCategories.push(...eventData.categories);
       allWinners.push(...eventData.winners);
     });
@@ -1688,7 +1767,13 @@ export async function getSeasonAnalyticsData(leagueId: string): Promise<any> {
     console.log('[getSeasonAnalyticsData] Total season categories:', allCategories.length);
 
     // Process season-wide analytics
-    const seasonAnalytics = processAnalyticsData(allBallots, allCategories, allWinners, users);
+    const seasonAnalytics = computeAnalyticsData({
+      ballots: allBallots,
+      picks: allPicks,
+      categories: allCategories,
+      winners: allWinners,
+      users
+    });
 
     return {
       ...seasonAnalytics,
@@ -1910,77 +1995,43 @@ function processAnalyticsData(ballots: any[], picks: any[], categories: any[], w
   };
 }
 
-function generateInsights(nomineePopularity: any, powerPickAnalysis: any, categoryAnalytics: any, stats: any, totalBallots: number) {
+function generateInsights(
+  nomineePopularity: Record<string, any>, 
+  powerPickAnalysis: Record<string, any>, 
+  categoryAnalytics: Record<string, any>,
+  stats: any,
+  totalBallots: number
+) {
   const insights = [];
 
-  // Most popular winner
-  const popularWinners = Object.entries(nomineePopularity)
-    .filter(([, data]: [string, any]) => data.isWinner)
-    .sort(([, a], [, b]: [string, any]) => (b as any).count - (a as any).count);
-  
-  if (popularWinners.length > 0) {
-    const [winnerId, winnerData] = popularWinners[0] as [string, any];
+  // Overall Performance
+  if (stats.overallAccuracy > 70) {
     insights.push({
-      type: 'popular_winner',
-      title: '🏆 Crowd Favorite Won',
-      description: `${winnerData.name} was the most popular pick (${winnerData.count} picks, ${winnerData.percentage.toFixed(1)}%) and took home the award!`,
+      type: 'accuracy',
+      title: 'Expert Crowd',
+      description: `The group is crushing it with ${stats.overallAccuracy.toFixed(1)}% overall accuracy!`,
       impact: 'high'
     });
   }
 
-  // Biggest upsets
-  const upsets = Object.entries(categoryAnalytics)
-    .filter(([, data]: [string, any]) => data.upset)
-    .sort(([, a], [, b]: [string, any]) => (b as any).mostPopularPick.percentage - (a as any).mostPopularPick.percentage);
-  
-  if (upsets.length > 0) {
-    const upset = upsets[0][1] as any;
+  // Major Upset
+  const majorUpsets = Object.values(categoryAnalytics).filter((c: any) => c.upset);
+  if (majorUpsets.length > 0) {
     insights.push({
       type: 'upset',
-      title: '😲 Biggest Upset',
-      description: `${upset.mostPopularPick.name} had ${upset.mostPopularPick.percentage.toFixed(1)}% of picks but lost to ${upset.winnerNomineeName}`,
+      title: 'Shocking Upsets',
+      description: `There were ${majorUpsets.length} major upsets where the crowd favorite didn't win.`,
       impact: 'high'
     });
   }
 
-  // Power pick effectiveness
-  if (stats.powerPickSuccessRate > 60) {
+  // Power Pick Performance
+  if (stats.powerPickSuccessRate > stats.overallAccuracy) {
     insights.push({
-      type: 'power_pick_success',
-      title: '⚡ Power Picks Paid Off',
-      description: `Power picks had a ${stats.powerPickSuccessRate.toFixed(1)}% success rate - well above random chance!`,
+      type: 'strategy',
+      title: 'Confident Choices',
+      description: 'Players are choosing their Power Picks wisely, with a higher success rate than normal picks.',
       impact: 'medium'
-    });
-  } else if (stats.powerPickSuccessRate < 30) {
-    insights.push({
-      type: 'power_pick_fail',
-      title: '⚡ Power Picks Missed',
-      description: `Only ${stats.powerPickSuccessRate.toFixed(1)}% of power picks were correct - sometimes the underdog wins!`,
-      impact: 'medium'
-    });
-  }
-
-  // Consensus categories
-  const consensusCategories = Object.entries(categoryAnalytics)
-    .filter(([, data]: [string, any]) => data.consensusCorrect)
-    .length;
-  
-  if (consensusCategories > 10) {
-    insights.push({
-      type: 'consensus',
-      title: '🎯 Wisdom of the Crowd',
-      description: `${consensusCategories} categories went to the most popular pick - the crowd knew best!`,
-      impact: 'medium'
-    });
-  }
-
-  // Participation insight
-  if (totalBallots > 100) {
-    insights.push({
-      type: 'participation',
-      title: '👥 Great Turnout',
-      description: `${totalBallots} people made their picks - that's some serious award show dedication!`,
-      impact: 'low'
     });
   }
 

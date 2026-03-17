@@ -19,6 +19,7 @@ import { getCountdownToNextAwardShow, CountdownInfo } from './src/utils/countdow
 import { getCategories, getBallot, saveBallotPicks, getOrCreateDefaultLeague, getAllPlayersWithScores, getCurrentUser, signOut, signupForEventNotifications, InstantUser, UserScores } from './src/instantService';
 import StandingsSnippet from './components/StandingsSnippet';
 import { PlayerList } from './PlayerList';
+import BallotResults from './components/BallotResults';
 
 // Mobile detection hook
 const useIsMobile = () => {
@@ -39,7 +40,7 @@ const useIsMobile = () => {
 const App: React.FC = () => {
   const isMobile = useIsMobile();
   const [user, setUser] = useState<InstantUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin' | 'analytics'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'ballot' | 'live' | 'leagues' | 'profile' | 'admin' | 'analytics' | 'results'>('home');
   const [ballot, setBallot] = useState<Ballot | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isBallotComplete, setIsBallotComplete] = useState(false);
@@ -629,12 +630,20 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-white">Your Progress</h3>
-            <button 
-              onClick={() => setActiveTab('ballot')}
-              className="text-xs text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
-            >
-              View Ballot
-            </button>
+            <div className="flex space-x-3">
+              <button 
+                onClick={() => setActiveTab('ballot')}
+                className="text-xs text-yellow-500 hover:text-yellow-400 font-semibold underline transition-colors"
+              >
+                View Ballot
+              </button>
+              <button 
+                onClick={() => setActiveTab('results')}
+                className="text-xs text-green-500 hover:text-green-400 font-semibold underline transition-colors"
+              >
+                View Results
+              </button>
+            </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -773,6 +782,12 @@ const BadgeCard: React.FC<{ badge: typeof SEASON_BADGES[0] }> = ({ badge }) => {
             eventId={selectedAwardShow} 
           />
         )
+      )}
+      {activeTab === 'results' && (
+        <BallotResults 
+          userId={user?.id || ''} 
+          eventId={selectedAwardShow} 
+        />
       )}
       {activeTab === 'profile' && (
         <div className="space-y-8 py-8 px-6">
